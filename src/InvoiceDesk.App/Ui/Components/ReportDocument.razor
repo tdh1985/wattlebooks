@@ -1,0 +1,115 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@* no injected services since HtmlRenderer also renders this for pdfs *@
+<article class="doc doc-report" style="--doc-accent: @Profile.AccentColour">
+    <header class="doc-head">
+        <div class="doc-from">
+            @if (LogoUrl is not null)
+            {
+                <img class="doc-logo" src="@LogoUrl" alt="" />
+            }
+            <div class="doc-from-text">
+                <div class="doc-biz">@(Profile.Name.Length > 0 ? Profile.Name : "Your business name")</div>
+                @if (Abn.IsValid(Profile.Abn))
+                {
+                    <div class="doc-small">ABN @Abn.Format(Profile.Abn)</div>
+                }
+            </div>
+        </div>
+        <div class="doc-title">
+            <h1>@(Bas is not null ? "BAS WORKSHEET" : "PROFIT & LOSS")</h1>
+            <div class="doc-number">@PeriodLabel</div>
+        </div>
+    </header>
+
+    @if (Bas is { } bas)
+    {
+        <section class="doc-section">
+            <h2>GST for @PeriodLabel</h2>
+            <p class="doc-small">@Format.DateLong(bas.Period.Start) to @Format.DateLong(bas.Period.End), cash basis</p>
+            <table class="doc-lines">
+                <tbody>
+                    <tr><td><span class="doc-code">G1</span>Total sales, including GST</td><td class="n">@Format.Money(bas.TotalSalesCents)</td></tr>
+                    <tr><td><span class="doc-code">1A</span>GST on sales</td><td class="n">@Format.Money(bas.GstOnSalesCents)</td></tr>
+                    <tr><td><span class="doc-code">1B</span>GST on purchases</td><td class="n">@Format.Money(bas.GstOnPurchasesCents)</td></tr>
+                    <tr class="doc-sum"><td>@(bas.NetGstCents >= 0 ? "GST to pay (1A less 1B)" : "GST refund (1B less 1A)")</td><td class="n">@Format.Money(Math.Abs(bas.NetGstCents))</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="doc-section">
+            <h2>Where G1 comes from</h2>
+            <p class="doc-small">Money received in the period by category, so you can check what belongs in total sales.</p>
+            <table class="doc-lines">
+                <thead><tr><th>Category</th><th class="n">GST</th><th class="n">Received</th></tr></thead>
+                <tbody>
+                    @foreach (var c in bas.SalesByCategory)
+                    {
+                        <tr><td>@c.Category</td><td class="n">@Format.Amount(c.GstCents)</td><td class="n">@Format.Amount(c.AmountCents)</td></tr>
+                    }
+                    @if (bas.SalesByCategory.Count == 0)
+                    {
+                        <tr><td colspan="3" class="doc-placeholder">No money came in during this period.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+
+        <p class="doc-disclaimer">
+            Worked out from payments received and expenses paid in the period. Bank interest and some other income may not belong in G1,
+            so check with your accountant or the ATO before you lodge. This isn't tax advice.
+        </p>
+    }
+    else if (Pl is { } pl)
+    {
+        <section class="doc-section">
+            <h2>Income</h2>
+            <p class="doc-small">@Format.DateLong(pl.Period.Start) to @Format.DateLong(pl.Period.End), cash basis, amounts exclude GST</p>
+            <table class="doc-lines">
+                <tbody>
+                    @foreach (var c in pl.Income)
+                    {
+                        <tr class="doc-sub"><td>@c.Category</td><td class="n">@Format.Amount(c.ExGstCents)</td></tr>
+                    }
+                    <tr class="doc-sum"><td>Total income</td><td class="n">@Format.Money(pl.IncomeCents)</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="doc-section">
+            <h2>Expenses</h2>
+            <table class="doc-lines">
+                <tbody>
+                    @foreach (var c in pl.Expenses)
+                    {
+                        <tr class="doc-sub"><td>@c.Category</td><td class="n">@Format.Amount(c.ExGstCents)</td></tr>
+                    }
+                    <tr class="doc-sum"><td>Total expenses</td><td class="n">@Format.Money(pl.ExpensesCents)</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="doc-section">
+            <table class="doc-lines">
+                <tbody>
+                    <tr class="doc-sum"><td>@(pl.ProfitCents >= 0 ? "Net profit" : "Net loss")</td><td class="n">@Format.Money(Math.Abs(pl.ProfitCents))</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <p class="doc-disclaimer">Worked out from money received and paid in the period. This isn't tax advice.</p>
+    }
+
+    <div class="doc-spacer"></div>
+    <footer class="doc-foot">
+        <span>Prepared with InvoiceDesk on @Format.DateLong(Today)</span>
+    </footer>
+</article>
+
+@code {
+    [Parameter] public BasSummary? Bas { get; set; }
+    [Parameter] public ProfitAndLoss? Pl { get; set; }
+    [Parameter, EditorRequired] public BusinessProfile Profile { get; set; } = default!;
+    [Parameter] public string? LogoUrl { get; set; }
+    [Parameter] public string PeriodLabel { get; set; } = "";
+    [Parameter] public DateOnly Today { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+}

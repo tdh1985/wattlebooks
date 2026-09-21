@@ -1,0 +1,50 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+
+<Modal Open="Open" Title="Keyboard shortcuts" OnClose="OnClose">
+    <ChildContent>
+        @foreach (var (heading, keys) in Groups)
+        {
+            <h3 class="keys-head">@heading</h3>
+            <dl class="keys">
+                @foreach (var (combo, what) in keys)
+                {
+                    <dt>
+                        @foreach (var part in combo.Split('+'))
+                        {
+                            <kbd>@part</kbd>
+                        }
+                    </dt>
+                    <dd>@what</dd>
+                }
+            </dl>
+        }
+    </ChildContent>
+</Modal>
+
+@code {
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    static readonly (string Heading, (string Combo, string What)[] Keys)[] Groups =
+    [
+        ("Anywhere",
+        [
+            ("Ctrl+K", "Search, or run a command"),
+            ("Ctrl+N", "New invoice"),
+            ("Ctrl+S", "Save the invoice or settings you're editing"),
+            ("Esc", "Close the panel on top"),
+            ("?", "Show this list"),
+        ]),
+        ("Writing an invoice",
+        [
+            ("Enter", "In quantity or price, go to the next line or add one"),
+            ("↑+↓", "Move through suggestions for a line"),
+            ("Enter", "Use the highlighted suggestion"),
+        ]),
+        ("Lists and search",
+        [
+            ("↑+↓", "Move through results"),
+            ("Enter", "Open the highlighted result"),
+        ]),
+    ];
+}

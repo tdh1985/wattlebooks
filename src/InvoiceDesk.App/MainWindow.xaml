@@ -8,6 +8,9 @@
         Title="InvoiceDesk"
         Width="1360" Height="860" MinWidth="1024" MinHeight="660"
         WindowStartupLocation="CenterScreen">
+    <Window.TaskbarItemInfo>
+        <TaskbarItemInfo x:Name="Taskbar" />
+    </Window.TaskbarItemInfo>
     <host:EmbeddedBlazorWebView x:Name="WebView" HostPage="wwwroot\index.html" Services="{DynamicResource services}">
         <host:EmbeddedBlazorWebView.RootComponents>
             <blazor:RootComponent Selector="#app" ComponentType="{x:Type ui:Main}" />

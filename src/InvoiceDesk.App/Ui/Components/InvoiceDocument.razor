@@ -4,13 +4,14 @@
     var totals = Invoice.Totals();
     var paid = Invoice.PaidCents;
     var balance = Math.Max(0, totals.TotalCents - paid);
-    var status = InvoiceStatusResolver.Resolve(Invoice.Status, totals.TotalCents, paid, Invoice.DueDate, Today);
+    var status = InvoiceStatusResolver.Resolve(Invoice.Kind, Invoice.Status, totals.TotalCents, paid, Invoice.DueDate, Today);
+    var quote = Invoice.Kind == InvoiceKind.Quote;
     var client = Invoice.Client;
     var lines = Invoice.Lines.Where(l => !string.IsNullOrWhiteSpace(l.Description) || l.UnitPriceCents != 0).ToList();
     var hasGstFree = totals.IsTaxInvoice && lines.Any(l => l.GstFree);
     var hasBank = Profile.AccountNumber.Length > 0 || Profile.Bsb.Length > 0;
 }
-<article class="doc" style="--doc-accent: @Profile.AccentColour">
+<article class="doc doc-@InvoiceTemplates.Normalise(Template ?? Profile.InvoiceTemplate)" style="--doc-accent: @Profile.AccentColour">
     <header class="doc-head">
         <div class="doc-from">
             @if (LogoUrl is not null)
@@ -42,14 +43,14 @@
             </div>
         </div>
         <div class="doc-title">
-            <h1>@totals.Heading</h1>
+            <h1>@Invoice.Heading()</h1>
             <div class="doc-number">@(Invoice.Number.Length > 0 ? Invoice.Number : NumberPreview)</div>
         </div>
     </header>
 
     <section class="doc-parties">
         <div>
-            <div class="doc-label">Bill to</div>
+            <div class="doc-label">@(quote ? "Quote for" : "Bill to")</div>
             @if (client is not null)
             {
                 <div class="doc-client">@client.Name</div>
@@ -82,10 +83,13 @@
         <dl class="doc-dates">
             <dt>Issued</dt>
             <dd>@Format.DateLong(Invoice.IssueDate)</dd>
-            <dt>Due</dt>
+            <dt>@(quote ? "Valid until" : "Due")</dt>
             <dd>@Format.DateLong(Invoice.DueDate)</dd>
-            <dt class="doc-due">Amount due</dt>
-            <dd class="doc-due">@Format.Money(balance)</dd>
+            @if (!quote)
+            {
+                <dt class="doc-due">Amount due</dt>
+                <dd class="doc-due">@Format.Money(balance)</dd>
+            }
         </dl>
     </section>
 
@@ -131,9 +135,13 @@
             {
                 <p class="doc-small">Items marked GST-free have no GST included.</p>
             }
+            @if (quote)
+            {
+                <p class="doc-small">To accept this quote, reply to the email it came with.</p>
+            }
         </div>
         <div class="doc-totals">
-            @if (status is DisplayStatus.Paid or DisplayStatus.Void)
+            @if (!quote && status is DisplayStatus.Paid or DisplayStatus.Void)
             {
                 <div class="doc-stamp @(status == DisplayStatus.Void ? "void" : null) @(AnimateStamp ? "animate" : null)" aria-hidden="true">
                     @(status == DisplayStatus.Void ? "VOID" : "PAID")
@@ -167,7 +175,7 @@
 
     <div class="doc-spacer"></div>
 
-    @if (hasBank && status != DisplayStatus.Void)
+    @if (hasBank && !quote && status != DisplayStatus.Void)
     {
         <section class="doc-remit">
             <div class="doc-remit-title">How to pay</div>
@@ -195,4 +203,6 @@
     [Parameter] public DateOnly Today { get; set; } = DateOnly.FromDateTime(DateTime.Today);
     [Parameter] public string NumberPreview { get; set; } = "";
     [Parameter] public bool AnimateStamp { get; set; }
+    // lets settings show every layout side by side before one is saved
+    [Parameter] public string? Template { get; set; }
 }

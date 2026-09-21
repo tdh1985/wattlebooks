@@ -1,0 +1,153 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@* no injected services since HtmlRenderer also renders this for pdfs *@
+@{
+    var client = Statement.Client;
+    var hasBank = Profile.AccountNumber.Length > 0 || Profile.Bsb.Length > 0;
+}
+<article class="doc doc-statement" style="--doc-accent: @Profile.AccentColour">
+    <header class="doc-head">
+        <div class="doc-from">
+            @if (LogoUrl is not null)
+            {
+                <img class="doc-logo" src="@LogoUrl" alt="" />
+            }
+            <div class="doc-from-text">
+                <div class="doc-biz">@(Profile.Name.Length > 0 ? Profile.Name : "Your business name")</div>
+                @if (Abn.IsValid(Profile.Abn))
+                {
+                    <div class="doc-small">ABN @Abn.Format(Profile.Abn)</div>
+                }
+                @if (Profile.Address.Length > 0)
+                {
+                    <div class="doc-small doc-pre">@Profile.Address</div>
+                }
+                @if (Profile.Email.Length > 0)
+                {
+                    <div class="doc-small">@Profile.Email</div>
+                }
+                @if (Profile.Phone.Length > 0)
+                {
+                    <div class="doc-small">@Profile.Phone</div>
+                }
+            </div>
+        </div>
+        <div class="doc-title">
+            <h1>STATEMENT</h1>
+            <div class="doc-number">@Format.DateLong(Statement.AsOf)</div>
+        </div>
+    </header>
+
+    <section class="doc-parties">
+        <div>
+            <div class="doc-label">Account of</div>
+            <div class="doc-client">@client.Name</div>
+            @if (client.ContactName.Length > 0)
+            {
+                <div class="doc-small">Attention: @client.ContactName</div>
+            }
+            @if (client.Address.Length > 0)
+            {
+                <div class="doc-small doc-pre">@client.Address</div>
+            }
+        </div>
+        <dl class="doc-dates">
+            <dt>Statement date</dt>
+            <dd>@Format.DateLong(Statement.AsOf)</dd>
+            <dt>Invoices unpaid</dt>
+            <dd>@Statement.Lines.Count</dd>
+            <dt class="doc-due">Total owing</dt>
+            <dd class="doc-due">@Format.Money(Statement.TotalDueCents)</dd>
+        </dl>
+    </section>
+
+    <dl class="doc-aged">
+        @foreach (var (label, cents) in Buckets)
+        {
+            <div class="@(cents > 0 && label != "Not yet due" ? "late" : null)">
+                <dt>@label</dt>
+                <dd class="n">@Format.Money(cents)</dd>
+            </div>
+        }
+    </dl>
+
+    <table class="doc-lines">
+        <thead>
+            <tr>
+                <th>Invoice</th>
+                <th>Issued</th>
+                <th>Due</th>
+                <th class="n">Total</th>
+                <th class="n">Paid</th>
+                <th class="n">Owing</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var line in Statement.Lines)
+            {
+                var s = line.Invoice;
+                <tr>
+                    <td>
+                        <span class="doc-inv">@s.Number</span>
+                        @if (line.DaysOverdue > 0)
+                        {
+                            <span class="doc-tag doc-late">@(line.DaysOverdue == 1 ? "1 day overdue" : $"{line.DaysOverdue} days overdue")</span>
+                        }
+                    </td>
+                    <td>@Format.DateLong(s.IssueDate)</td>
+                    <td>@Format.DateLong(s.DueDate)</td>
+                    <td class="n">@Format.Amount(s.TotalCents)</td>
+                    <td class="n">@(s.PaidCents > 0 ? Format.Amount(s.PaidCents) : "–")</td>
+                    <td class="n">@Format.Amount(s.BalanceCents)</td>
+                </tr>
+            }
+            @if (Statement.Lines.Count == 0)
+            {
+                <tr><td colspan="6" class="doc-placeholder">Nothing is owing. Thank you.</td></tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="doc-summary">
+        <div></div>
+        <div class="doc-totals">
+            <div class="doc-row doc-total"><span>Total owing</span><span class="n">@Format.Money(Statement.TotalDueCents)</span></div>
+        </div>
+    </div>
+
+    <div class="doc-spacer"></div>
+
+    @if (hasBank && Statement.TotalDueCents > 0)
+    {
+        <section class="doc-remit">
+            <div class="doc-remit-title">How to pay</div>
+            <dl class="doc-remit-grid">
+                @if (Profile.BankAccountName.Length > 0)
+                {
+                    <div><dt>Account name</dt><dd>@Profile.BankAccountName</dd></div>
+                }
+                <div><dt>BSB</dt><dd class="n">@Profile.Bsb</dd></div>
+                <div><dt>Account number</dt><dd class="n">@Profile.AccountNumber</dd></div>
+                <div><dt>Reference</dt><dd>The invoice numbers you're paying</dd></div>
+            </dl>
+        </section>
+    }
+
+    <footer class="doc-foot">
+        <span>@Profile.FooterNote</span>
+    </footer>
+</article>
+
+@code {
+    [Parameter, EditorRequired] public Statement Statement { get; set; } = default!;
+    [Parameter, EditorRequired] public BusinessProfile Profile { get; set; } = default!;
+    [Parameter] public string? LogoUrl { get; set; }
+
+    IEnumerable<(string Label, long Cents)> Buckets =>
+    [
+        ("Not yet due", Statement.Aged.Current),
+        ("1–30 days", Statement.Aged.Late1To30),
+        ("31–60 days", Statement.Aged.Late31To60),
+        ("61–90 days", Statement.Aged.Late61To90),
+        ("Over 90 days", Statement.Aged.LateOver90),
+    ];
+}

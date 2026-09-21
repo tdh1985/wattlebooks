@@ -4,13 +4,19 @@
 window.invoicedesk = {
     init(ref) {
         this.ref = ref;
+        const typing = (el) => el instanceof Element && (el.closest('input, textarea, select') || el.isContentEditable);
         document.addEventListener('keydown', (e) => {
             const mod = e.ctrlKey || e.metaKey;
             const key = e.key.toLowerCase();
             if (mod && !e.shiftKey && !e.altKey && (key === 'k' || key === 'n' || key === 's')) {
                 e.preventDefault();
                 ref.invokeMethodAsync('OnShortcut', key);
+            } else if (e.key === '?' && !mod && !e.altKey && !typing(e.target)) {
+                e.preventDefault();
+                ref.invokeMethodAsync('OnShortcut', 'help');
             } else if (e.key === 'Escape') {
+                // esc in a field with a suggestion list closes the list, not the drawer
+                if (e.target instanceof Element && e.target.matches('input[list]')) return;
                 ref.invokeMethodAsync('OnShortcut', 'escape');
             }
         });
@@ -25,6 +31,12 @@ window.invoicedesk = {
         document.addEventListener('drop', (e) => { if (outsideDropZone(e)) e.preventDefault(); });
     },
 
+    // lets the windows 11 backdrop show through the desk around the sheet
+    setMica(on) {
+        try { localStorage.setItem('invoicedesk-mica', on ? '1' : '0'); } catch (e) { }
+        document.documentElement.classList.toggle('mica', on);
+    },
+
     applyTheme(theme) {
         try { localStorage.setItem('invoicedesk-theme', theme); } catch (e) { }
         const media = matchMedia('(prefers-color-scheme: dark)');
@@ -35,6 +47,46 @@ window.invoicedesk = {
         };
         media.onchange = theme === 'system' ? paint : null;
         paint();
+    },
+
+    // arrows and enter belong to an open suggestion list, not the textarea
+    suggestKeys(ref) {
+        this.suggestRef = ref;
+        if (this._suggestBound) return;
+        this._suggestBound = true;
+        document.addEventListener('keydown', (e) => {
+            const el = e.target;
+            if (!(el instanceof Element) || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
+            const state = el.getAttribute('data-suggest-open');
+            if (!state || !this.suggestRef) return;
+            // enter only picks once something is highlighted, otherwise it types a new line
+            const ours = e.key === 'ArrowDown' || e.key === 'ArrowUp' || (e.key === 'Enter' && state === 'active');
+            if (!ours) return;
+            e.preventDefault();
+            this.suggestRef.invokeMethodAsync('OnSuggestKey', e.key).catch(() => { });
+        }, true);
+    },
+
+    // a file dragged over the money page anywhere shows the big drop target
+    watchFileDrag(ref) {
+        this.fileDragRef = ref;
+        if (this._fileDragBound) return;
+        this._fileDragBound = true;
+        const hasFiles = (e) => e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
+        document.addEventListener('dragenter', (e) => {
+            if (!this.fileDragRef || !hasFiles(e)) return;
+            if (e.target instanceof Element && e.target.closest('.dropzone, .drawer, .modal')) return;
+            this.fileDragRef.invokeMethodAsync('ShowPageDrop').catch(() => { });
+        });
+        // no related target means the drag left the window altogether
+        document.addEventListener('dragleave', (e) => {
+            if (!this.fileDragRef || e.relatedTarget) return;
+            this.fileDragRef.invokeMethodAsync('HidePageDrop').catch(() => { });
+        });
+    },
+
+    unwatchFileDrag() {
+        this.fileDragRef = null;
     },
 
     focus(selector) {

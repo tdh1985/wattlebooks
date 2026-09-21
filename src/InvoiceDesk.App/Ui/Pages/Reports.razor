@@ -1,0 +1,213 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@page "/reports"
+@implements IDisposable
+@inject ReportService ReportStore
+@inject ProfileService Profiles
+@inject TransactionService Ledger
+@inject InvoiceService InvoiceStore
+@inject DocumentPdfExporter Documents
+@inject ToastService Toasts
+@inject Desktop Desktop
+@inject AppPaths Paths
+@inject TimeProvider Clock
+@inject IJSRuntime JS
+
+<div class="page">
+    <PageHeader Title="Reports">
+        <Subtitle>Your BAS figures and profit for any quarter or year, ready to save or send to your accountant.</Subtitle>
+    </PageHeader>
+
+    @if (_profile is not null)
+    {
+        <div class="detail">
+            <div class="detail-preview">
+                <div class="doc-stage" @ref="_stage">
+                    <div class="doc-frame">
+                        <ReportDocument Bas="@(_kind == "bas" ? _bas : null)" Pl="@(_kind == "pl" ? _pl : null)" Profile="_profile"
+                                        LogoUrl="@FilesUrl.Logo(_profile)" PeriodLabel="@Period.Label" Today="_today" />
+                    </div>
+                </div>
+            </div>
+
+            <aside class="side">
+                <section class="panel panel-pad col gap-16">
+                    <div class="seg" role="group" aria-label="Report">
+                        <button type="button" class="@(_kind == "bas" ? "on" : null)" aria-pressed="@(_kind == "bas")" @onclick="@(() => SetKindAsync("bas"))">BAS worksheet</button>
+                        <button type="button" class="@(_kind == "pl" ? "on" : null)" aria-pressed="@(_kind == "pl")" @onclick="@(() => SetKindAsync("pl"))">Profit &amp; loss</button>
+                    </div>
+                    <div class="field">
+                        <span class="label">Period</span>
+                        <div class="period-list" role="group" aria-label="Period">
+                            @foreach (var p in Periods())
+                            {
+                                <button type="button" class="@(_period == p.Key ? "on" : null)" aria-pressed="@(_period == p.Key)" @onclick="() => SetPeriodAsync(p.Key)">
+                                    <span>@p.Label</span>
+                                    <span class="muted small">@p.Hint</span>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel panel-pad">
+                    <div class="money-rows">
+                        @if (_kind == "bas" && _bas is { } bas)
+                        {
+                            <div class="row"><span class="soft">G1 total sales</span><span class="num">@Format.Money(bas.TotalSalesCents)</span></div>
+                            <div class="row"><span class="soft">1A GST on sales</span><span class="num">@Format.Money(bas.GstOnSalesCents)</span></div>
+                            <div class="row"><span class="soft">1B GST on purchases</span><span class="num">@Format.Money(bas.GstOnPurchasesCents)</span></div>
+                            <div class="row"><span>@(bas.NetGstCents >= 0 ? "GST to pay" : "GST refund")</span><span class="big">@Format.Money(Math.Abs(bas.NetGstCents))</span></div>
+                        }
+                        else if (_pl is { } pl)
+                        {
+                            <div class="row"><span class="soft">Income</span><span class="num">@Format.Money(pl.IncomeCents)</span></div>
+                            <div class="row"><span class="soft">Expenses</span><span class="num">@Format.Money(pl.ExpensesCents)</span></div>
+                            <div class="row"><span>@(pl.ProfitCents >= 0 ? "Net profit" : "Net loss")</span><span class="big">@Format.Money(Math.Abs(pl.ProfitCents))</span></div>
+                        }
+                    </div>
+                    <div class="row gap-8 wrap mt-16">
+                        <button type="button" class="btn btn-primary" disabled="@_busy" @onclick="SavePdfAsync"><Icon Name="download" Size="16" /> Save PDF</button>
+                        <button type="button" class="btn" disabled="@_busy" @onclick="ExportCsvAsync"><Icon Name="download" Size="16" /> Export CSV</button>
+                    </div>
+                </section>
+
+                <p class="small muted">
+                    Figures are worked out on a cash basis, from the payments and expenses in Money in &amp; out. InvoiceDesk helps you keep records, but it isn't tax advice.
+                </p>
+            </aside>
+        </div>
+    }
+</div>
+
+@code {
+    sealed record PeriodChoice(string Key, string Label, string Hint, DateRange Range);
+
+    BusinessProfile? _profile;
+    BasSummary? _bas;
+    ProfitAndLoss? _pl;
+    DateOnly _today;
+    string _kind = "bas";
+    string _period = "q-prev";
+    ElementReference _stage;
+    bool _fitted;
+    bool _busy;
+
+    PeriodChoice Period => Periods().First(p => p.Key == _period);
+
+    // the quarter just gone is the one you're usually lodging
+    IEnumerable<PeriodChoice> Periods()
+    {
+        var prev = FinancialPeriods.PreviousBasQuarter(_today);
+        var fy = FinancialPeriods.FinancialYear(_today);
+        var lastFy = FinancialPeriods.FinancialYear(fy.Start.AddDays(-1));
+        yield return new("q-prev", FinancialPeriods.BasQuarterLabel(prev.Start), "Last quarter", prev);
+        yield return new("q", FinancialPeriods.BasQuarterLabel(_today), "This quarter, so far", FinancialPeriods.BasQuarter(_today));
+        yield return new("fy", FinancialPeriods.FinancialYearLabel(_today), "This financial year, so far", fy);
+        yield return new("fy-prev", FinancialPeriods.FinancialYearLabel(lastFy.Start), "Last financial year", lastFy);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Ledger.Changed += OnChanged;
+        InvoiceStore.Changed += OnChanged;
+        Profiles.Changed += OnChanged;
+        await LoadAsync();
+    }
+
+    async Task LoadAsync()
+    {
+        _today = Clock.Today();
+        _profile = await Profiles.GetAsync();
+        var range = Period.Range;
+        _bas = await ReportStore.BasAsync(range);
+        _pl = await ReportStore.ProfitAndLossAsync(range);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_profile is not null && !_fitted)
+        {
+            _fitted = true;
+            await JS.InvokeVoidAsync("invoicedesk.fitPreview", _stage);
+        }
+    }
+
+    async Task SetKindAsync(string kind)
+    {
+        _kind = kind;
+        await LoadAsync();
+    }
+
+    async Task SetPeriodAsync(string period)
+    {
+        _period = period;
+        await LoadAsync();
+    }
+
+    string FileStem => Format.SafeFileName($"{(_kind == "bas" ? "BAS worksheet" : "Profit and loss")}, {Period.Label}");
+
+    async Task SavePdfAsync()
+    {
+        var target = Desktop.SaveFileAs(FileStem + ".pdf", Paths.Exports);
+        if (target is null) return;
+        _busy = true;
+        try
+        {
+            await Documents.ExportAsync<ReportDocument>(new Dictionary<string, object?>
+            {
+                [nameof(ReportDocument.Bas)] = _kind == "bas" ? _bas : null,
+                [nameof(ReportDocument.Pl)] = _kind == "pl" ? _pl : null,
+                [nameof(ReportDocument.Profile)] = _profile,
+                [nameof(ReportDocument.LogoUrl)] = FilesUrl.Logo(_profile),
+                [nameof(ReportDocument.PeriodLabel)] = Period.Label,
+                [nameof(ReportDocument.Today)] = _today,
+            }, FileStem, ["css/invoice.css"], target);
+            Saved(target);
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    async Task ExportCsvAsync()
+    {
+        var target = Desktop.SaveCsvAs(FileStem + ".csv", Paths.Exports);
+        if (target is null) return;
+        try
+        {
+            await using (var file = System.IO.File.Create(target))
+            {
+                if (_kind == "bas") await ExportService.WriteBasCsvAsync(_bas!, file);
+                else await ExportService.WriteProfitAndLossCsvAsync(_pl!, file);
+            }
+            Saved(target);
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+    }
+
+    void Saved(string path) =>
+        Toasts.Show($"Saved {System.IO.Path.GetFileName(path)}", ToastKind.Success,
+            new ToastAction("Open", () => { Desktop.OpenFile(path); return Task.CompletedTask; }),
+            new ToastAction("Show in folder", () => { Desktop.ShowInFolder(path); return Task.CompletedTask; }));
+
+    void OnChanged() => InvokeAsync(async () =>
+    {
+        await LoadAsync();
+        StateHasChanged();
+    });
+
+    public void Dispose()
+    {
+        Ledger.Changed -= OnChanged;
+        InvoiceStore.Changed -= OnChanged;
+        Profiles.Changed -= OnChanged;
+    }
+}

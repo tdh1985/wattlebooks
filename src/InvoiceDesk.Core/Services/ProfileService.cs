@@ -83,6 +83,11 @@ public sealed partial class ProfileService(IDbContextFactory<AppDbContext> facto
         if (p.PaymentTermsDays is < 0 or > 365) errors.Add("Payment terms must be between 0 and 365 days.");
         if (p.GstRateBasisPoints is < 0 or > 10000) errors.Add("GST rate must be between 0% and 100%.");
         if (p.InvoicePrefix.Length > 12) errors.Add("Invoice prefix must be 12 characters or fewer.");
+        if (p.QuotePrefix.Length > 12) errors.Add("Quote prefix must be 12 characters or fewer.");
+        // one prefix for both would weave the two number runs together
+        if (string.Equals(p.QuotePrefix, p.InvoicePrefix, StringComparison.OrdinalIgnoreCase)) errors.Add("Quotes need a different prefix from invoices.");
+        if (p.NextQuoteNumber < 1) errors.Add("Next quote number must be 1 or more.");
+        if (p.QuoteValidDays is < 1 or > 365) errors.Add("Quotes must be valid for between 1 and 365 days.");
         return errors;
     }
 
@@ -100,7 +105,9 @@ public sealed partial class ProfileService(IDbContextFactory<AppDbContext> facto
         p.AccountNumber = Text.Clean(p.AccountNumber);
         p.AccentColour = Text.Clean(p.AccentColour);
         p.InvoicePrefix = Text.Clean(p.InvoicePrefix);
+        p.QuotePrefix = Text.Clean(p.QuotePrefix);
         p.FooterNote = Text.Clean(p.FooterNote);
+        p.InvoiceTemplate = InvoiceTemplates.Normalise(p.InvoiceTemplate);
         var bsbDigits = new string(Text.Clean(p.Bsb).Where(char.IsAsciiDigit).ToArray());
         p.Bsb = bsbDigits.Length == 6 ? $"{bsbDigits[..3]}-{bsbDigits[3..]}" : Text.Clean(p.Bsb);
     }

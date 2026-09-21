@@ -6,6 +6,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using InvoiceDesk.App.Host;
 using InvoiceDesk.App.Ui;
+using InvoiceDesk.Core.Services;
 using InvoiceDesk.Core.Storage;
 using Microsoft.AspNetCore.Components.WebView;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +23,8 @@ public partial class MainWindow : Window
     readonly ThemeService _theme;
     readonly ToastService _toasts;
     IntPtr _hwnd;
+    Microsoft.Web.WebView2.Wpf.WebView2CompositionControl? _webView;
+    readonly TaskbarBadge _badge;
 
     public MainWindow(IServiceProvider services)
     {
@@ -33,12 +36,15 @@ public partial class MainWindow : Window
         Resources.Add("services", services);
         InitializeComponent();
         WindowPlacement.Restore(this, _prefs.Current);
+        _badge = new TaskbarBadge(Taskbar, services.GetRequiredService<InvoiceService>(),
+            services.GetRequiredService<TransactionService>(), Dispatcher);
 
         var dark = _theme.ResolveInitial();
         ApplyChrome(dark);
         WebView.BlazorWebViewInitializing += OnWebViewInitializing;
         WebView.BlazorWebViewInitialized += OnWebViewInitialized;
         _theme.ResolvedChanged += isDark => Dispatcher.BeginInvoke(() => ApplyChrome(isDark));
+        _theme.TranslucentChanged += () => Dispatcher.BeginInvoke(() => ApplyChrome(_theme.IsDark));
 
         SourceInitialized += (_, _) =>
         {
@@ -70,7 +76,8 @@ public partial class MainWindow : Window
     void OnWebViewInitialized(object? sender, BlazorWebViewInitializedEventArgs e)
     {
         var core = e.WebView.CoreWebView2;
-        e.WebView.DefaultBackgroundColor = ThemeColours.DeskDrawing(_theme.IsDark);
+        _webView = e.WebView;
+        ApplyChrome(_theme.IsDark);
         FilesUrl.MapHosts(core, _paths);
         core.Settings.IsStatusBarEnabled = false;
 #if !DEBUG
@@ -87,14 +94,23 @@ public partial class MainWindow : Window
         };
     }
 
+    // with mica every layer down to the window has to be see-through for it to show
     void ApplyChrome(bool dark)
     {
-        Background = new SolidColorBrush(ThemeColours.Desk(dark));
-        if (_hwnd != IntPtr.Zero) WindowChrome.Apply(_hwnd, dark, ThemeColours.Desk(dark), ThemeColours.Ink(dark));
+        var mica = _theme.Translucent;
+        var desk = ThemeColours.Desk(dark);
+        Background = mica ? Brushes.Transparent : new SolidColorBrush(desk);
+        if (_webView is not null)
+            _webView.DefaultBackgroundColor = mica ? System.Drawing.Color.Transparent : ThemeColours.DeskDrawing(dark);
+        if (_hwnd == IntPtr.Zero) return;
+        if (HwndSource.FromHwnd(_hwnd)?.CompositionTarget is { } target)
+            target.BackgroundColor = mica ? Colors.Transparent : desk;
+        WindowChrome.Apply(_hwnd, dark, desk, ThemeColours.Ink(dark), mica);
     }
 
     void OnClosing(object? sender, CancelEventArgs e)
     {
+        _badge.Dispose();
         WindowPlacement.Save(this, _prefs.Current);
         _prefs.Save();
         // pending undo-able deletes are committed rather than silently dropped

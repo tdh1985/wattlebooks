@@ -1,0 +1,113 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@inject InvoiceService InvoiceStore
+@inject ProfileService Profiles
+@inject InvoicePdfExporter Pdf
+@inject EmailActions Email
+@inject ToastService Toasts
+@inject TimeProvider Clock
+
+<Modal Open="Open" Title="@($"Chase up {_invoice?.Number}")" Class="wide" OnClose="OnClose">
+    <ChildContent>
+        @if (_invoice is not null)
+        {
+            <p class="small soft">@History</p>
+            <div class="seg mt-16" role="group" aria-label="Tone">
+                @foreach (var tone in Enum.GetValues<ReminderTone>())
+                {
+                    <button type="button" class="@(_tone == tone ? "on" : null)" aria-pressed="@(_tone == tone)" @onclick="() => SetTone(tone)">@ToneLabel(tone)</button>
+                }
+            </div>
+            <div class="col gap-12 mt-16">
+                <div class="field">
+                    <label for="reminder-subject">Subject</label>
+                    <input id="reminder-subject" class="input" @bind="_subject" @bind:event="oninput" />
+                </div>
+                <div class="field">
+                    <label for="reminder-body">Message</label>
+                    <textarea id="reminder-body" class="textarea reminder-body" rows="12" @bind="_body" @bind:event="oninput"></textarea>
+                    <span class="hint">The invoice PDF is attached. Change anything you like before it opens in your email.</span>
+                </div>
+            </div>
+        }
+    </ChildContent>
+    <Footer>
+        <button type="button" class="btn btn-ghost" @onclick="OnClose">Cancel</button>
+        <button type="button" class="btn btn-primary" disabled="@_busy" @onclick="SendAsync"><Icon Name="mail" Size="16" /> Open in email</button>
+    </Footer>
+</Modal>
+
+@code {
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public int? InvoiceId { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnSent { get; set; }
+
+    Invoice? _invoice;
+    BusinessProfile? _profile;
+    ReminderTone _tone;
+    string _subject = "";
+    string _body = "";
+    bool _busy;
+    int? _loadedFor;
+
+    string History => _invoice!.Reminders.Count switch
+    {
+        0 => $"{_invoice.Client?.Name} hasn't been reminded about this invoice yet.",
+        1 => $"You sent one reminder on {Format.DateLong(DateOnly.FromDateTime(_invoice.Reminders[^1].CreatedAt))}.",
+        var n => $"You've sent {n} reminders, the last on {Format.DateLong(DateOnly.FromDateTime(_invoice.Reminders[^1].CreatedAt))}.",
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Open)
+        {
+            _loadedFor = null;
+            return;
+        }
+        if (_loadedFor == InvoiceId || InvoiceId is not { } id) return;
+        _loadedFor = id;
+        _invoice = await InvoiceStore.GetAsync(id);
+        _profile = await Profiles.GetAsync();
+        if (_invoice is null) return;
+        SetTone(EmailTemplates.ToneFor(_invoice.Reminders.Count));
+    }
+
+    static string ToneLabel(ReminderTone tone) => tone switch
+    {
+        ReminderTone.Polite => "Friendly",
+        ReminderTone.Firm => "Firm",
+        _ => "Final",
+    };
+
+    void SetTone(ReminderTone tone)
+    {
+        _tone = tone;
+        var draft = EmailTemplates.Reminder(_invoice!, _profile!, Clock.Today(), tone);
+        _subject = draft.Subject;
+        _body = draft.Body;
+    }
+
+    async Task SendAsync()
+    {
+        if (_invoice is null || _busy) return;
+        _busy = true;
+        try
+        {
+            var id = _invoice.Id;
+            var path = await Pdf.ExportAsync(id);
+            var draft = new EmailDraft(_invoice.Client?.Email ?? "", _subject, _body);
+            var reminder = await InvoiceStore.RecordReminderAsync(id, _tone);
+            // recorded as soon as the email opens, with undo if it never got sent
+            await Email.ComposeAsync(draft, path, new ToastAction("Undo reminder", () => InvoiceStore.DeleteReminderAsync(reminder.Id)));
+            await OnSent.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

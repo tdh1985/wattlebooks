@@ -110,6 +110,10 @@ namespace InvoiceDesk.Core.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("InvoiceTemplate")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("LogoAttachmentId")
                         .HasColumnType("INTEGER");
 
@@ -118,6 +122,9 @@ namespace InvoiceDesk.Core.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int>("NextInvoiceNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("NextQuoteNumber")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("NumberPadding")
@@ -133,6 +140,13 @@ namespace InvoiceDesk.Core.Data.Migrations
                     b.Property<string>("PrivateNotes")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<string>("QuotePrefix")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("QuoteValidDays")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Website")
                         .IsRequired()
@@ -230,7 +244,13 @@ namespace InvoiceDesk.Core.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime?>("AnsweredAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("ClientId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ConvertedFromId")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedAt")
@@ -248,6 +268,9 @@ namespace InvoiceDesk.Core.Data.Migrations
                     b.Property<DateOnly>("IssueDate")
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("Kind")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Notes")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -255,6 +278,9 @@ namespace InvoiceDesk.Core.Data.Migrations
                     b.Property<string>("Number")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("RecurringScheduleId")
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("SentAt")
                         .HasColumnType("TEXT");
@@ -269,10 +295,14 @@ namespace InvoiceDesk.Core.Data.Migrations
 
                     b.HasIndex("ClientId");
 
+                    b.HasIndex("ConvertedFromId");
+
                     b.HasIndex("IssueDate");
 
                     b.HasIndex("Number")
                         .IsUnique();
+
+                    b.HasIndex("RecurringScheduleId");
 
                     b.ToTable("Invoices");
                 });
@@ -307,6 +337,57 @@ namespace InvoiceDesk.Core.Data.Migrations
                     b.HasIndex("InvoiceId");
 
                     b.ToTable("InvoiceLines");
+                });
+
+            modelBuilder.Entity("InvoiceDesk.Core.Domain.RecurringSchedule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("EndDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Every")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsPaused")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("OccurrencesCreated")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RecurringSchedules");
+                });
+
+            modelBuilder.Entity("InvoiceDesk.Core.Domain.Reminder", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("InvoiceId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Tone")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceId");
+
+                    b.ToTable("Reminders");
                 });
 
             modelBuilder.Entity("InvoiceDesk.Core.Domain.Transaction", b =>
@@ -393,6 +474,16 @@ namespace InvoiceDesk.Core.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("InvoiceDesk.Core.Domain.Invoice", null)
+                        .WithMany()
+                        .HasForeignKey("ConvertedFromId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("InvoiceDesk.Core.Domain.RecurringSchedule", null)
+                        .WithMany()
+                        .HasForeignKey("RecurringScheduleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Client");
                 });
 
@@ -400,6 +491,15 @@ namespace InvoiceDesk.Core.Data.Migrations
                 {
                     b.HasOne("InvoiceDesk.Core.Domain.Invoice", null)
                         .WithMany("Lines")
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("InvoiceDesk.Core.Domain.Reminder", b =>
+                {
+                    b.HasOne("InvoiceDesk.Core.Domain.Invoice", null)
+                        .WithMany("Reminders")
                         .HasForeignKey("InvoiceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -434,6 +534,8 @@ namespace InvoiceDesk.Core.Data.Migrations
                     b.Navigation("Lines");
 
                     b.Navigation("Payments");
+
+                    b.Navigation("Reminders");
                 });
 
             modelBuilder.Entity("InvoiceDesk.Core.Domain.Transaction", b =>

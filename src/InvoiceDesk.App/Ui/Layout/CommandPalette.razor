@@ -1,8 +1,14 @@
 @* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
 @implements IDisposable
 @inject SearchService Search
+@inject InvoiceService InvoiceStore
 @inject NavigationManager Nav
 @inject ShortcutService Shortcuts
+@inject ThemeService Theme
+@inject ToastService Toasts
+@inject Desktop Desktop
+@inject UpdateChecker Updates
+@inject AppPaths Paths
 @inject IJSRuntime JS
 
 @if (_open)
@@ -11,7 +17,7 @@
     <div class="palette" role="dialog" aria-modal="true" aria-label="Search and go">
         <div class="palette-input">
             <Icon Name="search" Size="18" />
-            <input id="palette-query" type="text" placeholder="Search invoices, clients and receipts, or type a command"
+            <input id="palette-query" type="text" placeholder="Search invoices, quotes, clients and receipts, or type a command"
                    autocomplete="off" spellcheck="false"
                    value="@_query" @oninput="OnInput" @onkeydown="OnKeyDown" />
             <kbd>Esc</kbd>
@@ -41,17 +47,30 @@
 }
 
 @code {
-    sealed record Item(string Group, string Icon, string Title, string Subtitle, string Href);
+    // an item either goes somewhere or runs something
+    sealed record Item(string Group, string Icon, string Title, string Subtitle, string? Href, Func<Task>? Run = null);
 
-    static readonly Item[] Actions =
+    [Parameter] public EventCallback OnShowShortcuts { get; set; }
+
+    List<Item> Actions() =>
     [
         new("Actions", "plus", "New invoice", "Ctrl N", "invoices/new"),
+        new("Actions", "plus", "New quote", "A price to send before the work starts", "invoices/new?kind=quote"),
         new("Actions", "out", "Add an expense", "Money out with a receipt", "money?new=out"),
         new("Actions", "in", "Add income", "Money in that isn't an invoice payment", "money?new=in"),
         new("Actions", "users", "Add a client", "", "clients?new=1"),
+        new("Actions", "copy", "Duplicate last invoice", "Start a new draft from your latest invoice", null, DuplicateLastAsync),
         new("Actions", "invoice", "Invoices", "", "invoices"),
+        new("Actions", "invoice", "Quotes", "", "invoices?kind=quote"),
         new("Actions", "wallet", "Money in and out", "", "money"),
+        new("Actions", "chart", "Reports", "BAS worksheet, profit and loss", "reports"),
         new("Actions", "sliders", "Settings", "Business details, GST, numbering", "settings"),
+        Theme.IsDark
+            ? new("Actions", "sun", "Switch to light theme", "", null, () => SetTheme("light"))
+            : new("Actions", "moon", "Switch to dark theme", "", null, () => SetTheme("dark")),
+        new("Actions", "hash", "Keyboard shortcuts", "?", null, () => OnShowShortcuts.InvokeAsync()),
+        new("Actions", "folder", "Open data folder", "Where your database, receipts and backups live", null, OpenDataFolder),
+        new("Actions", "refresh", "Check for updates", $"You have version {UpdateChecker.CurrentVersion}", null, CheckForUpdatesAsync),
     ];
 
     bool _open;
@@ -66,7 +85,7 @@
         SetOpen(true);
         _query = "";
         _active = 0;
-        _items = Actions.ToList();
+        _items = Actions();
         StateHasChanged();
         await Task.Yield();
         await JS.InvokeVoidAsync("invoicedesk.focus", "#palette-query");
@@ -106,8 +125,20 @@
     async Task RefreshAsync()
     {
         var term = _query.Trim();
-        var actions = Actions.Where(a => term.Length == 0 || a.Title.Contains(term, StringComparison.OrdinalIgnoreCase));
-        IEnumerable<Item> found = term.Length == 0 ? [] : (await Search.SearchAsync(term)).Select(ToItem);
+        var actions = Actions().Where(a => term.Length == 0 || a.Title.Contains(term, StringComparison.OrdinalIgnoreCase));
+        var results = term.Length == 0 ? [] : await Search.SearchAsync(term);
+        var found = new List<Item>();
+        var offeredPayment = false;
+        foreach (var r in results)
+        {
+            found.Add(ToItem(r));
+            // the likeliest reason to look up an unpaid invoice is to record its payment
+            if (!offeredPayment && r is { Kind: SearchKind.Invoice, Status: DisplayStatus.Sent or DisplayStatus.PartPaid or DisplayStatus.Overdue })
+            {
+                offeredPayment = true;
+                found.Add(new("Invoices", "check", $"Record payment for {r.Title}", $"{Format.Money(r.BalanceCents ?? 0)} to come in", $"invoices/{r.Id}?pay=1"));
+            }
+        }
         _items = found.Concat(actions).ToList();
         _active = 0;
         StateHasChanged();
@@ -117,10 +148,47 @@
     {
         SearchKind.Client => new("Clients", "users", r.Title, r.Subtitle, $"clients/{r.Id}"),
         SearchKind.Invoice => new("Invoices", "invoice", r.Title, $"{r.Subtitle}  {Format.Money(r.AmountCents ?? 0)}", $"invoices/{r.Id}"),
+        SearchKind.Quote => new("Quotes", "invoice", r.Title, $"{r.Subtitle}  {Format.Money(r.AmountCents ?? 0)}", $"invoices/{r.Id}"),
         _ => new("Money", "receipt", r.Title, $"{r.Subtitle}  {Format.Money(r.AmountCents ?? 0)}  {(r.Date is { } d ? Format.Date(d) : "")}", $"money?open={r.Id}"),
     };
 
-    void OnKeyDown(KeyboardEventArgs e)
+    async Task DuplicateLastAsync()
+    {
+        var last = (await InvoiceStore.ListAsync()).FirstOrDefault(i => i.Status != DisplayStatus.Void);
+        if (last is null)
+        {
+            Toasts.Show("There's no invoice to copy yet.", ToastKind.Info);
+            return;
+        }
+        Nav.NavigateTo($"invoices/new?duplicate={last.Id}");
+    }
+
+    Task SetTheme(string theme)
+    {
+        Theme.Set(theme);
+        return Task.CompletedTask;
+    }
+
+    Task OpenDataFolder()
+    {
+        Desktop.OpenFolder(Paths.DataRoot);
+        return Task.CompletedTask;
+    }
+
+    async Task CheckForUpdatesAsync()
+    {
+        Toasts.Show("Checking GitHub for a newer version…", ToastKind.Info);
+        var result = await Updates.CheckAsync();
+        if (!result.Reached)
+            Toasts.Show("Couldn't reach GitHub. Check your internet connection and try again.", ToastKind.Error);
+        else if (result.IsNewer && result.Url is { } url)
+            Toasts.Show($"Version {result.Latest} is out. You have {UpdateChecker.CurrentVersion}.", ToastKind.Info,
+                new ToastAction("Download", () => { Desktop.OpenUrl(url); return Task.CompletedTask; }));
+        else
+            Toasts.Show($"You're up to date with version {UpdateChecker.CurrentVersion}.");
+    }
+
+    async Task OnKeyDown(KeyboardEventArgs e)
     {
         switch (e.Key)
         {
@@ -131,15 +199,23 @@
                 _active = Math.Max(0, _active - 1);
                 break;
             case "Enter" when _items.Count > 0:
-                Go(_items[_active]);
+                await Go(_items[_active]);
                 break;
         }
     }
 
-    void Go(Item item)
+    async Task Go(Item item)
     {
         Close();
-        Nav.NavigateTo(item.Href);
+        if (item.Run is not null)
+        {
+            try { await item.Run(); }
+            catch (Exception ex) { Toasts.Error(ex); }
+        }
+        else if (item.Href is not null)
+        {
+            Nav.NavigateTo(item.Href);
+        }
     }
 
     public void Dispose()

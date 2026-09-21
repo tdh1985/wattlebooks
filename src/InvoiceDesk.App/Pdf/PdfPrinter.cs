@@ -21,7 +21,7 @@ public sealed class PdfPrinter(AppPaths paths, HostWindow host) : IDisposable
     public async Task PrintAsync(string html, string pdfPath)
     {
         await _gate.WaitAsync();
-        var page = Path.Combine(paths.Render, $"invoice-{Guid.NewGuid():N}.html");
+        var page = Path.Combine(paths.Render, $"print-{Guid.NewGuid():N}.html");
         try
         {
             var core = await EnsureAsync();
@@ -35,7 +35,7 @@ public sealed class PdfPrinter(AppPaths paths, HostWindow host) : IDisposable
             {
                 core.Navigate(FilesUrl.ForLocal($"render/{Path.GetFileName(page)}"));
                 if (!await loaded.Task.WaitAsync(TimeSpan.FromSeconds(20)))
-                    throw new InvalidOperationException("The invoice page didn't load for printing.");
+                    throw new InvalidOperationException("The page didn't load for printing.");
             }
             finally
             {

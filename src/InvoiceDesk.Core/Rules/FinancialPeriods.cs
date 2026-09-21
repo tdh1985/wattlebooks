@@ -26,6 +26,11 @@ public static class FinancialPeriods
         return new(start, start.AddMonths(3).AddDays(-1));
     }
 
+    public static DateRange PreviousBasQuarter(DateOnly d) => BasQuarter(BasQuarter(d).Start.AddDays(-1));
+
+    public static IReadOnlyList<DateRange> BasQuartersIn(DateRange financialYear) =>
+        Enumerable.Range(0, 4).Select(i => BasQuarter(financialYear.Start.AddMonths(i * 3))).ToList();
+
     public static DateRange Month(DateOnly d)
     {
         var start = new DateOnly(d.Year, d.Month, 1);

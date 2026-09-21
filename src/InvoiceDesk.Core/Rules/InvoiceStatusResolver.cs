@@ -15,6 +15,20 @@ public static class InvoiceStatusResolver
         return paidCents > 0 ? DisplayStatus.PartPaid : DisplayStatus.Sent;
     }
 
+    // a quote is never owed so it can't be paid or overdue
+    public static DisplayStatus Resolve(InvoiceKind kind, InvoiceStatus status, long totalCents, long paidCents, DateOnly dueDate, DateOnly today)
+    {
+        if (kind == InvoiceKind.Invoice) return Resolve(status, totalCents, paidCents, dueDate, today);
+        return status switch
+        {
+            InvoiceStatus.Draft => DisplayStatus.Draft,
+            InvoiceStatus.Void => DisplayStatus.Void,
+            InvoiceStatus.Accepted => DisplayStatus.Accepted,
+            InvoiceStatus.Declined => DisplayStatus.Declined,
+            _ => today > dueDate ? DisplayStatus.Expired : DisplayStatus.Sent,
+        };
+    }
+
     public static DisplayStatus Resolve(Invoice invoice, DateOnly today) =>
-        Resolve(invoice.Status, invoice.Totals().TotalCents, invoice.PaidCents, invoice.DueDate, today);
+        Resolve(invoice.Kind, invoice.Status, invoice.Totals().TotalCents, invoice.PaidCents, invoice.DueDate, today);
 }

@@ -4,6 +4,8 @@
 @inject ProfileService Profiles
 @inject ToastService Toasts
 @inject TimeProvider Clock
+@inject SuggestionService Suggestions
+@inject ReceiptReader Reader
 
 <Drawer Open="Open" Title="@DrawerTitle" Wide OnClose="OnClose">
     <ChildContent>
@@ -14,6 +16,21 @@
                 @if (_errors is { Count: > 0 })
                 {
                     <div class="banner banner-error"><Icon Name="alert" Size="16" /><div>@string.Join(" ", _errors)</div></div>
+                }
+                @if (_scanning)
+                {
+                    <div class="banner scan-banner" role="status"><span class="spinner" aria-hidden="true"></span><div>Reading the receipt…</div></div>
+                }
+                else if (_scanNote is not null)
+                {
+                    <div class="banner @(_filled.Count > 0 ? "scan-banner" : null)" role="status">
+                        <Icon Name="receipt" Size="16" />
+                        <div class="grow">@_scanNote</div>
+                        @if (_beforeScan is not null)
+                        {
+                            <button type="button" class="btn btn-ghost btn-sm" @onclick="UndoScan"><Icon Name="undo" Size="14" /> Undo</button>
+                        }
+                    </div>
                 }
                 @if (_tx.InvoiceId is { } invoiceId)
                 {
@@ -31,36 +48,47 @@
                 }
 
                 <div class="form-grid">
-                    <div class="field">
+                    <div class="field @FieldState("amount")">
                         <label for="tx-amount">@(isOut ? "Amount paid" : "Amount received")</label>
                         <MoneyInput Id="tx-amount" Cents="_tx.AmountCents" CentsChanged="SetAmount" />
                         <span class="hint">Including any GST.</span>
                     </div>
-                    <div class="field">
+                    <div class="field @FieldState("date")">
                         <label for="tx-date">Date</label>
                         <input id="tx-date" type="date" class="input" value="@Format.Iso(_tx.Date)" @onchange="SetDate" />
                     </div>
-                    <div class="field">
+                    <div class="field @FieldState("gst")">
                         <label for="tx-gst">GST included</label>
                         <MoneyInput Id="tx-gst" Cents="_tx.GstCents" CentsChanged="SetGst" />
                         <label class="check small soft">
                             <input type="checkbox" checked="@_autoGst" @onchange="ToggleAutoGst" />
-                            Work it out for me (1/11 of the amount)
+                            Work it out for me (@Format.Percent(_profile?.GstRateBasisPoints ?? 1000) GST)
                         </label>
                     </div>
                     <div class="field">
                         <label for="tx-category">Category</label>
-                        <select id="tx-category" class="select" value="@(_tx.CategoryId?.ToString() ?? "")" @onchange="SetCategory">
+                        <select id="tx-category" class="select @(_categoryGuessed ? "guessed" : null)" value="@(_tx.CategoryId?.ToString() ?? "")" @onchange="SetCategory">
                             <option value="">No category</option>
                             @foreach (var c in _categories.Where(c => c.Direction == _tx.Direction && (!c.IsArchived || c.Id == _tx.CategoryId)))
                             {
                                 <option value="@c.Id">@c.Name</option>
                             }
                         </select>
+                        @if (_categoryGuessed)
+                        {
+                            <span class="hint">Same as last time for @_tx.Party.Trim().</span>
+                        }
                     </div>
-                    <div class="field">
+                    <div class="field @FieldState("party")">
                         <label for="tx-party">@(isOut ? "Paid to" : "Received from")</label>
-                        <input id="tx-party" class="input" placeholder="@(isOut ? "Who you paid" : "Who paid you")" @bind="_tx.Party" />
+                        <input id="tx-party" class="input" list="tx-parties" autocomplete="off" placeholder="@(isOut ? "Who you paid" : "Who paid you")"
+                               value="@_tx.Party" @onchange="SetPartyAsync" />
+                        <datalist id="tx-parties">
+                            @foreach (var party in _parties)
+                            {
+                                <option value="@party"></option>
+                            }
+                        </datalist>
                     </div>
                     <div class="field">
                         <label for="tx-method">Paid by</label>
@@ -111,6 +139,8 @@
     [Parameter] public EventCallback OnSaved { get; set; }
     [Parameter] public EventCallback OnDeleted { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
+    // a receipt dropped on the money page arrives here already attached
+    [Parameter] public IReadOnlyList<StagedFile>? InitialFiles { get; set; }
 
     Transaction? _tx;
     BusinessProfile? _profile;
@@ -120,9 +150,30 @@
     IReadOnlyList<string>? _errors;
     bool _autoGst;
     bool _saving;
+    bool _categoryGuessed;
+    List<string> _parties = [];
     Request? _loaded;
+    bool _scanning;
+    bool _dateTouched;
+    string? _scanNote;
+    readonly HashSet<string> _filled = [];
+    Before? _beforeScan;
 
-    sealed record Request(int? TransactionId, Direction Direction);
+    sealed record Request(int? TransactionId, Direction Direction, IReadOnlyList<StagedFile>? Files);
+
+    // what the fields held before a scan, so undo puts them back exactly
+    sealed record Before(long Amount, long Gst, DateOnly Date, string Party, int? CategoryId, bool AutoGst, bool CategoryGuessed);
+
+    bool CanScan => _tx is { Id: 0, Direction: Direction.Out, AmountCents: 0 } && !_scanning && _beforeScan is null;
+
+    string? FieldState(string field) => _scanning && CanFill(field) ? "scanning" : _filled.Contains(field) ? "filled" : null;
+
+    bool CanFill(string field) => field switch
+    {
+        "amount" or "gst" => _tx?.AmountCents == 0,
+        "date" => !_dateTouched,
+        _ => string.IsNullOrWhiteSpace(_tx?.Party),
+    };
 
     string DrawerTitle => _tx switch
     {
@@ -142,7 +193,7 @@
             return;
         }
         // search can pick a different entry while the drawer is already open
-        var request = new Request(TransactionId, Direction);
+        var request = new Request(TransactionId, Direction, InitialFiles);
         if (request == _loaded) return;
         _loaded = request;
         await LoadAsync();
@@ -153,6 +204,12 @@
         _errors = null;
         _newFiles = [];
         _removed = [];
+        _categoryGuessed = false;
+        _scanning = false;
+        _dateTouched = false;
+        _scanNote = null;
+        _filled.Clear();
+        _beforeScan = null;
         _profile = await Profiles.GetAsync();
         _categories = await Categories.ListAsync(includeArchived: true);
         if (TransactionId is { } id && await Ledger.GetAsync(id) is { } existing)
@@ -165,13 +222,37 @@
             _tx = new Transaction { Direction = Direction, Date = Clock.Today(), Method = PaymentMethod.None };
             _autoGst = _profile.GstRegistered;
         }
+        _parties = await Suggestions.PartiesAsync(_tx.Direction);
+        if (InitialFiles is { Count: > 0 } dropped && TransactionId is null)
+        {
+            _newFiles.AddRange(dropped);
+            _ = ScanAsync(dropped[0]);
+        }
     }
 
-    void SetDirection(Direction direction)
+    async Task SetDirection(Direction direction)
     {
         if (_tx is null || _tx.Direction == direction) return;
         _tx.Direction = direction;
         _tx.CategoryId = null;
+        _categoryGuessed = false;
+        _parties = await Suggestions.PartiesAsync(direction);
+        await GuessCategoryAsync();
+    }
+
+    async Task SetPartyAsync(ChangeEventArgs e)
+    {
+        _tx!.Party = e.Value?.ToString() ?? "";
+        await GuessCategoryAsync();
+    }
+
+    // only fills an empty category, so a choice already made is never undone
+    async Task GuessCategoryAsync()
+    {
+        if (_tx is null || (_tx.CategoryId is not null && !_categoryGuessed)) return;
+        var guess = await Suggestions.SuggestCategoryAsync(_tx.Direction, _tx.Party);
+        _tx.CategoryId = guess;
+        _categoryGuessed = guess is not null;
     }
 
     void SetAmount(long cents)
@@ -192,11 +273,100 @@
         if (_autoGst) _tx!.GstCents = Ledger.SuggestGst(_tx.AmountCents, _profile!);
     }
 
-    void SetDate(ChangeEventArgs e) => _tx!.Date = Format.ParseIso(e.Value?.ToString()) ?? _tx.Date;
+    void SetDate(ChangeEventArgs e)
+    {
+        _tx!.Date = Format.ParseIso(e.Value?.ToString()) ?? _tx.Date;
+        _dateTouched = true;
+        _filled.Remove("date");
+    }
 
-    void SetCategory(ChangeEventArgs e) => _tx!.CategoryId = int.TryParse(e.Value?.ToString(), out var id) ? id : null;
+    void SetCategory(ChangeEventArgs e)
+    {
+        _tx!.CategoryId = int.TryParse(e.Value?.ToString(), out var id) ? id : null;
+        _categoryGuessed = false;
+    }
 
-    void AddFiles(IReadOnlyList<StagedFile> files) => _newFiles.AddRange(files);
+    void AddFiles(IReadOnlyList<StagedFile> files)
+    {
+        _newFiles.AddRange(files);
+        if (CanScan && files.Count > 0) _ = ScanAsync(files[0]);
+    }
+
+    // reads the receipt with windows ocr and fills only what's still empty
+    async Task ScanAsync(StagedFile file)
+    {
+        _scanning = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var text = await Reader.ReadTextAsync(file.TempPath);
+            var guess = string.IsNullOrWhiteSpace(text) ? null
+                : ReceiptParser.Parse(text, Clock.Today(), await Suggestions.PartiesAsync(Direction.Out, take: 500));
+            await ApplyAsync(guess);
+        }
+        catch (Exception ex)
+        {
+            FileLog.Write(ex, "receipt scan");
+            _scanNote = "Couldn't read that receipt, so fill in the details yourself.";
+        }
+        finally
+        {
+            _scanning = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    async Task ApplyAsync(ReceiptGuess? guess)
+    {
+        if (_tx is null) return;
+        if (guess is null || guess == new ReceiptGuess(null, null, null, null))
+        {
+            _scanNote = "Couldn't find any details on that receipt, so fill them in yourself.";
+            return;
+        }
+
+        _beforeScan = new Before(_tx.AmountCents, _tx.GstCents, _tx.Date, _tx.Party, _tx.CategoryId, _autoGst, _categoryGuessed);
+        if (_tx.AmountCents == 0 && guess.TotalCents is { } total)
+        {
+            SetAmount(total);
+            _filled.Add("amount");
+            if (_profile!.GstRegistered && guess.GstCents is { } gst)
+            {
+                _tx.GstCents = gst;
+                _autoGst = false;
+            }
+            if (_tx.GstCents > 0) _filled.Add("gst");
+        }
+        if (!_dateTouched && guess.Date is { } date && date != _tx.Date)
+        {
+            _tx.Date = date;
+            _filled.Add("date");
+        }
+        if (string.IsNullOrWhiteSpace(_tx.Party) && guess.Party is { } party)
+        {
+            _tx.Party = party;
+            _filled.Add("party");
+            await GuessCategoryAsync();
+        }
+        _scanNote = _filled.Count > 0
+            ? "Filled in from the receipt. Check the highlighted details before saving."
+            : "Couldn't find anything new on that receipt.";
+        if (_filled.Count == 0) _beforeScan = null;
+    }
+
+    void UndoScan()
+    {
+        if (_tx is null || _beforeScan is not { } b) return;
+        _tx.AmountCents = b.Amount;
+        _tx.GstCents = b.Gst;
+        _tx.Date = b.Date;
+        _tx.Party = b.Party;
+        _tx.CategoryId = b.CategoryId;
+        _autoGst = b.AutoGst;
+        _categoryGuessed = b.CategoryGuessed;
+        _filled.Clear();
+        _scanNote = null;
+    }
 
     void RemoveStaged(StagedFile file) => _newFiles.Remove(file);
 

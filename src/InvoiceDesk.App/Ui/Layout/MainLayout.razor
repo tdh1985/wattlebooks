@@ -5,6 +5,9 @@
 @inject ThemeService Theme
 @inject ShortcutService Shortcuts
 @inject NavigationManager Nav
+@inject LaunchRequests Launches
+@inject RecurringRunner Recurring
+@inject ToastService Toasts
 @inject IJSRuntime JS
 
 <div class="shell" style="--accent: @_accent">
@@ -34,6 +37,7 @@
             <NavLink class="tab" href="invoices"><Icon Name="invoice" /> Invoices</NavLink>
             <NavLink class="tab" href="clients"><Icon Name="users" /> Clients</NavLink>
             <NavLink class="tab" href="money"><Icon Name="wallet" /> Money in &amp; out</NavLink>
+            <NavLink class="tab" href="reports"><Icon Name="chart" /> Reports</NavLink>
         </div>
 
         <div class="rail-foot">
@@ -61,7 +65,8 @@
 </div>
 
 <ToastHost />
-<CommandPalette @ref="_palette" />
+<CommandPalette @ref="_palette" OnShowShortcuts="() => _help = true" />
+<ShortcutsHelp Open="_help" OnClose="() => _help = false" />
 
 @code {
     ErrorBoundary? _boundary;
@@ -70,6 +75,7 @@
     BusinessProfile? _profile;
     string _accent = "#2E6B57";
     string? _logoUrl;
+    bool _help;
 
     string BusinessName => _profile?.Name is { Length: > 0 } name ? name : "Your business";
 
@@ -77,6 +83,8 @@
     {
         Profiles.Changed += OnProfileChanged;
         Theme.Changed += OnThemeChanged;
+        Theme.TranslucentChanged += OnTranslucentChanged;
+        Launches.Requested += OnLaunchRequested;
         Nav.LocationChanged += OnLocationChanged;
         await LoadProfileAsync();
     }
@@ -87,7 +95,21 @@
         _ref = DotNetObjectReference.Create(this);
         await JS.InvokeVoidAsync("invoicedesk.init", _ref);
         await JS.InvokeVoidAsync("invoicedesk.applyTheme", Theme.Theme);
+        await JS.InvokeVoidAsync("invoicedesk.setMica", Theme.Translucent);
+        OpenLaunchRequest();
+        if (Recurring.TakeStartupCount() is > 0 and var made)
+        {
+            Toasts.Show(RecurringRunner.Message(made), ToastKind.Info,
+                new ToastAction("See drafts", () => { Nav.NavigateTo("invoices?show=draft"); return Task.CompletedTask; }));
+        }
     }
+
+    void OpenLaunchRequest()
+    {
+        if (Launches.TakePending() is { } route) Nav.NavigateTo(route);
+    }
+
+    void OnLaunchRequested() => InvokeAsync(OpenLaunchRequest);
 
     async Task LoadProfileAsync()
     {
@@ -106,6 +128,13 @@
                 break;
             case "n":
                 Nav.NavigateTo("invoices/new");
+                break;
+            case "help":
+                _ = InvokeAsync(() =>
+                {
+                    _help = true;
+                    StateHasChanged();
+                });
                 break;
             default:
                 Shortcuts.Raise(key);
@@ -136,12 +165,16 @@
         StateHasChanged();
     });
 
+    void OnTranslucentChanged() => InvokeAsync(() => JS.InvokeVoidAsync("invoicedesk.setMica", Theme.Translucent).AsTask());
+
     void OnLocationChanged(object? sender, LocationChangedEventArgs e) => InvokeAsync(() => _boundary?.Recover());
 
     public void Dispose()
     {
         Profiles.Changed -= OnProfileChanged;
         Theme.Changed -= OnThemeChanged;
+        Theme.TranslucentChanged -= OnTranslucentChanged;
+        Launches.Requested -= OnLaunchRequested;
         Nav.LocationChanged -= OnLocationChanged;
         _ref?.Dispose();
     }

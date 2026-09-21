@@ -1,0 +1,95 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@inject RecurringService Recurring
+@inject ToastService Toasts
+@inject TimeProvider Clock
+
+<Modal Open="Open" Title="Repeat this invoice" OnClose="OnClose">
+    <ChildContent>
+        <p>A new draft copy is made each time it comes round, ready for you to check and send. Nothing goes to your client without you.</p>
+        <div class="field mt-16">
+            <span class="label">How often</span>
+            <div class="seg" role="group" aria-label="How often">
+                @foreach (var every in Enum.GetValues<RepeatEvery>())
+                {
+                    <button type="button" class="@(_every == every ? "on" : null)" aria-pressed="@(_every == every)" @onclick="() => _every = every">@Label(every)</button>
+                }
+            </div>
+        </div>
+        <div class="field mt-16">
+            <label class="check">
+                <input type="checkbox" checked="@_ends" @onchange="e => _ends = e.Value is true" />
+                Stop repeating after a date
+            </label>
+            @if (_ends)
+            {
+                <input type="date" class="input" style="max-width:220px" aria-label="Last date"
+                       value="@Format.Iso(_end)" @onchange="e => _end = Format.ParseIso(e.Value?.ToString()) ?? _end" />
+            }
+        </div>
+        <p class="small soft mt-16">
+            The next draft is made on <strong>@Format.DateLong(NextDraft)</strong>,
+            the next time InvoiceDesk is open on or after that day.
+        </p>
+    </ChildContent>
+    <Footer>
+        <button type="button" class="btn btn-ghost" @onclick="OnClose">Cancel</button>
+        <button type="button" class="btn btn-primary" disabled="@_busy" @onclick="SaveAsync"><Icon Name="refresh" Size="16" /> Repeat @Label(_every).ToLowerInvariant()</button>
+    </Footer>
+</Modal>
+
+@code {
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public int InvoiceId { get; set; }
+    [Parameter] public DateOnly IssueDate { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnDone { get; set; }
+
+    RepeatEvery _every = RepeatEvery.Monthly;
+
+    DateOnly NextDraft => Recurrence.Occurrence(IssueDate, _every, Recurrence.FirstFuture(IssueDate, _every, 1, Clock.Today()));
+    bool _ends;
+    DateOnly _end;
+    bool _busy;
+    bool _wasOpen;
+
+    // the page reuses this instance across invoices, so start fresh on open
+    protected override void OnParametersSet()
+    {
+        if (Open && !_wasOpen)
+        {
+            var today = Clock.Today();
+            _every = RepeatEvery.Monthly;
+            _ends = false;
+            _end = (IssueDate > today ? IssueDate : today).AddYears(1);
+        }
+        _wasOpen = Open;
+    }
+
+    public static string Label(RepeatEvery every) => every switch
+    {
+        RepeatEvery.Weekly => "Weekly",
+        RepeatEvery.Fortnightly => "Fortnightly",
+        RepeatEvery.Monthly => "Monthly",
+        RepeatEvery.Quarterly => "Quarterly",
+        _ => "Yearly",
+    };
+
+    async Task SaveAsync()
+    {
+        _busy = true;
+        try
+        {
+            await Recurring.CreateAsync(InvoiceId, _every, _ends ? _end : null);
+            Toasts.Show($"This invoice now repeats {Label(_every).ToLowerInvariant()}.");
+            await OnDone.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

@@ -67,18 +67,22 @@ public static class Format
         };
     }
 
-    public static string Status(DisplayStatus s) => s switch
+    public static string ValidUntil(DateOnly until, DateOnly today)
     {
-        DisplayStatus.PartPaid => "Part-paid",
-        _ => s.ToString(),
-    };
+        var days = until.DayNumber - today.DayNumber;
+        return days switch
+        {
+            0 => "Last day to accept",
+            1 => "Valid for 1 more day",
+            > 1 => $"Valid for {days} more days",
+            -1 => "Expired yesterday",
+            _ => $"Expired {-days} days ago",
+        };
+    }
 
-    public static string Method(PaymentMethod m) => m switch
-    {
-        PaymentMethod.BankTransfer => "Bank transfer",
-        PaymentMethod.None => "",
-        _ => m.ToString(),
-    };
+    public static string Status(DisplayStatus s) => Labels.Status(s);
+
+    public static string Method(PaymentMethod m) => Labels.Method(m);
 
     public static string Initials(string name)
     {

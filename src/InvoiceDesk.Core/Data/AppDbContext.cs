@@ -14,6 +14,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<Attachment> Attachments => Set<Attachment>();
     public DbSet<Category> Categories => Set<Category>();
+    public DbSet<Reminder> Reminders => Set<Reminder>();
+    public DbSet<RecurringSchedule> RecurringSchedules => Set<RecurringSchedule>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -32,6 +34,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(i => i.Client).WithMany(c => c.Invoices).HasForeignKey(i => i.ClientId).OnDelete(DeleteBehavior.Restrict);
             e.HasMany(i => i.Lines).WithOne().HasForeignKey(l => l.InvoiceId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(i => i.Attachments).WithOne().HasForeignKey(a => a.InvoiceId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(i => i.Reminders).WithOne().HasForeignKey(r => r.InvoiceId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<RecurringSchedule>().WithMany().HasForeignKey(i => i.RecurringScheduleId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne<Invoice>().WithMany().HasForeignKey(i => i.ConvertedFromId).OnDelete(DeleteBehavior.SetNull);
             e.Ignore(i => i.PaidCents);
         });
 

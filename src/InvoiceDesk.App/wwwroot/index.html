@@ -15,6 +15,7 @@
                 var t = localStorage.getItem('invoicedesk-theme') || 'system';
                 var dark = t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
                 document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+                if (localStorage.getItem('invoicedesk-mica') === '1') document.documentElement.classList.add('mica');
             } catch (e) { }
         })();
     </script>

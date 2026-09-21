@@ -5,13 +5,16 @@ using InvoiceDesk.Core.Rules;
 
 namespace InvoiceDesk.Core.Services;
 
-public sealed record ClientSummary(Client Client, int InvoiceCount, long BilledCents, long OutstandingCents);
+public sealed record ClientSummary(Client Client, int InvoiceCount, long BilledCents, long OutstandingCents, int QuoteCount = 0);
 
-public enum InvoiceFilter { All, Draft, Sent, Overdue, Paid, Void }
+public enum InvoiceFilter { All, Draft, Sent, Overdue, Paid, Void, Accepted, Declined, Expired }
+
+public sealed record InvoiceLink(int Id, string Number);
 
 public sealed record InvoiceSummary(
     int Id, string Number, int ClientId, string ClientName, DateOnly IssueDate, DateOnly DueDate,
-    long TotalCents, long GstCents, long PaidCents, long BalanceCents, DisplayStatus Status, bool IsTaxInvoice)
+    long TotalCents, long GstCents, long PaidCents, long BalanceCents, DisplayStatus Status, bool IsTaxInvoice,
+    InvoiceKind Kind = InvoiceKind.Invoice)
 {
     public static InvoiceSummary From(Invoice inv, DateOnly today)
     {
@@ -20,8 +23,8 @@ public sealed record InvoiceSummary(
         return new InvoiceSummary(
             inv.Id, inv.Number, inv.ClientId, inv.Client?.Name ?? "", inv.IssueDate, inv.DueDate,
             totals.TotalCents, totals.GstCents, paid, totals.TotalCents - paid,
-            InvoiceStatusResolver.Resolve(inv.Status, totals.TotalCents, paid, inv.DueDate, today),
-            totals.IsTaxInvoice);
+            InvoiceStatusResolver.Resolve(inv.Kind, inv.Status, totals.TotalCents, paid, inv.DueDate, today),
+            totals.IsTaxInvoice, inv.Kind);
     }
 
     // sent means still waiting on money, which includes part paid and overdue
@@ -32,10 +35,14 @@ public sealed record InvoiceSummary(
         InvoiceFilter.Overdue => Status == DisplayStatus.Overdue,
         InvoiceFilter.Paid => Status == DisplayStatus.Paid,
         InvoiceFilter.Void => Status == DisplayStatus.Void,
+        InvoiceFilter.Accepted => Status == DisplayStatus.Accepted,
+        InvoiceFilter.Declined => Status == DisplayStatus.Declined,
+        InvoiceFilter.Expired => Status == DisplayStatus.Expired,
         _ => true,
     };
 
-    public bool IsAwaitingPayment => Matches(InvoiceFilter.Sent);
+    // a sent quote is waiting on an answer, not on money
+    public bool IsAwaitingPayment => Kind == InvoiceKind.Invoice && Matches(InvoiceFilter.Sent);
 }
 
 public sealed record PaymentInput(DateOnly Date, long AmountCents, PaymentMethod Method, string Note);
@@ -58,6 +65,8 @@ public sealed record DashboardData(
     public long GstNetQuarterCents => GstCollectedQuarterCents - GstPaidQuarterCents;
 }
 
-public enum SearchKind { Client, Invoice, Transaction }
+public enum SearchKind { Client, Invoice, Quote, Transaction }
 
-public sealed record SearchResult(SearchKind Kind, int Id, string Title, string Subtitle, long? AmountCents = null, DateOnly? Date = null);
+public sealed record SearchResult(
+    SearchKind Kind, int Id, string Title, string Subtitle, long? AmountCents = null, DateOnly? Date = null,
+    DisplayStatus? Status = null, long? BalanceCents = null);

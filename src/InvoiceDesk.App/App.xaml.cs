@@ -7,6 +7,7 @@ using InvoiceDesk.App.Host;
 using InvoiceDesk.App.Ui;
 using InvoiceDesk.Core;
 using InvoiceDesk.Core.Data;
+using InvoiceDesk.Core.Rules;
 using InvoiceDesk.Core.Storage;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
@@ -47,10 +48,11 @@ public partial class App : Application
             }
         }
 
-        _instance = new SingleInstance(paths.DataRoot);
+        var route = LaunchArgs.RouteFor(e.Args);
+        _instance = new SingleInstance(paths.DataRoot, paths.LocalRoot);
         if (!_instance.IsFirst)
         {
-            _instance.SignalFirst();
+            _instance.SignalFirst(route);
             Shutdown();
             return;
         }
@@ -99,6 +101,7 @@ public partial class App : Application
         try
         {
             await _services.GetRequiredService<DatabaseInitializer>().InitializeAsync();
+            await _services.GetRequiredService<RecurringRunner>().RunAtStartupAsync();
         }
         catch (Exception ex)
         {
@@ -113,10 +116,18 @@ public partial class App : Application
         // without a window the process would linger and swallow every later launch
         try
         {
+            var launches = _services.GetRequiredService<LaunchRequests>();
+            launches.Request(route);
             var window = new MainWindow(_services);
             MainWindow = window;
-            _instance.ListenForActivation(() => Dispatcher.BeginInvoke(window.BringToFront));
+            _instance.ListenForActivation(next => Dispatcher.BeginInvoke(() =>
+            {
+                window.BringToFront();
+                launches.Request(next);
+            }));
             window.Show();
+            SetUpJumpList();
+            _services.GetRequiredService<RecurringRunner>().StartHourly(Dispatcher);
         }
         catch (Exception ex)
         {
@@ -125,6 +136,34 @@ public partial class App : Application
                 $"InvoiceDesk couldn't open its window.\n\n{ex.Message}\n\nDetails were saved in {paths.Logs}.",
                 "InvoiceDesk", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
+        }
+    }
+
+    // right-click shortcuts on the taskbar icon, each opening the page straight away
+    void SetUpJumpList()
+    {
+        try
+        {
+            var exe = Environment.ProcessPath!;
+            var list = new System.Windows.Shell.JumpList { ShowFrequentCategory = false, ShowRecentCategory = false };
+            foreach (var (title, arg, hint) in new[]
+            {
+                ("New invoice", LaunchArgs.NewInvoice, "Start a new invoice"),
+                ("Add expense", LaunchArgs.AddExpense, "Record money out with its receipt"),
+                ("Add income", LaunchArgs.AddIncome, "Record money in that isn't an invoice payment"),
+            })
+            {
+                list.JumpItems.Add(new System.Windows.Shell.JumpTask
+                {
+                    Title = title, Arguments = arg, Description = hint, ApplicationPath = exe, IconResourcePath = exe,
+                });
+            }
+            System.Windows.Shell.JumpList.SetJumpList(this, list);
+            list.Apply();
+        }
+        catch (Exception ex)
+        {
+            FileLog.Write(ex, "jump list");
         }
     }
 

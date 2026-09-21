@@ -19,10 +19,14 @@ public class BusinessProfile
     public string Bsb { get; set; } = "";
     public string AccountNumber { get; set; } = "";
     public string AccentColour { get; set; } = "#2E6B57";
+    public string InvoiceTemplate { get; set; } = "classic";
     public int PaymentTermsDays { get; set; } = 14;
     public string InvoicePrefix { get; set; } = "INV-";
     public int NextInvoiceNumber { get; set; } = 1;
     public int NumberPadding { get; set; } = 4;
+    public string QuotePrefix { get; set; } = "QUO-";
+    public int NextQuoteNumber { get; set; } = 1;
+    public int QuoteValidDays { get; set; } = 30;
     public bool GstRegistered { get; set; } = true;
     public int GstRateBasisPoints { get; set; } = 1000;
     public string FooterNote { get; set; } = "Thank you for your business.";

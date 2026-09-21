@@ -3,6 +3,11 @@
 @implements IDisposable
 @inject ClientService ClientStore
 @inject InvoiceService InvoiceStore
+@inject InsightService Insights
+@inject StatementPdfExporter Statements
+@inject ProfileService Profiles
+@inject EmailActions Email
+@inject Desktop Desktop
 @inject ToastService Toasts
 @inject NavigationManager Nav
 
@@ -37,8 +42,16 @@
                     {
                         <div class="picker-scrim" @onclick="() => _menu = false"></div>
                         <div class="menu-list">
+                            <button type="button" @onclick="@(() => Nav.NavigateTo($"invoices/new/{c.Id}?kind=quote"))"><Icon Name="plus" Size="16" /> New quote</button>
+                            <hr />
+                            @if (_summary.OutstandingCents > 0)
+                            {
+                                <button type="button" @onclick="() => StatementAsync(email: true)"><Icon Name="mail" Size="16" /> Email a statement</button>
+                                <button type="button" @onclick="() => StatementAsync(email: false)"><Icon Name="download" Size="16" /> Save statement PDF</button>
+                                <hr />
+                            }
                             <button type="button" @onclick="ToggleArchiveAsync"><Icon Name="@(c.IsArchived ? "undo" : "archive")" Size="16" /> @(c.IsArchived ? "Restore client" : "Archive client")</button>
-                            @if (_summary.InvoiceCount == 0)
+                            @if (_summary.InvoiceCount == 0 && _summary.QuoteCount == 0)
                             {
                                 <hr />
                                 <button type="button" class="danger" @onclick="Delete"><Icon Name="trash" Size="16" /> Delete client</button>
@@ -112,9 +125,56 @@
                         </tbody>
                     </table>
                 }
+
+                @if (_quotes.Count > 0)
+                {
+                    <div class="section-head mt-24"><h2>Quotes</h2></div>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Quote</th>
+                                <th>Issued</th>
+                                <th>Valid until</th>
+                                <th class="num">Total</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var s in _quotes)
+                            {
+                                <tr class="link @(s.Status == DisplayStatus.Void ? "strike" : null)" tabindex="0" @key="s.Id"
+                                    @onclick="() => Open(s)" @onkeydown="e => OnRowKey(e, s)">
+                                    <td class="primary num">@s.Number</td>
+                                    <td class="nowrap">@Format.Date(s.IssueDate)</td>
+                                    <td class="nowrap">@Format.Date(s.DueDate)</td>
+                                    <td class="num">@Format.Money(s.TotalCents)</td>
+                                    <td><StatusPill Status="s.Status" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
             </section>
 
             <aside class="side">
+                @if (_habit is { } habit)
+                {
+                    <section class="panel panel-pad habit">
+                        <h3>Payment habits</h3>
+                        <p class="habit-line @HabitTone(habit)">@HabitLine(habit)</p>
+                        <div class="meter" role="img" aria-label="@habit.OnTimeCount of @habit.Sample paid on time">
+                            <span style="width:@OnTimePercent(habit)%"></span>
+                        </div>
+                        <p class="small muted">@habit.OnTimeCount of @habit.Sample invoices paid by the due date</p>
+                    </section>
+                }
+                else if (_invoices.Any(s => s.Status is not DisplayStatus.Draft and not DisplayStatus.Void))
+                {
+                    <section class="panel panel-pad habit">
+                        <h3>Payment habits</h3>
+                        <p class="small soft">Once two of @c.Name's invoices are paid, you'll see how quickly they usually pay.</p>
+                    </section>
+                }
                 <section class="panel panel-pad">
                     <h3>Details</h3>
                     <dl class="facts">
@@ -158,6 +218,8 @@
 
     ClientSummary? _summary;
     List<InvoiceSummary> _invoices = [];
+    List<InvoiceSummary> _quotes = [];
+    PaymentHabit? _habit;
     bool _editing;
     bool _menu;
 
@@ -179,7 +241,28 @@
             return;
         }
         _invoices = await InvoiceStore.ListAsync(clientId: Id);
+        _quotes = await InvoiceStore.ListAsync(clientId: Id, kind: InvoiceKind.Quote);
+        _habit = await Insights.GetClientHabitAsync(Id);
     }
+
+    static string HabitLine(PaymentHabit h) => h.AverageDaysLate switch
+    {
+        0 => "Usually pays on the due date",
+        1 => "Usually pays 1 day late",
+        > 1 => $"Usually pays {h.AverageDaysLate} days late",
+        -1 => "Usually pays 1 day early",
+        _ => $"Usually pays {-h.AverageDaysLate} days early",
+    };
+
+    // a few days late is normal, so only a week or more gets the warning colour
+    static string HabitTone(PaymentHabit h) => h.AverageDaysLate switch
+    {
+        <= 0 => "good",
+        <= 7 => "",
+        _ => "late",
+    };
+
+    static int OnTimePercent(PaymentHabit h) => h.Sample == 0 ? 0 : (int)Math.Round(100.0 * h.OnTimeCount / h.Sample);
 
     void Open(InvoiceSummary s) => Nav.NavigateTo(s.Status == DisplayStatus.Draft ? $"invoices/{s.Id}/edit" : $"invoices/{s.Id}");
 
@@ -192,6 +275,31 @@
     {
         _editing = false;
         await LoadAsync();
+    }
+
+    // everything they owe in one pdf, handy when several invoices are late
+    async Task StatementAsync(bool email)
+    {
+        _menu = false;
+        try
+        {
+            var (path, statement) = await Statements.ExportAsync(Id);
+            if (email)
+            {
+                var draft = EmailTemplates.Statement(statement.Client, await Profiles.GetAsync(), statement.TotalDueCents, statement.AsOf);
+                await Email.ComposeAsync(draft, path);
+            }
+            else
+            {
+                Toasts.Show($"Saved {System.IO.Path.GetFileName(path)}", ToastKind.Success,
+                    new ToastAction("Open", () => { Desktop.OpenFile(path); return Task.CompletedTask; }),
+                    new ToastAction("Show in folder", () => { Desktop.ShowInFolder(path); return Task.CompletedTask; }));
+            }
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
     }
 
     async Task ToggleArchiveAsync()

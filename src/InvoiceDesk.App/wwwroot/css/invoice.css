@@ -172,6 +172,77 @@
     .doc { min-height: calc(297mm - 2px); }
 }
 
+/* modern: the business name sits on a band of the accent colour */
+.doc-modern::before { display: none; }
+.doc-modern .doc-head {
+    margin: -60px -60px 0 -60px;
+    padding: 46px 60px 38px;
+    background: var(--doc-accent);
+    color: #FFFFFF;
+}
+.doc-modern .doc-head .doc-small, .doc-modern .doc-head .doc-link { color: rgb(255 255 255 / .82); }
+.doc-modern .doc-title h1 { color: #FFFFFF; }
+.doc-modern .doc-logo { padding: 6px; border-radius: 6px; background: #FFFFFF; }
+.doc-modern { padding-left: 60px; }
+.doc-modern .doc-parties { border-top: 0; }
+.doc-modern .doc-dates dd.doc-due { color: var(--doc-accent); }
+.doc-modern .doc-total {
+    margin-top: 10px;
+    padding: 12px 14px;
+    border-top: 0;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--doc-accent) 9%, #FFFFFF);
+}
+.doc-modern .doc-lines th { border-bottom-color: var(--doc-accent); }
+
+/* minimal: no colour edge, quieter rules, the accent kept for the money */
+.doc-minimal::before { display: none; }
+.doc-minimal { padding: 72px 72px 52px; }
+.doc-minimal .doc-title h1 { color: var(--doc-ink); font-size: 28px; letter-spacing: .2em; font-weight: 600; }
+.doc-minimal .doc-parties { margin-top: 48px; border-top-color: #EEF1F4; }
+.doc-minimal .doc-lines th { border-bottom: 1px solid var(--doc-rule-strong); color: var(--doc-ink-3); }
+.doc-minimal .doc-lines td { border-bottom-color: #EEF1F4; }
+.doc-minimal .doc-total { border-top-width: 1px; }
+.doc-minimal .doc-dates dd.doc-due, .doc-minimal .doc-total .n { color: var(--doc-accent); }
+.doc-minimal .doc-remit { border-top-style: solid; border-top-width: 1px; border-top-color: #EEF1F4; }
+
+/* statements and reports, built from the same parts as the invoice */
+
+/* they can run to a second page, which needs a margin the first doesn't */
+.doc-statement, .doc-report { page: long-doc; }
+@page long-doc { size: A4; margin: 16mm 0 14mm; }
+@page long-doc:first { margin: 0; }
+.doc-statement .doc-spacer, .doc-report .doc-spacer { min-height: 36px; }
+
+.doc-inv { font-weight: 600; font-family: var(--doc-num); }
+.doc-late { border-color: #E4B4AF; color: #B5302A; }
+
+/* aged balances, the columns an accountant expects */
+.doc-aged {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    margin: 30px 0 0;
+    border: 1px solid var(--doc-rule);
+    border-radius: 6px;
+}
+.doc-aged > div { padding: 10px 14px; border-left: 1px solid var(--doc-rule); }
+.doc-aged > div:first-child { border-left: 0; }
+.doc-aged dt { color: var(--doc-ink-3); font-size: 11px; font-weight: 600; }
+.doc-aged dd { margin: 3px 0 0; text-align: left; font-size: 14px; font-weight: 600; }
+.doc-aged .late dd { color: #B5302A; }
+
+.doc-lines thead { display: table-header-group; }
+
+.doc-section { margin-top: 32px; break-inside: avoid; }
+.doc-section h2 { margin: 0 0 4px; font: 600 16px/1.2 var(--doc-num); }
+.doc-section .doc-small { margin-bottom: 10px; }
+.doc-report .doc-lines { margin-top: 8px; }
+.doc-report .doc-lines td { padding: 8px 0; }
+.doc-report .doc-sub td { color: var(--doc-ink-2); }
+.doc-report .doc-sum td { border-bottom: 0; border-top: 1.5px solid var(--doc-ink); font-weight: 600; }
+.doc-code { display: inline-block; min-width: 30px; margin-right: 8px; color: var(--doc-accent); font: 700 12px/1 var(--doc-num); }
+.doc-disclaimer { margin-top: 26px; color: var(--doc-ink-3); font-size: 11px; }
+
 /* zoom rather than transform so long invoices aren't clipped */
 .doc-stage {
     --scale: .6;

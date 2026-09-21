@@ -31,4 +31,7 @@ public static class InvoiceCalculator
 
     public static InvoiceTotals Totals(this Invoice invoice) =>
         Calculate(invoice.Lines, invoice.GstEnabled, invoice.GstRateBasisPoints);
+
+    public static string Heading(this Invoice invoice) =>
+        invoice.Kind == InvoiceKind.Quote ? "QUOTE" : invoice.Totals().Heading;
 }

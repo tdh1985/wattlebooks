@@ -14,19 +14,22 @@ public sealed class InvoiceService(
 {
     public event Action? Changed;
 
-    public async Task<Invoice> NewDraftAsync(int? clientId = null)
+    public async Task<Invoice> NewDraftAsync(int? clientId = null, InvoiceKind kind = InvoiceKind.Invoice)
     {
         var profile = await profiles.GetAsync();
         var today = clock.Today();
         return new Invoice
         {
+            Kind = kind,
             ClientId = clientId ?? 0,
             IssueDate = today,
-            DueDate = today.AddDays(profile.PaymentTermsDays),
+            // a quote's due date is the day its price stops holding
+            DueDate = today.AddDays(kind == InvoiceKind.Quote ? profile.QuoteValidDays : profile.PaymentTermsDays),
             Status = InvoiceStatus.Draft,
             GstEnabled = profile.GstRegistered,
             GstRateBasisPoints = profile.GstRateBasisPoints,
-            Notes = profile.DefaultInvoiceNotes,
+            // the default notes are payment terms, which a quote doesn't have yet
+            Notes = kind == InvoiceKind.Quote ? "" : profile.DefaultInvoiceNotes,
             Lines = [new InvoiceLine { Quantity = 1 }],
         };
     }
@@ -40,12 +43,37 @@ public sealed class InvoiceService(
             .Include(i => i.Attachments)
             .Include(i => i.Payments).ThenInclude(p => p.Attachments)
             .Include(i => i.Payments).ThenInclude(p => p.Category)
+            .Include(i => i.Reminders)
             .FirstOrDefaultAsync(i => i.Id == id);
         if (inv is null) return null;
 
         inv.Lines = inv.Lines.OrderBy(l => l.SortOrder).ThenBy(l => l.Id).ToList();
         inv.Payments = inv.Payments.OrderBy(p => p.Date).ThenBy(p => p.Id).ToList();
+        inv.Reminders = inv.Reminders.OrderBy(r => r.CreatedAt).ThenBy(r => r.Id).ToList();
         return inv;
+    }
+
+    public async Task<Reminder> RecordReminderAsync(int invoiceId, ReminderTone tone)
+    {
+        await using var db = await factory.CreateDbContextAsync();
+        var inv = await db.Invoices.FindAsync(invoiceId) ?? throw new ValidationException("This invoice no longer exists.");
+        if (inv.Kind == InvoiceKind.Quote || inv.Status != InvoiceStatus.Sent) throw new ValidationException("Only sent invoices can be chased up.");
+
+        var reminder = new Reminder { InvoiceId = invoiceId, Tone = tone, CreatedAt = clock.Now() };
+        db.Reminders.Add(reminder);
+        await db.SaveChangesAsync();
+        Changed?.Invoke();
+        return reminder;
+    }
+
+    public async Task DeleteReminderAsync(int reminderId)
+    {
+        await using var db = await factory.CreateDbContextAsync();
+        var reminder = await db.Reminders.FindAsync(reminderId);
+        if (reminder is null) return;
+        db.Reminders.Remove(reminder);
+        await db.SaveChangesAsync();
+        Changed?.Invoke();
     }
 
     public async Task<Invoice> SaveAsync(Invoice invoice)
@@ -62,8 +90,13 @@ public sealed class InvoiceService(
         if (invoice.Id == 0)
         {
             var profile = await db.Profiles.SingleAsync();
-            entity = new Invoice { CreatedAt = clock.Now(), Status = InvoiceStatus.Draft };
-            entity.Number = await NextNumberAsync(db, profile);
+            // set once here, since the editor never sends these back on later saves
+            entity = new Invoice
+            {
+                CreatedAt = clock.Now(), Status = InvoiceStatus.Draft, Kind = invoice.Kind,
+                RecurringScheduleId = invoice.RecurringScheduleId, ConvertedFromId = invoice.ConvertedFromId,
+            };
+            entity.Number = await NextNumberAsync(db, profile, invoice.Kind);
             db.Invoices.Add(entity);
         }
         else
@@ -72,6 +105,8 @@ public sealed class InvoiceService(
                          .SingleOrDefaultAsync(i => i.Id == invoice.Id)
                      ?? throw new ValidationException("This invoice no longer exists.");
             if (entity.Status == InvoiceStatus.Void) throw new ValidationException("Void invoices can't be changed.");
+            if (entity.Status is InvoiceStatus.Accepted or InvoiceStatus.Declined)
+                throw new ValidationException("Your client has answered this quote, so it can't be changed. Duplicate it for a new one.");
             if (entity.Payments.Count > 0)
                 throw new ValidationException("This invoice has payments recorded, so it can't be changed.");
             db.InvoiceLines.RemoveRange(entity.Lines);
@@ -117,7 +152,7 @@ public sealed class InvoiceService(
 
         var totals = inv.Totals();
         if (totals.TotalCents < 0) errors.Add("The invoice total can't be negative.");
-        if (totals.IsTaxInvoice)
+        if (totals.IsTaxInvoice && inv.Kind == InvoiceKind.Invoice)
         {
             // ato: a tax invoice must show the seller's identity and abn
             if (!Abn.IsValid(profile.Abn)) errors.Add("Add your ABN in Settings. Tax invoices must show it.");
@@ -184,6 +219,9 @@ public sealed class InvoiceService(
         var files = inv.Attachments.ToList();
         db.Invoices.Remove(inv);
         await db.SaveChangesAsync();
+        // a series with nothing left in it has nothing to copy from
+        if (inv.RecurringScheduleId is { } series && !await db.Invoices.AnyAsync(i => i.RecurringScheduleId == series))
+            await db.RecurringSchedules.Where(s => s.Id == series).ExecuteDeleteAsync();
         store.DeleteFiles(files);
         Changed?.Invoke();
     }
@@ -191,12 +229,76 @@ public sealed class InvoiceService(
     public async Task<Invoice> DuplicateAsync(int id)
     {
         var source = await GetAsync(id) ?? throw new ValidationException("This invoice no longer exists.");
-        var copy = await NewDraftAsync(source.ClientId);
+        var copy = await NewDraftAsync(source.ClientId, source.Kind);
         copy.GstEnabled = source.GstEnabled;
         copy.GstRateBasisPoints = source.GstRateBasisPoints;
         copy.Notes = source.Notes;
         copy.Lines = source.Lines.Select(l => l.Copy()).ToList();
         return copy;
+    }
+
+    public Task AcceptQuoteAsync(int id) => AnswerQuoteAsync(id, InvoiceStatus.Accepted);
+
+    public Task DeclineQuoteAsync(int id) => AnswerQuoteAsync(id, InvoiceStatus.Declined);
+
+    async Task AnswerQuoteAsync(int id, InvoiceStatus answer)
+    {
+        await using var db = await factory.CreateDbContextAsync();
+        var quote = await db.Invoices.FindAsync(id) ?? throw new ValidationException("This quote no longer exists.");
+        if (quote.Kind != InvoiceKind.Quote) throw new ValidationException("Only quotes can be accepted or declined.");
+        if (quote.Status != InvoiceStatus.Sent) throw new ValidationException("Send the quote before marking your client's answer.");
+
+        quote.Status = answer;
+        quote.AnsweredAt = clock.Now();
+        await db.SaveChangesAsync();
+        Changed?.Invoke();
+    }
+
+    // backs out an answer marked by mistake, which is what the undo toast calls
+    public async Task ReopenQuoteAsync(int id)
+    {
+        await using var db = await factory.CreateDbContextAsync();
+        var quote = await db.Invoices.FindAsync(id);
+        if (quote is not { Kind: InvoiceKind.Quote, Status: InvoiceStatus.Accepted or InvoiceStatus.Declined }) return;
+
+        quote.Status = InvoiceStatus.Sent;
+        quote.AnsweredAt = null;
+        await db.SaveChangesAsync();
+        Changed?.Invoke();
+    }
+
+    public async Task<InvoiceLink?> FindInvoiceFromQuoteAsync(int quoteId)
+    {
+        await using var db = await factory.CreateDbContextAsync();
+        return await db.Invoices.Where(i => i.ConvertedFromId == quoteId)
+            .OrderBy(i => i.Id).Select(i => new InvoiceLink(i.Id, i.Number)).FirstOrDefaultAsync();
+    }
+
+    // the invoice starts today, since the quote's dates were about the offer
+    public async Task<Invoice> TurnIntoInvoiceAsync(int quoteId)
+    {
+        var quote = await GetAsync(quoteId) ?? throw new ValidationException("This quote no longer exists.");
+        if (quote.Kind != InvoiceKind.Quote) throw new ValidationException("Only quotes can be turned into invoices.");
+        if (quote.Status == InvoiceStatus.Void) throw new ValidationException("Void quotes can't be turned into invoices.");
+        if (await FindInvoiceFromQuoteAsync(quoteId) is { } made) throw new ValidationException($"This quote is already invoice {made.Number}.");
+
+        var draft = await NewDraftAsync(quote.ClientId);
+        draft.ConvertedFromId = quote.Id;
+        draft.GstEnabled = quote.GstEnabled;
+        draft.GstRateBasisPoints = quote.GstRateBasisPoints;
+        draft.Lines = quote.Lines.Select(l => l.Copy()).ToList();
+        var invoice = await SaveAsync(draft);
+
+        if (quote.Status != InvoiceStatus.Accepted)
+        {
+            var now = clock.Now();
+            await using var db = await factory.CreateDbContextAsync();
+            await db.Invoices.Where(i => i.Id == quoteId).ExecuteUpdateAsync(u => u
+                .SetProperty(i => i.Status, InvoiceStatus.Accepted)
+                .SetProperty(i => i.AnsweredAt, now));
+            Changed?.Invoke();
+        }
+        return invoice;
     }
 
     public async Task<Transaction> RecordPaymentAsync(int invoiceId, PaymentInput input, IReadOnlyList<StagedFile> receipts)
@@ -206,6 +308,7 @@ public sealed class InvoiceService(
         await using var db = await factory.CreateDbContextAsync();
         var inv = await db.Invoices.Include(i => i.Client).Include(i => i.Lines).SingleOrDefaultAsync(i => i.Id == invoiceId)
                   ?? throw new ValidationException("This invoice no longer exists.");
+        if (inv.Kind == InvoiceKind.Quote) throw new ValidationException("Quotes can't take payments. Turn it into an invoice first.");
         if (inv.Status != InvoiceStatus.Sent)
             throw new ValidationException(inv.Status == InvoiceStatus.Draft
                 ? "Mark the invoice as sent before recording a payment."
@@ -247,11 +350,13 @@ public sealed class InvoiceService(
         return payment;
     }
 
-    public async Task<List<InvoiceSummary>> ListAsync(InvoiceFilter filter = InvoiceFilter.All, string? search = null, int? clientId = null)
+    public async Task<List<InvoiceSummary>> ListAsync(
+        InvoiceFilter filter = InvoiceFilter.All, string? search = null, int? clientId = null, InvoiceKind kind = InvoiceKind.Invoice)
     {
         await using var db = await factory.CreateDbContextAsync();
         IQueryable<Invoice> query = db.Invoices.AsNoTracking().AsSplitQuery()
-            .Include(i => i.Client).Include(i => i.Lines).Include(i => i.Payments);
+            .Include(i => i.Client).Include(i => i.Lines).Include(i => i.Payments)
+            .Where(i => i.Kind == kind);
         if (clientId is { } cid) query = query.Where(i => i.ClientId == cid);
 
         var today = clock.Today();
@@ -266,13 +371,16 @@ public sealed class InvoiceService(
     }
 
     // skip used numbers so lowering the counter can't create duplicates
-    static async Task<string> NextNumberAsync(AppDbContext db, BusinessProfile profile)
+    static async Task<string> NextNumberAsync(AppDbContext db, BusinessProfile profile, InvoiceKind kind)
     {
         var used = (await db.Invoices.Select(i => i.Number).ToListAsync()).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var n = Math.Max(1, profile.NextInvoiceNumber);
+        var quote = kind == InvoiceKind.Quote;
+        var prefix = quote ? profile.QuotePrefix : profile.InvoicePrefix;
+        var n = Math.Max(1, quote ? profile.NextQuoteNumber : profile.NextInvoiceNumber);
         string number;
-        while (used.Contains(number = InvoiceNumbering.Format(profile.InvoicePrefix, n, profile.NumberPadding))) n++;
-        profile.NextInvoiceNumber = n + 1;
+        while (used.Contains(number = InvoiceNumbering.Format(prefix, n, profile.NumberPadding))) n++;
+        if (quote) profile.NextQuoteNumber = n + 1;
+        else profile.NextInvoiceNumber = n + 1;
         return number;
     }
 }

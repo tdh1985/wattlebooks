@@ -10,6 +10,7 @@
 @inject ShortcutService Shortcuts
 @inject AppPaths Paths
 @inject Desktop Desktop
+@inject UpdateChecker Updates
 
 <div class="page">
     <PageHeader Title="Settings">
@@ -22,11 +23,12 @@
             <nav class="settings-nav" aria-label="Settings sections">
                 <a href="settings#business">Business</a>
                 <a href="settings#payment">Payment details</a>
-                <a href="settings#invoices">Invoices</a>
+                <a href="settings#invoices">Invoices and quotes</a>
                 <a href="settings#gst">GST</a>
                 <a href="settings#categories">Categories</a>
                 <a href="settings#appearance">Appearance</a>
                 <a href="settings#data">Your data</a>
+                <a href="settings#about">About</a>
             </nav>
 
             <div>
@@ -115,8 +117,8 @@
                 </section>
 
                 <section class="settings-group" id="invoices">
-                    <h2>Invoices</h2>
-                    <p class="soft">How new invoices are numbered and when they fall due.</p>
+                    <h2>Invoices and quotes</h2>
+                    <p class="soft">How new invoices and quotes are numbered, when invoices fall due and how long a quote holds.</p>
                     <div class="form-grid">
                         <div class="field">
                             <label for="inv-prefix">Number prefix</label>
@@ -138,10 +140,26 @@
                                 <span class="affix-text">days</span>
                             </div>
                         </div>
+                        <div class="field">
+                            <label for="quote-prefix">Quote prefix</label>
+                            <input id="quote-prefix" class="input" @bind="_profile.QuotePrefix" @bind:event="oninput" @bind:after="MarkDirty" />
+                        </div>
+                        <div class="field">
+                            <label for="quote-next">Next quote number</label>
+                            <input id="quote-next" type="number" min="1" class="input num" @bind="_profile.NextQuoteNumber" @bind:after="MarkDirty" />
+                            <span class="hint">Next quote will be <strong class="num">@QuoteExample</strong></span>
+                        </div>
+                        <div class="field">
+                            <label for="quote-valid">Quotes are valid for</label>
+                            <div class="affix suffix">
+                                <input id="quote-valid" type="number" min="1" max="365" class="input num" @bind="_profile.QuoteValidDays" @bind:after="MarkDirty" />
+                                <span class="affix-text">days</span>
+                            </div>
+                        </div>
                         <div class="field span-2">
                             <label for="inv-footer">Footer note</label>
                             <textarea id="inv-footer" class="textarea" rows="2" @bind="_profile.FooterNote" @bind:event="oninput" @bind:after="MarkDirty"></textarea>
-                            <span class="hint">Printed at the bottom of every invoice.</span>
+                            <span class="hint">Printed at the bottom of every invoice and quote.</span>
                         </div>
                         <div class="field span-2">
                             <label for="inv-default-notes">Default notes for new invoices</label>
@@ -220,6 +238,21 @@
                             </div>
                         </div>
                         <div class="field">
+                            <span class="label">Invoice layout</span>
+                            <div class="templates" role="radiogroup" aria-label="Invoice layout">
+                                @foreach (var t in InvoiceTemplates.All)
+                                {
+                                    var on = InvoiceTemplates.Normalise(_profile.InvoiceTemplate) == t;
+                                    <button type="button" role="radio" aria-checked="@on" class="template @(on ? "on" : null)" @onclick="() => PickTemplate(t)">
+                                        <span class="template-page" aria-hidden="true">
+                                            <InvoiceDocument Invoice="_sample" Profile="_profile" LogoUrl="@FilesUrl.Logo(_profile)" Today="_sample.IssueDate" Template="@t" />
+                                        </span>
+                                        <span class="template-name">@TemplateLabel(t)</span>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                        <div class="field">
                             <span class="label">Theme</span>
                             <div class="seg" role="group" aria-label="Theme">
                                 @foreach (var choice in ThemeService.Choices)
@@ -229,6 +262,16 @@
                                 }
                             </div>
                         </div>
+                        @if (Theme.CanBeTranslucent)
+                        {
+                            <div class="field">
+                                <span class="label">Window</span>
+                                <label class="switch">
+                                    <input type="checkbox" checked="@Theme.Translucent" @onchange="e => Theme.SetTranslucent(e.Value is true)" />
+                                    <span>Translucent edges that pick up your desktop colours</span>
+                                </label>
+                            </div>
+                        }
                     </div>
                 </section>
 
@@ -251,6 +294,41 @@
                             {
                                 <button type="button" class="btn btn-ghost btn-sm" @onclick="StartUseLocal"><Icon Name="undo" Size="14" /> Switch back to this PC's own data</button>
                             }
+                        </div>
+                    </div>
+                </section>
+
+                <section class="settings-group" id="about">
+                    <h2>About</h2>
+                    <p class="soft">InvoiceDesk never goes online by itself. Checking for updates asks GitHub for the latest version, and only when you click the button.</p>
+                    <div class="data-card">
+                        <div class="row gap-12 wrap">
+                            <span class="about-version">Version @UpdateChecker.CurrentVersion</span>
+                            <button type="button" class="btn btn-sm" disabled="@_checking" @onclick="CheckForUpdatesAsync">
+                                <Icon Name="refresh" Size="14" /> @(_checking ? "Checking…" : "Check for updates")
+                            </button>
+                        </div>
+                        @if (_update is { } update)
+                        {
+                            <div class="row gap-8 wrap small" role="status">
+                                @if (!update.Reached)
+                                {
+                                    <span class="danger-text">Couldn't reach GitHub. Check your internet connection and try again.</span>
+                                }
+                                else if (update.IsNewer && update.Url is { } url)
+                                {
+                                    <span><strong>Version @update.Latest is out.</strong></span>
+                                    <button type="button" class="btn btn-primary btn-sm" @onclick="() => Desktop.OpenUrl(url)"><Icon Name="download" Size="14" /> Download</button>
+                                }
+                                else
+                                {
+                                    <span class="soft"><Icon Name="check" Size="14" /> You're up to date.</span>
+                                }
+                            </div>
+                        }
+                        <div class="row gap-8 wrap">
+                            <button type="button" class="btn btn-ghost btn-sm" @onclick="@(() => Desktop.OpenUrl("https://github.com/tdh1985/invoicedesk"))"><Icon Name="external" Size="14" /> InvoiceDesk on GitHub</button>
+                            <button type="button" class="btn btn-ghost btn-sm" @onclick="@(() => Desktop.OpenUrl("https://github.com/tdh1985/invoicedesk/blob/main/LICENSE"))"><Icon Name="external" Size="14" /> MIT licence</button>
                         </div>
                     </div>
                 </section>
@@ -304,6 +382,8 @@
     readonly Dictionary<Direction, string> _newNames = new() { [Direction.In] = "", [Direction.Out] = "" };
     IReadOnlyList<string>? _errors;
     bool _dirty;
+    bool _checking;
+    UpdateResult? _update;
 
     decimal GstPercent
     {
@@ -322,15 +402,25 @@
 
     string NumberExample => _profile is null ? "" : InvoiceNumbering.Format(_profile.InvoicePrefix, Math.Max(1, _profile.NextInvoiceNumber), _profile.NumberPadding);
 
+    string QuoteExample => _profile is null ? "" : InvoiceNumbering.Format(_profile.QuotePrefix, Math.Max(1, _profile.NextQuoteNumber), _profile.NumberPadding);
+
     protected override async Task OnInitializedAsync()
     {
         Shortcuts.Pressed += OnShortcut;
         Theme.Changed += OnThemeChanged;
+        Theme.TranslucentChanged += OnThemeChanged;
         _profile = await Profiles.GetAsync();
         await LoadCategoriesAsync();
     }
 
     async Task LoadCategoriesAsync() => _categories = await Categories.ListAsync(includeArchived: true);
+
+    async Task CheckForUpdatesAsync()
+    {
+        _checking = true;
+        try { _update = await Updates.CheckAsync(); }
+        finally { _checking = false; }
+    }
 
     void MarkDirty()
     {
@@ -339,6 +429,36 @@
     }
 
     bool Same(string hex) => string.Equals(_profile?.AccentColour, hex, StringComparison.OrdinalIgnoreCase);
+
+    // an example invoice so each layout can be judged with real looking numbers
+    readonly Invoice _sample = new()
+    {
+        Number = "INV-0042",
+        IssueDate = DateOnly.FromDateTime(DateTime.Today),
+        DueDate = DateOnly.FromDateTime(DateTime.Today).AddDays(14),
+        Status = InvoiceStatus.Sent,
+        GstEnabled = true,
+        Client = new Client { Name = "Sample client", ContactName = "Alex Smith", Address = "1 Example Street, Hobart TAS 7000" },
+        Lines =
+        [
+            new InvoiceLine { Description = "Design work", Quantity = 1, UnitPriceCents = 120000 },
+            new InvoiceLine { Description = "Photography, half day", Quantity = 1, UnitPriceCents = 60000 },
+        ],
+    };
+
+    static string TemplateLabel(string t) => t switch
+    {
+        InvoiceTemplates.Modern => "Modern",
+        InvoiceTemplates.Minimal => "Minimal",
+        _ => "Classic",
+    };
+
+    void PickTemplate(string t)
+    {
+        if (_profile is null) return;
+        _profile.InvoiceTemplate = t;
+        MarkDirty();
+    }
 
     void PickAccent(string hex)
     {
@@ -545,5 +665,6 @@
     {
         Shortcuts.Pressed -= OnShortcut;
         Theme.Changed -= OnThemeChanged;
+        Theme.TranslucentChanged -= OnThemeChanged;
     }
 }

@@ -17,7 +17,15 @@ public static class UiServices
         services.AddSingleton<ToastService>();
         services.AddSingleton<ShortcutService>();
         services.AddSingleton<PdfPrinter>();
+        services.AddSingleton<DocumentPdfExporter>();
         services.AddSingleton<InvoicePdfExporter>();
+        services.AddSingleton<StatementPdfExporter>();
+        services.AddSingleton<UpdateChecker>();
+        services.AddSingleton<Mailer>();
+        services.AddSingleton<EmailActions>();
+        services.AddSingleton<LaunchRequests>();
+        services.AddSingleton<ReceiptReader>();
+        services.AddSingleton<RecurringRunner>();
         return services;
     }
 }

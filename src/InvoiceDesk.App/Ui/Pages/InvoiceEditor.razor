@@ -12,6 +12,9 @@
 @inject NavigationManager Nav
 @inject TimeProvider Clock
 @inject Desktop Desktop
+@inject SuggestionService Suggestions
+@inject RecurringService Recurring
+@inject EmailActions Email
 @inject IJSRuntime JS
 
 @if (_invoice is not null && _profile is not null)
@@ -20,7 +23,7 @@
     <div class="editor">
         <div class="editor-form scroll">
             <div class="editor-inner">
-                <a class="back-link" href="invoices"><Icon Name="chevron-left" Size="16" /> Invoices</a>
+                <a class="back-link" href="@ListHref"><Icon Name="chevron-left" Size="16" /> @(IsQuote ? "Quotes" : "Invoices")</a>
                 <div class="editor-head">
                     <div class="col gap-4">
                         <div class="row gap-12">
@@ -29,18 +32,29 @@
                             {
                                 <StatusPill Status="Status" />
                             }
+                            @if (_repeat is { } repeat)
+                            {
+                                <RepeatPill Info="repeat" />
+                            }
                         </div>
                         <span class="small muted" aria-live="polite">@SaveState</span>
                     </div>
                     <div class="page-actions">
                         <button type="button" class="btn" disabled="@_busy" @onclick="ExportAsync"><Icon Name="download" Size="16" /> Export PDF</button>
+                        @if (_invoice.Status is InvoiceStatus.Draft or InvoiceStatus.Sent)
+                        {
+                            <button type="button" class="btn" disabled="@_busy" @onclick="EmailAsync"
+                                    title="@(_invoice.Status == InvoiceStatus.Draft ? "Marks it as sent and opens an email with the PDF attached" : "Opens an email with the PDF attached")">
+                                <Icon Name="mail" Size="16" /> Email
+                            </button>
+                        }
                         @if (_invoice.Status == InvoiceStatus.Draft)
                         {
                             <button type="button" class="btn btn-primary" disabled="@_busy" @onclick="MarkSentAsync"><Icon Name="send" Size="16" /> Mark as sent</button>
                         }
                         else if (_invoice.Id > 0)
                         {
-                            <a class="btn btn-primary" href="invoices/@_invoice.Id">View invoice</a>
+                            <a class="btn btn-primary" href="invoices/@_invoice.Id">@(IsQuote ? "View quote" : "View invoice")</a>
                         }
                         @if (_invoice.Id > 0)
                         {
@@ -51,12 +65,16 @@
                                     <div class="picker-scrim" @onclick="() => _menu = false"></div>
                                     <div class="menu-list">
                                         <button type="button" @onclick="Duplicate"><Icon Name="copy" Size="16" /> Duplicate</button>
+                                        @if (_repeat is null && !IsQuote && _invoice.Status != InvoiceStatus.Void)
+                                        {
+                                            <button type="button" @onclick="OpenRepeatAsync"><Icon Name="refresh" Size="16" /> Repeat this invoice…</button>
+                                        }
                                         @if (_invoice.Status == InvoiceStatus.Draft)
                                         {
                                             <hr />
                                             <button type="button" class="danger" @onclick="DeleteDraft"><Icon Name="trash" Size="16" /> Delete draft</button>
                                         }
-                                        else if (_invoice.Status == InvoiceStatus.Sent)
+                                        else if (_invoice.Status == InvoiceStatus.Sent && !IsQuote)
                                         {
                                             <hr />
                                             <button type="button" class="danger" @onclick="() => { _menu = false; _confirmVoid = true; }"><Icon Name="ban" Size="16" /> Void invoice</button>
@@ -76,9 +94,13 @@
                 {
                     <div class="banner mt-8"><Icon Name="alert" Size="16" /><div>Payments have been recorded against this invoice, so it can't be changed. Void it and duplicate it if it needs fixing.</div></div>
                 }
+                else if (_invoice.Status is InvoiceStatus.Accepted or InvoiceStatus.Declined)
+                {
+                    <div class="banner mt-8"><Icon Name="check" Size="16" /><div>Your client has answered this quote, so it can't be changed. Duplicate it to start a new one.</div></div>
+                }
                 else if (_invoice.Status == InvoiceStatus.Sent)
                 {
-                    <div class="banner mt-8"><Icon Name="send" Size="16" /><div>This invoice has already been sent. Changes save here, but your client won't see them until you export and send a new PDF.</div></div>
+                    <div class="banner mt-8"><Icon Name="send" Size="16" /><div>This @Noun has already been sent. Changes save here, but your client won't see them until you export and send a new PDF.</div></div>
                 }
 
                 @if (_issueErrors.Count > 0)
@@ -117,10 +139,10 @@
                             <input id="invoice-issue" type="date" class="input" value="@Format.Iso(_invoice.IssueDate)" @onchange="OnIssueChanged" />
                         </div>
                         <div class="field">
-                            <label for="invoice-due">Due date</label>
+                            <label for="invoice-due">@(IsQuote ? "Valid until" : "Due date")</label>
                             <input id="invoice-due" type="date" class="input" value="@Format.Iso(_invoice.DueDate)" @onchange="OnDueChanged" />
                             <div class="row gap-4">
-                                @foreach (var days in TermOptions)
+                                @foreach (var days in IsQuote ? ValidOptions : TermOptions)
                                 {
                                     <button type="button" class="chip chip-sm @(TermDays == days ? "on" : null)" @onclick="() => SetTerms(days)">@days days</button>
                                 }
@@ -133,7 +155,7 @@
                             <input type="checkbox" checked="@_invoice.GstEnabled" @onchange="OnGstChanged" />
                             <span>Charge GST (@Format.Percent(_invoice.GstRateBasisPoints))</span>
                         </label>
-                        <span class="heading-preview">The heading will read <strong>@totals.Heading</strong></span>
+                        <span class="heading-preview">The heading will read <strong>@_invoice.Heading()</strong></span>
                     </div>
                     @if (_invoice.GstEnabled && !_profile.GstRegistered)
                     {
@@ -156,9 +178,33 @@
                         {
                             var index = i;
                             var line = _invoice.Lines[i];
+                            var suggesting = _suggestFor == line && _suggestions.Count > 0;
                             <div class="line" @key="line">
-                                <textarea id="desc-@index" class="input line-desc" rows="1" placeholder="Description" aria-label="Description"
-                                          value="@line.Description" @oninput="e => SetDescription(line, e)"></textarea>
+                                <div class="line-desc-cell">
+                                    <textarea id="desc-@index" class="input line-desc" rows="1" placeholder="Description" aria-label="Description"
+                                              aria-autocomplete="list" aria-expanded="@suggesting" aria-controls="@(suggesting ? "line-suggest" : null)"
+                                              data-suggest-open="@(suggesting ? (_suggestActive >= 0 ? "active" : "open") : null)"
+                                              value="@line.Description" @oninput="e => SetDescription(line, e)" @onblur="CloseSuggestions"></textarea>
+                                    @if (suggesting)
+                                    {
+                                        <ul class="suggest" id="line-suggest" role="listbox" aria-label="Past line items">
+                                            @for (var j = 0; j < _suggestions.Count; j++)
+                                            {
+                                                var option = j;
+                                                var s = _suggestions[j];
+                                                <li role="option" aria-selected="@(option == _suggestActive)" class="@(option == _suggestActive ? "active" : null)"
+                                                    @onmouseenter="() => _suggestActive = option"
+                                                    @onmousedown="() => PickSuggestion(line, s)" @onmousedown:preventDefault>
+                                                    <span class="suggest-main">
+                                                        <span class="truncate">@s.Description</span>
+                                                        <span class="suggest-sub">@SuggestionSource(s)</span>
+                                                    </span>
+                                                    <span class="num">@Format.Money(s.UnitPriceCents)</span>
+                                                </li>
+                                            }
+                                        </ul>
+                                    }
+                                </div>
                                 <input class="input num" inputmode="decimal" aria-label="Quantity" value="@Format.Quantity(line.Quantity)"
                                        @onchange="e => SetQuantity(line, e)" @onkeydown="e => OnLineKey(e, index)" />
                                 <MoneyInput Id="@($"price-{index}")" Cents="line.UnitPriceCents" CentsChanged="c => SetPrice(line, c)"
@@ -188,14 +234,14 @@
 
                     <div class="field mt-24">
                         <label for="invoice-notes">Notes for your client</label>
-                        <textarea id="invoice-notes" class="textarea" rows="3" placeholder="Optional. Printed on the invoice."
+                        <textarea id="invoice-notes" class="textarea" rows="3" placeholder="@($"Optional. Printed on the {Noun}.")"
                                   value="@_invoice.Notes" @oninput="SetNotes"></textarea>
                     </div>
                 </fieldset>
             </div>
         </div>
 
-        <div class="editor-preview" aria-label="Invoice preview">
+        <div class="editor-preview" aria-label="@(IsQuote ? "Quote preview" : "Invoice preview")">
             <div class="doc-stage" @ref="_stage">
                 <div class="doc-frame">
                     <InvoiceDocument Invoice="_invoice" Profile="_profile" LogoUrl="@LogoUrl" Today="_today" NumberPreview="@NumberPreview" />
@@ -206,6 +252,8 @@
 }
 
 <ClientDrawer Open="_addingClient" Client="_draftClient" OnSaved="OnClientCreatedAsync" OnClose="() => _addingClient = false" />
+
+<RepeatModal Open="_repeating" InvoiceId="@(_invoice?.Id ?? 0)" IssueDate="@(_invoice?.IssueDate ?? _today)" OnClose="() => _repeating = false" OnDone="OnRepeatSetAsync" />
 
 <Modal Open="_confirmVoid" Title="Void this invoice?" OnClose="() => _confirmVoid = false">
     <ChildContent>
@@ -219,10 +267,13 @@
 
 @code {
     static readonly int[] TermOptions = [7, 14, 30];
+    static readonly int[] ValidOptions = [14, 30, 60];
 
     [Parameter] public int Id { get; set; }
     [Parameter] public int? ClientId { get; set; }
     [SupplyParameterFromQuery(Name = "duplicate")] public int? DuplicateOf { get; set; }
+    // only a brand new document needs this, a saved one knows its own kind
+    [SupplyParameterFromQuery(Name = "kind")] public string? KindQuery { get; set; }
 
     Invoice? _invoice;
     BusinessProfile? _profile;
@@ -244,23 +295,41 @@
     bool _busy;
     bool _menu;
     bool _confirmVoid;
+    bool _repeating;
+    RepeatInfo? _repeat;
     bool _addingClient;
     bool _leaving;
     Client? _draftClient;
     int? _focusLine;
 
-    bool Locked => _invoice is null || _invoice.Status == InvoiceStatus.Void || _invoice.Payments.Count > 0;
+    InvoiceLine? _suggestFor;
+    List<LineSuggestion> _suggestions = [];
+    int _suggestActive = -1;
+    CancellationTokenSource? _suggestDebounce;
+    IDisposable? _suggestOverlay;
+    DotNetObjectReference<InvoiceEditor>? _ref;
+
+    bool Locked => _invoice is null || _invoice.Payments.Count > 0
+                   || _invoice.Status is InvoiceStatus.Void or InvoiceStatus.Accepted or InvoiceStatus.Declined;
+
+    bool IsQuote => _invoice?.Kind == InvoiceKind.Quote;
+
+    string Noun => IsQuote ? "quote" : "invoice";
+
+    string ListHref => IsQuote ? "invoices?kind=quote" : "invoices";
 
     DisplayStatus Status => _invoice is null ? DisplayStatus.Draft : InvoiceStatusResolver.Resolve(_invoice, _today);
 
     string Title => _invoice switch
     {
         { Id: > 0 } inv => inv.Number,
-        _ when DuplicateOf is not null => "Copy of invoice",
-        _ => "New invoice",
+        _ when DuplicateOf is not null => $"Copy of {Noun}",
+        _ => $"New {Noun}",
     };
 
-    string NumberPreview => _profile is null ? "" : InvoiceNumbering.Format(_profile.InvoicePrefix, _profile.NextInvoiceNumber, _profile.NumberPadding);
+    string NumberPreview => _profile is null ? "" : IsQuote
+        ? InvoiceNumbering.Format(_profile.QuotePrefix, _profile.NextQuoteNumber, _profile.NumberPadding)
+        : InvoiceNumbering.Format(_profile.InvoicePrefix, _profile.NextInvoiceNumber, _profile.NumberPadding);
 
     string? LogoUrl => FilesUrl.Logo(_profile);
 
@@ -283,7 +352,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        var key = $"{Id}|{ClientId}|{DuplicateOf}";
+        var key = $"{Id}|{ClientId}|{DuplicateOf}|{KindQuery}";
         if (key == _loadedKey) return;
         _loadedKey = key;
         // our own url swap after the first save must not reload the form
@@ -312,6 +381,7 @@
         _triedIssue = false;
         _dirty = false;
         _fitted = false;
+        _repeat = Id > 0 ? await Recurring.GetForInvoiceAsync(Id) : null;
 
         if (Id > 0)
         {
@@ -329,13 +399,18 @@
         }
         else
         {
-            _invoice = await InvoiceStore.NewDraftAsync(ClientId);
+            _invoice = await InvoiceStore.NewDraftAsync(ClientId, KindQuery == "quote" ? InvoiceKind.Quote : InvoiceKind.Invoice);
         }
         _invoice.Client = _clients.FirstOrDefault(c => c.Id == _invoice.ClientId);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            _ref = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("invoicedesk.suggestKeys", _ref);
+        }
         if (_invoice is not null && !_fitted)
         {
             _fitted = true;
@@ -422,7 +497,88 @@
     {
         line.Description = e.Value?.ToString() ?? "";
         Changed();
+        _ = SuggestSoonAsync(line);
     }
+
+    // suggestions
+
+    async Task SuggestSoonAsync(InvoiceLine line)
+    {
+        _suggestDebounce?.Cancel();
+        _suggestDebounce = new CancellationTokenSource();
+        var token = _suggestDebounce.Token;
+        try { await Task.Delay(150, token); }
+        catch (TaskCanceledException) { return; }
+
+        var term = line.Description;
+        var found = await Suggestions.LineSuggestionsAsync(_invoice?.ClientId, term);
+        if (token.IsCancellationRequested) return;
+        // a suggestion that would change nothing is just noise
+        found.RemoveAll(s => string.Equals(s.Description, term.Trim(), StringComparison.OrdinalIgnoreCase)
+                             && s.UnitPriceCents == line.UnitPriceCents);
+        await InvokeAsync(() =>
+        {
+            if (found.Count == 0)
+            {
+                CloseSuggestions();
+            }
+            else
+            {
+                _suggestFor = line;
+                _suggestions = found;
+                _suggestActive = -1;
+                _suggestOverlay ??= Shortcuts.AddOverlay(() => _ = InvokeAsync(() =>
+                {
+                    CloseSuggestions();
+                    StateHasChanged();
+                }));
+            }
+            StateHasChanged();
+        });
+    }
+
+    string SuggestionSource(LineSuggestion s) => s.ForThisClient
+        ? $"Last charged to {_invoice?.Client?.Name}"
+        : _invoice?.ClientId > 0 ? "Last charged to another client" : "Your last price for this";
+
+    void CloseSuggestions()
+    {
+        _suggestDebounce?.Cancel();
+        _suggestFor = null;
+        _suggestions = [];
+        _suggestActive = -1;
+        _suggestOverlay?.Dispose();
+        _suggestOverlay = null;
+    }
+
+    void PickSuggestion(InvoiceLine line, LineSuggestion s)
+    {
+        line.Description = s.Description;
+        line.GstFree = s.GstFree;
+        // a price already typed wins over the one from history
+        if (line.UnitPriceCents == 0) line.UnitPriceCents = s.UnitPriceCents;
+        CloseSuggestions();
+        Changed();
+    }
+
+    [JSInvokable]
+    public Task OnSuggestKey(string key) => InvokeAsync(() =>
+    {
+        if (_suggestFor is null || _suggestions.Count == 0) return;
+        switch (key)
+        {
+            case "ArrowDown":
+                _suggestActive = (_suggestActive + 1) % _suggestions.Count;
+                break;
+            case "ArrowUp":
+                _suggestActive = _suggestActive <= 0 ? _suggestions.Count - 1 : _suggestActive - 1;
+                break;
+            case "Enter" when _suggestActive >= 0:
+                PickSuggestion(_suggestFor, _suggestions[_suggestActive]);
+                break;
+        }
+        StateHasChanged();
+    });
 
     void SetQuantity(InvoiceLine line, ChangeEventArgs e)
     {
@@ -474,6 +630,7 @@
     Invoice Snapshot() => new()
     {
         Id = _invoice!.Id,
+        Kind = _invoice.Kind,
         ClientId = _invoice.ClientId,
         IssueDate = _invoice.IssueDate,
         DueDate = _invoice.DueDate,
@@ -584,7 +741,23 @@
         }
     }
 
-    async Task MarkSentAsync()
+    Task MarkSentAsync() => SendAsync(email: false);
+
+    async Task EmailAsync()
+    {
+        if (_invoice?.Status == InvoiceStatus.Draft)
+        {
+            await SendAsync(email: true);
+            return;
+        }
+        if (!await PrepareForIssueAsync()) return;
+        _busy = true;
+        try { await Email.EmailInvoiceAsync(_invoice!.Id); }
+        catch (Exception ex) { Toasts.Error(ex); }
+        finally { _busy = false; }
+    }
+
+    async Task SendAsync(bool email)
     {
         if (!await PrepareForIssueAsync()) return;
         _busy = true;
@@ -593,9 +766,16 @@
             var id = _invoice!.Id;
             var path = await Pdf.ExportAsync(id);
             await InvoiceStore.MarkSentAsync(id, path);
-            Toasts.Show($"{_invoice.Number} marked as sent. The PDF is ready to email.", ToastKind.Success,
-                new ToastAction("Open PDF", () => { Desktop.OpenFile(path); return Task.CompletedTask; }),
-                new ToastAction("Show in folder", () => { Desktop.ShowInFolder(path); return Task.CompletedTask; }));
+            if (email)
+            {
+                await Email.EmailInvoiceAsync(id, path);
+            }
+            else
+            {
+                Toasts.Show($"{_invoice.Number} marked as sent. The PDF is ready to email.", ToastKind.Success,
+                    new ToastAction("Open PDF", () => { Desktop.OpenFile(path); return Task.CompletedTask; }),
+                    new ToastAction("Show in folder", () => { Desktop.ShowInFolder(path); return Task.CompletedTask; }));
+            }
             _leaving = true;
             Nav.NavigateTo($"invoices/{id}");
         }
@@ -616,6 +796,20 @@
         Nav.NavigateTo($"invoices/new?duplicate={_invoice!.Id}");
     }
 
+    // the schedule starts from the saved issue date, so typing lands first
+    async Task OpenRepeatAsync()
+    {
+        _menu = false;
+        await FlushAsync();
+        _repeating = true;
+    }
+
+    async Task OnRepeatSetAsync()
+    {
+        _repeating = false;
+        _repeat = await Recurring.GetForInvoiceAsync(_invoice!.Id);
+    }
+
     void DeleteDraft()
     {
         _menu = false;
@@ -624,7 +818,7 @@
         _leaving = true;
         _debounce?.Cancel();
         Toasts.ShowUndo($"{number} deleted", $"invoice:{id}", () => InvoiceStore.DeleteDraftAsync(id));
-        Nav.NavigateTo("invoices");
+        Nav.NavigateTo(ListHref);
     }
 
     async Task VoidAsync()
@@ -657,6 +851,8 @@
     {
         Shortcuts.Pressed -= OnShortcut;
         _debounce?.Cancel();
+        CloseSuggestions();
+        _ref?.Dispose();
         // leaving mid-edit still keeps the latest typing
         if (_dirty && !_leaving && !Locked && _invoice is { ClientId: > 0 })
         {

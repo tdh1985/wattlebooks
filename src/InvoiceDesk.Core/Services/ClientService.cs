@@ -75,7 +75,7 @@ public sealed class ClientService(IDbContextFactory<AppDbContext> factory, TimeP
     {
         await using var db = await factory.CreateDbContextAsync();
         if (await db.Invoices.AnyAsync(i => i.ClientId == id))
-            throw new ValidationException("This client has invoices, so it can't be deleted. Archive it instead.");
+            throw new ValidationException("This client has invoices or quotes, so it can't be deleted. Archive it instead.");
 
         var client = await db.Clients.FindAsync(id);
         if (client is null) return;
@@ -96,9 +96,10 @@ public sealed class ClientService(IDbContextFactory<AppDbContext> factory, TimeP
 
     static ClientSummary Summarise(Client c)
     {
-        var issued = c.Invoices.Where(i => i.Status == InvoiceStatus.Sent).ToList();
+        var invoices = c.Invoices.Where(i => i.Kind == InvoiceKind.Invoice).ToList();
+        var issued = invoices.Where(i => i.Status == InvoiceStatus.Sent).ToList();
         var billed = issued.Sum(i => i.Totals().TotalCents);
         var outstanding = issued.Sum(i => Math.Max(0, i.Totals().TotalCents - i.PaidCents));
-        return new ClientSummary(c, c.Invoices.Count, billed, outstanding);
+        return new ClientSummary(c, invoices.Count, billed, outstanding, c.Invoices.Count - invoices.Count);
     }
 }

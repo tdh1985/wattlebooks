@@ -6,6 +6,7 @@
 @inject ClientService ClientStore
 @inject InvoiceService InvoiceStore
 @inject TransactionService Ledger
+@inject InsightService Insights
 @inject TimeProvider Clock
 
 <div class="page">
@@ -102,7 +103,7 @@
                 <div class="ledger-note">Money in less money out, excluding GST</div>
             </div>
             <div class="ledger-cell">
-                <div class="ledger-label">GST for @_data.QuarterLabel</div>
+                <a class="ledger-label" href="reports" title="Open the BAS worksheet">GST for @_data.QuarterLabel <Icon Name="chevron-down" Size="13" Class="rot-270" /></a>
                 <div class="ledger-value">@Format.Money(Math.Abs(_data.GstNetQuarterCents))</div>
                 <div class="ledger-note">
                     @(_data.GstNetQuarterCents >= 0 ? "To pay" : "Refund due"): collected @Format.Money(_data.GstCollectedQuarterCents), paid @Format.Money(_data.GstPaidQuarterCents)
@@ -120,6 +121,44 @@
             </section>
 
             <div class="col gap-32">
+                @if (_forecast is { Items.Count: > 0 } forecast)
+                {
+                    <section>
+                        <div class="section-head">
+                            <h2>Coming in</h2>
+                            <span class="soft">Next @forecast.Days days</span>
+                        </div>
+                        @{
+                            var overdueCents = forecast.Items.Where(e => e.Invoice.Status == DisplayStatus.Overdue).Sum(e => e.Invoice.BalanceCents);
+                            var upcoming = forecast.Items.Where(e => e.Invoice.Status != DisplayStatus.Overdue).ToList();
+                        }
+                        <div class="forecast">
+                            <span class="forecast-figure num">@Format.Money(forecast.TotalCents)</span>
+                            <span class="small muted">
+                                expected from @forecast.Items.Count invoice@(forecast.Items.Count == 1 ? "" : "s"), allowing for how late each client usually pays@(overdueCents > 0 ? $". {Format.Money(overdueCents)} of it is already overdue." : ".")
+                            </span>
+                        </div>
+                        @* overdue ones are listed just below, so only the rest go here *@
+                        @if (upcoming.Count > 0)
+                        {
+                            <ul class="list-rows">
+                                @foreach (var e in upcoming.Take(3))
+                                {
+                                    <li @key="e.Invoice.Id">
+                                        <a href="invoices/@e.Invoice.Id">
+                                            <span class="list-main">
+                                                <span class="list-title">@e.Invoice.ClientName</span>
+                                                <span class="list-sub">@e.Invoice.Number, @ExpectedLabel(e)</span>
+                                            </span>
+                                            <span class="num">@Format.Money(e.Invoice.BalanceCents)</span>
+                                        </a>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </section>
+                }
+
                 <section>
                     <div class="section-head">
                         <h2>Overdue</h2>
@@ -137,7 +176,7 @@
                         <ul class="list-rows">
                             @foreach (var s in _data.Overdue.Take(5))
                             {
-                                <li @key="s.Id">
+                                <li @key="s.Id" class="with-action">
                                     <a href="invoices/@s.Id">
                                         <span class="list-main">
                                             <span class="list-title">@s.ClientName</span>
@@ -145,6 +184,7 @@
                                         </span>
                                         <span class="num">@Format.Money(s.BalanceCents)</span>
                                     </a>
+                                    <button type="button" class="btn btn-sm" title="Email @s.ClientName a reminder" @onclick="() => _remindId = s.Id"><Icon Name="bell" Size="14" /> Remind</button>
                                 </li>
                             }
                         </ul>
@@ -184,8 +224,12 @@
     }
 </div>
 
+<ReminderModal Open="_remindId is not null" InvoiceId="_remindId" OnClose="() => _remindId = null" OnSent="() => _remindId = null" />
+
 @code {
+    int? _remindId;
     DashboardData? _data;
+    CashForecast? _forecast;
     BusinessProfile? _profile;
     int _clientCount;
     int _invoiceCount;
@@ -213,8 +257,20 @@
     {
         _profile = await Profiles.GetAsync();
         _data = await DashboardStore.GetAsync();
+        _forecast = await Insights.GetForecastAsync();
         _clientCount = (await ClientStore.ListAsync()).Count;
         _invoiceCount = (await InvoiceStore.ListAsync()).Count;
+    }
+
+    string ExpectedLabel(ExpectedPayment e)
+    {
+        var days = e.ExpectedDate.DayNumber - Clock.Today().DayNumber;
+        return days switch
+        {
+            0 => "expected today",
+            1 => "expected tomorrow",
+            _ => $"expected {Format.DateShort(e.ExpectedDate)}",
+        };
     }
 
     static string Href(ActivityItem item) => item.Kind switch

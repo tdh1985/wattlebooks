@@ -16,6 +16,20 @@ public sealed class ThemeService(PrefsStore prefs)
 
     public event Action? Changed;
     public event Action<bool>? ResolvedChanged;
+    public event Action? TranslucentChanged;
+
+    // mica only exists on windows 11 22h2 and later, older builds keep the solid desk
+    public bool CanBeTranslucent => WindowChrome.SupportsMica;
+
+    public bool Translucent => CanBeTranslucent && prefs.Current.Translucent;
+
+    public void SetTranslucent(bool on)
+    {
+        if (prefs.Current.Translucent == on) return;
+        prefs.Current.Translucent = on;
+        prefs.Save();
+        TranslucentChanged?.Invoke();
+    }
 
     public void Set(string theme)
     {

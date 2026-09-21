@@ -20,7 +20,7 @@ public sealed class DashboardService(IDbContextFactory<AppDbContext> factory, Ti
             .ToListAsync();
         var txs = await db.Transactions.AsNoTracking().Include(t => t.Invoice).ToListAsync();
 
-        var summaries = invoices.Select(i => InvoiceSummary.From(i, today)).ToList();
+        var summaries = invoices.Where(i => i.Kind == InvoiceKind.Invoice).Select(i => InvoiceSummary.From(i, today)).ToList();
         var open = summaries.Where(s => s.IsAwaitingPayment).ToList();
         var overdue = open.Where(s => s.Status == DisplayStatus.Overdue).OrderBy(s => s.DueDate).ToList();
 
@@ -28,8 +28,7 @@ public sealed class DashboardService(IDbContextFactory<AppDbContext> factory, Ti
         var fy = FinancialPeriods.FinancialYear(today);
         var quarter = FinancialPeriods.BasQuarter(today);
 
-        long Sum(Direction d, DateRange r, Func<Transaction, long> pick) =>
-            txs.Where(t => t.Direction == d && r.Contains(t.Date)).Sum(pick);
+        long Sum(Direction d, DateRange r, Func<Transaction, long> pick) => CashTotals.Sum(txs, d, r, pick);
 
         var months = Enumerable.Range(0, 12)
             .Select(i => FinancialPeriods.Month(month.Start.AddMonths(i - 11)))
@@ -44,8 +43,8 @@ public sealed class DashboardService(IDbContextFactory<AppDbContext> factory, Ti
             ReceivedMonthCents: Sum(Direction.In, month, t => t.AmountCents),
             SpentMonthCents: Sum(Direction.Out, month, t => t.AmountCents),
             ProfitFyCents: Sum(Direction.In, fy, t => t.ExGstCents) - Sum(Direction.Out, fy, t => t.ExGstCents),
-            GstCollectedQuarterCents: Sum(Direction.In, quarter, t => t.GstCents),
-            GstPaidQuarterCents: Sum(Direction.Out, quarter, t => t.GstCents),
+            GstCollectedQuarterCents: CashTotals.GstCollected(txs, quarter),
+            GstPaidQuarterCents: CashTotals.GstPaid(txs, quarter),
             FyLabel: FinancialPeriods.FinancialYearLabel(today),
             QuarterLabel: FinancialPeriods.BasQuarterLabel(today),
             Months: months,
@@ -60,7 +59,9 @@ public sealed class DashboardService(IDbContextFactory<AppDbContext> factory, Ti
         {
             var client = inv.Client?.Name ?? "";
             var total = inv.Totals().TotalCents;
-            items.Add(new ActivityItem(inv.CreatedAt, ActivityKind.InvoiceCreated, inv.Id, $"{inv.Number} created", client, total));
+            // a draft in a series was made by the app, not typed, so it says so
+            var made = inv is { RecurringScheduleId: not null, Status: InvoiceStatus.Draft } ? "drafted to repeat" : "created";
+            items.Add(new ActivityItem(inv.CreatedAt, ActivityKind.InvoiceCreated, inv.Id, $"{inv.Number} {made}", client, total));
             if (inv.SentAt is { } sent)
                 items.Add(new ActivityItem(sent, ActivityKind.InvoiceSent, inv.Id, $"{inv.Number} sent", client, total));
         }

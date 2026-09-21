@@ -1,0 +1,16 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+<a class="pill pill-plain" href="invoices?show=repeating" title="Manage repeating invoices">
+    <Icon Name="refresh" Size="12" />
+    @Label
+</a>
+
+@code {
+    [Parameter, EditorRequired] public RepeatInfo Info { get; set; } = null!;
+
+    string Label => Info switch
+    {
+        { IsPaused: true } => $"Repeats {RepeatModal.Label(Info.Every).ToLowerInvariant()}, paused",
+        { NextDate: { } next } => $"Repeats {RepeatModal.Label(Info.Every).ToLowerInvariant()}, next {Format.DateShort(next)}",
+        _ => "Repeating has finished",
+    };
+}

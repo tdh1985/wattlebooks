@@ -41,7 +41,10 @@ public static class Icons
         ["undo"] = """<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>""",
         ["hash"] = """<path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/>""",
         ["database"] = """<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>""",
-        ["refresh"] = """<path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/>""",
+        ["mail"] = """<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>""",
+        ["bell"] = """<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>""",
+        ["chart"] = """<path d="M3 3v18h18"/><path d="M7 15v2M11 11v6M15 7v10M19 12v5"/>""",
+        ["refresh"] ="""<path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/>""",
     };
 
     public static string Get(string name) => Paths.GetValueOrDefault(name, Paths["alert"]);

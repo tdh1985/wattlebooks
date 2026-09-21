@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceDesk.Core.Services;
 
-public sealed class SearchService(IDbContextFactory<AppDbContext> factory)
+public sealed class SearchService(IDbContextFactory<AppDbContext> factory, TimeProvider clock)
 {
     const int PerKind = 5;
     const int MaxResults = 12;
@@ -24,11 +24,19 @@ public sealed class SearchService(IDbContextFactory<AppDbContext> factory)
             .Take(PerKind)
             .Select(c => new SearchResult(SearchKind.Client, c.Id, c.Name, c.ContactName.Length > 0 ? c.ContactName : c.Email));
 
-        var invoices = (await db.Invoices.AsNoTracking().AsSplitQuery().Include(i => i.Client).Include(i => i.Lines).ToListAsync())
+        var today = clock.Today();
+        var documents = (await db.Invoices.AsNoTracking().AsSplitQuery()
+                .Include(i => i.Client).Include(i => i.Lines).Include(i => i.Payments).ToListAsync())
             .Where(i => Text.Has(i.Number, term) || Text.Has(i.Client?.Name, term))
             .OrderByDescending(i => i.IssueDate)
+            .ToList();
+
+        // kept in two runs so the palette shows each heading once
+        IEnumerable<SearchResult> Documents(InvoiceKind kind, SearchKind shownAs) => documents
+            .Where(i => i.Kind == kind)
             .Take(PerKind)
-            .Select(i => new SearchResult(SearchKind.Invoice, i.Id, i.Number, i.Client?.Name ?? "", i.Totals().TotalCents, i.IssueDate));
+            .Select(i => InvoiceSummary.From(i, today))
+            .Select(s => new SearchResult(shownAs, s.Id, s.Number, s.ClientName, s.TotalCents, s.IssueDate, s.Status, s.BalanceCents));
 
         var txs = (await db.Transactions.AsNoTracking().ToListAsync())
             .Where(t => Text.Has(t.Party, term) || Text.Has(t.Description, term))
@@ -37,6 +45,10 @@ public sealed class SearchService(IDbContextFactory<AppDbContext> factory)
             .Select(t => new SearchResult(SearchKind.Transaction, t.Id, t.Party.Length > 0 ? t.Party : t.Description,
                 t.Direction == Direction.In ? "Money in" : "Money out", t.AmountCents, t.Date));
 
-        return clients.Concat(invoices).Concat(txs).Take(MaxResults).ToList();
+        return clients
+            .Concat(Documents(InvoiceKind.Invoice, SearchKind.Invoice))
+            .Concat(Documents(InvoiceKind.Quote, SearchKind.Quote))
+            .Concat(txs)
+            .Take(MaxResults).ToList();
     }
 }

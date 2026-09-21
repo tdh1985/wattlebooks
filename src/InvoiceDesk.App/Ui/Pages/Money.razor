@@ -7,11 +7,16 @@
 @inject ToastService Toasts
 @inject NavigationManager Nav
 @inject TimeProvider Clock
+@inject ExportService Exports
+@inject Desktop Desktop
+@inject AppPaths Paths
+@inject IJSRuntime JS
 
 <div class="page">
     <PageHeader Title="Money in &amp; out">
         <Subtitle>Client payments, other income and what you've spent, each with its receipts.</Subtitle>
         <Actions>
+            <button type="button" class="btn btn-ghost" title="Every entry in @PeriodLabel(_period), for your accountant or Excel" @onclick="ExportCsvAsync"><Icon Name="download" Size="16" /> Export CSV</button>
             <button type="button" class="btn" @onclick="() => StartNew(Direction.In)"><Icon Name="in" Size="16" /> Add income</button>
             <button type="button" class="btn btn-primary" @onclick="() => StartNew(Direction.Out)"><Icon Name="out" Size="16" /> Add expense</button>
         </Actions>
@@ -148,7 +153,15 @@
     }
 </div>
 
-<TransactionDrawer Open="_drawerOpen" Direction="_newDirection" TransactionId="_openId"
+@if (_pageDrop)
+{
+    <div class="page-drop" @onclick="HidePageDrop">
+        <FileDropZone Multiple="false" IconName="receipt" Title="Drop a receipt to add it as an expense"
+                      Hint="InvoiceDesk reads the amount, date and supplier from it for you" OnFiles="OnPageDropAsync" />
+    </div>
+}
+
+<TransactionDrawer Open="_drawerOpen" Direction="_newDirection" TransactionId="_openId" InitialFiles="_droppedFiles"
                    OnSaved="OnDrawerDoneAsync" OnDeleted="OnDrawerDoneAsync" OnClose="CloseDrawer" />
 
 @code {
@@ -168,6 +181,9 @@
     bool _drawerOpen;
     Direction _newDirection = Direction.Out;
     int? _openId;
+    bool _pageDrop;
+    IReadOnlyList<StagedFile>? _droppedFiles;
+    DotNetObjectReference<Money>? _ref;
 
     Direction? TabDirection => _tab switch { "in" => Direction.In, "out" => Direction.Out, _ => null };
 
@@ -198,16 +214,17 @@
         await LoadAsync();
     }
 
+    static DateRange? Range(string period, DateOnly today) => period switch
+    {
+        "month" => FinancialPeriods.Month(today),
+        "quarter" => FinancialPeriods.BasQuarter(today),
+        "fy" => FinancialPeriods.FinancialYear(today),
+        _ => null,
+    };
+
     async Task LoadAsync()
     {
-        var today = Clock.Today();
-        DateRange? range = _period switch
-        {
-            "month" => FinancialPeriods.Month(today),
-            "quarter" => FinancialPeriods.BasQuarter(today),
-            "fy" => FinancialPeriods.FinancialYear(today),
-            _ => null,
-        };
+        var range = Range(_period, Clock.Today());
         _rows = await Ledger.ListAsync(new TransactionFilter(TabDirection, range, _categoryId));
         // first-run help only makes sense when nothing has ever been recorded
         _hasAny = _rows.Count > 0 || (await Ledger.ListAsync(new TransactionFilter())).Count > 0;
@@ -245,8 +262,61 @@
         await LoadAsync();
     }
 
+    // the whole period, whatever the tabs show, since that's what an accountant wants
+    async Task ExportCsvAsync()
+    {
+        var range = Range(_period, Clock.Today()) ?? new DateRange(DateOnly.MinValue, DateOnly.MaxValue);
+        var target = Desktop.SaveCsvAs(Format.SafeFileName($"Money in and out, {PeriodLabel(_period)}.csv"), Paths.Exports);
+        if (target is null) return;
+        try
+        {
+            await using (var file = System.IO.File.Create(target)) await Exports.WriteTransactionsCsvAsync(range, file);
+            Toasts.Show($"Saved {System.IO.Path.GetFileName(target)}", ToastKind.Success,
+                new ToastAction("Open", () => { Desktop.OpenFile(target); return Task.CompletedTask; }),
+                new ToastAction("Show in folder", () => { Desktop.ShowInFolder(target); return Task.CompletedTask; }));
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _ref = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("invoicedesk.watchFileDrag", _ref);
+    }
+
+    [JSInvokable]
+    public Task ShowPageDrop() => InvokeAsync(() =>
+    {
+        if (_drawerOpen || _pageDrop) return;
+        _pageDrop = true;
+        StateHasChanged();
+    });
+
+    [JSInvokable]
+    public Task HidePageDrop() => InvokeAsync(() =>
+    {
+        if (!_pageDrop) return;
+        _pageDrop = false;
+        StateHasChanged();
+    });
+
+    Task OnPageDropAsync(IReadOnlyList<StagedFile> files)
+    {
+        _pageDrop = false;
+        _openId = null;
+        _newDirection = Direction.Out;
+        _droppedFiles = files;
+        _drawerOpen = true;
+        return Task.CompletedTask;
+    }
+
     void StartNew(Direction direction)
     {
+        _droppedFiles = null;
         _openId = null;
         _newDirection = direction;
         _drawerOpen = true;
@@ -262,6 +332,7 @@
     {
         _drawerOpen = false;
         _openId = null;
+        _droppedFiles = null;
         // an unchanged url wouldn't open the drawer again from search
         if (NewQuery is not null || OpenQuery is not null) Nav.NavigateTo("money", replace: true);
     }
@@ -287,6 +358,8 @@
 
     public void Dispose()
     {
+        _ = JS.InvokeVoidAsync("invoicedesk.unwatchFileDrag").AsTask().ContinueWith(_ => { }, TaskScheduler.Default);
+        _ref?.Dispose();
         Ledger.Changed -= OnChanged;
         InvoiceStore.Changed -= OnChanged;
         Toasts.Changed -= OnToastsChanged;

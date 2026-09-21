@@ -8,6 +8,8 @@
 @inject TimeProvider Clock
 @inject Desktop Desktop
 @inject AppPaths Paths
+@inject EmailActions Email
+@inject RecurringService Recurring
 @inject IJSRuntime JS
 
 @if (_invoice is not null && _profile is not null)
@@ -15,9 +17,10 @@
     var totals = _invoice.Totals();
     var paid = _invoice.PaidCents;
     var balance = totals.TotalCents - paid;
-    var awaiting = _status is DisplayStatus.Sent or DisplayStatus.PartPaid or DisplayStatus.Overdue;
+    var awaiting = !IsQuote && _status is DisplayStatus.Sent or DisplayStatus.PartPaid or DisplayStatus.Overdue;
+    var open = IsQuote && _invoice.Status == InvoiceStatus.Sent;
     <div class="page">
-        <PageHeader Title="@_invoice.Number" Back="invoices" BackLabel="Invoices">
+        <PageHeader Title="@_invoice.Number" Back="@(IsQuote ? "invoices?kind=quote" : "invoices")" BackLabel="@(IsQuote ? "Quotes" : "Invoices")">
             <Subtitle>
                 <span class="row gap-12 wrap">
                     <StatusPill Status="_status" />
@@ -25,6 +28,22 @@
                     @if (awaiting)
                     {
                         <span class="@(_status == DisplayStatus.Overdue ? "danger-text" : "muted")">@Format.Due(_invoice.DueDate, _today)</span>
+                    }
+                    else if (open)
+                    {
+                        <span class="muted">@Format.ValidUntil(_invoice.DueDate, _today)</span>
+                    }
+                    @if (_fromQuote is { } from)
+                    {
+                        <a class="pill pill-plain" href="invoices/@from.Id" title="The quote this invoice was made from">From quote @from.Number</a>
+                    }
+                    @if (_madeInvoice is { } made)
+                    {
+                        <a class="pill pill-plain" href="invoices/@made.Id" title="The invoice made from this quote">Became @made.Number</a>
+                    }
+                    @if (_repeat is { } repeat)
+                    {
+                        <RepeatPill Info="repeat" />
                     }
                 </span>
             </Subtitle>
@@ -34,9 +53,25 @@
                     <a class="btn" href="invoices/@Id/edit"><Icon Name="edit" Size="16" /> Edit</a>
                 }
                 <button type="button" class="btn" disabled="@_busy" @onclick="() => ExportAsync(false)"><Icon Name="download" Size="16" /> Export PDF</button>
+                @if (_status == DisplayStatus.Overdue)
+                {
+                    <button type="button" class="btn" @onclick="() => _reminding = true"><Icon Name="bell" Size="16" /> Send reminder</button>
+                }
+                else if (_invoice.Status == InvoiceStatus.Sent)
+                {
+                    <button type="button" class="btn" disabled="@_busy" @onclick="EmailAsync"><Icon Name="mail" Size="16" /> Email</button>
+                }
                 @if (_invoice.Status == InvoiceStatus.Draft)
                 {
                     <a class="btn btn-primary" href="invoices/@Id/edit"><Icon Name="send" Size="16" /> Finish and send</a>
+                }
+                else if (IsQuote && _madeInvoice is { } madeInto)
+                {
+                    <a class="btn btn-primary" href="invoices/@madeInto.Id"><Icon Name="invoice" Size="16" /> Open @madeInto.Number</a>
+                }
+                else if (open || _invoice.Status == InvoiceStatus.Accepted)
+                {
+                    <button type="button" class="btn btn-primary" disabled="@_busy" @onclick="TurnIntoInvoiceAsync"><Icon Name="invoice" Size="16" /> Turn into invoice</button>
                 }
                 else if (awaiting)
                 {
@@ -49,8 +84,27 @@
                         <div class="picker-scrim" @onclick="() => _menu = false"></div>
                         <div class="menu-list">
                             <button type="button" @onclick="() => ExportAsync(true)"><Icon Name="download" Size="16" /> Save PDF as…</button>
+                            @if (_status == DisplayStatus.Overdue)
+                            {
+                                <button type="button" @onclick="EmailAsync"><Icon Name="mail" Size="16" /> Email the invoice again</button>
+                            }
                             <button type="button" @onclick="Duplicate"><Icon Name="copy" Size="16" /> Duplicate</button>
-                            @if (_invoice.Status == InvoiceStatus.Sent)
+                            @if (open)
+                            {
+                                <hr />
+                                <button type="button" @onclick="AcceptAsync"><Icon Name="check" Size="16" /> Mark accepted</button>
+                                <button type="button" @onclick="DeclineAsync"><Icon Name="x" Size="16" /> Mark declined</button>
+                            }
+                            else if (IsQuote && _madeInvoice is null && _invoice.Status is InvoiceStatus.Accepted or InvoiceStatus.Declined)
+                            {
+                                <hr />
+                                <button type="button" @onclick="ReopenAsync"><Icon Name="undo" Size="16" /> Reopen quote</button>
+                            }
+                            @if (_repeat is null && !IsQuote && _invoice.Status != InvoiceStatus.Void)
+                            {
+                                <button type="button" @onclick="() => { _menu = false; _repeating = true; }"><Icon Name="refresh" Size="16" /> Repeat this invoice…</button>
+                            }
+                            @if (_invoice.Status == InvoiceStatus.Sent && !IsQuote)
                             {
                                 <hr />
                                 <button type="button" class="danger" @onclick="() => { _menu = false; _confirmVoid = true; }"><Icon Name="ban" Size="16" /> Void invoice</button>
@@ -78,8 +132,15 @@
                         {
                             <div class="row"><span class="soft">GST included</span><span class="num">@Format.Money(totals.GstCents)</span></div>
                         }
-                        <div class="row"><span class="soft">Paid</span><span class="num">@Format.Money(paid)</span></div>
-                        <div class="row"><span>Balance due</span><span class="big">@Format.Money(Math.Max(0, balance))</span></div>
+                        @if (IsQuote)
+                        {
+                            <div class="row"><span class="soft">Valid until</span><span>@Format.DateLong(_invoice.DueDate)</span></div>
+                        }
+                        else
+                        {
+                            <div class="row"><span class="soft">Paid</span><span class="num">@Format.Money(paid)</span></div>
+                            <div class="row"><span>Balance due</span><span class="big">@Format.Money(Math.Max(0, balance))</span></div>
+                        }
                     </div>
                     @if (awaiting)
                     {
@@ -87,6 +148,8 @@
                     }
                 </section>
 
+                @if (!IsQuote)
+                {
                 <section>
                     <h3>Payments</h3>
                     @if (_invoice.Payments.Count == 0)
@@ -108,12 +171,13 @@
                         </div>
                     }
                 </section>
+                }
 
                 <section>
                     <h3>Files</h3>
                     @if (_invoice.Attachments.Count == 0)
                     {
-                        <p class="soft small">A copy of the PDF is kept here when you mark the invoice as sent.</p>
+                        <p class="soft small">A copy of the PDF is kept here when you mark the @(IsQuote ? "quote" : "invoice") as sent.</p>
                     }
                     else
                     {
@@ -138,6 +202,10 @@
 <PaymentDrawer Open="_paying" Invoice="_invoice" BalanceCents="@(_invoice is null ? 0 : _invoice.Totals().TotalCents - _invoice.PaidCents)"
                OnSaved="OnPaidAsync" OnClose="() => _paying = false" />
 
+<ReminderModal Open="_reminding" InvoiceId="Id" OnClose="() => _reminding = false" OnSent="OnRemindedAsync" />
+
+<RepeatModal Open="_repeating" InvoiceId="Id" IssueDate="@(_invoice?.IssueDate ?? _today)" OnClose="() => _repeating = false" OnDone="OnRepeatSetAsync" />
+
 <Modal Open="_confirmVoid" Title="Void this invoice?" OnClose="() => _confirmVoid = false">
     <ChildContent>
         <p>@_invoice?.Number stays in your records marked as void, and it stops counting as money owed. This can't be undone.</p>
@@ -150,6 +218,7 @@
 
 @code {
     [Parameter] public int Id { get; set; }
+    [SupplyParameterFromQuery(Name = "pay")] public int? PayQuery { get; set; }
 
     Invoice? _invoice;
     BusinessProfile? _profile;
@@ -162,8 +231,15 @@
     bool _paying;
     bool _confirmVoid;
     bool _animateStamp;
+    bool _reminding;
+    bool _repeating;
+    RepeatInfo? _repeat;
+    InvoiceLink? _fromQuote;
+    InvoiceLink? _madeInvoice;
 
-    bool CanEdit => _invoice is { Status: not InvoiceStatus.Void } && _invoice.Payments.Count == 0;
+    bool IsQuote => _invoice?.Kind == InvoiceKind.Quote;
+
+    bool CanEdit => _invoice is { Status: not (InvoiceStatus.Void or InvoiceStatus.Accepted or InvoiceStatus.Declined) } && _invoice.Payments.Count == 0;
 
     string? LogoUrl => FilesUrl.Logo(_profile);
 
@@ -172,6 +248,12 @@
         _fitted = false;
         _animateStamp = false;
         await LoadAsync();
+        if (PayQuery == 1 && _invoice is not null)
+        {
+            _paying = !IsQuote && InvoiceStatusResolver.Resolve(_invoice, _today) is DisplayStatus.Sent or DisplayStatus.PartPaid or DisplayStatus.Overdue;
+            // an unchanged url wouldn't open the drawer again from search
+            Nav.NavigateTo($"invoices/{Id}", replace: true);
+        }
     }
 
     async Task LoadAsync()
@@ -186,6 +268,17 @@
             return;
         }
         _status = InvoiceStatusResolver.Resolve(_invoice, _today);
+        _repeat = await Recurring.GetForInvoiceAsync(Id);
+        _madeInvoice = IsQuote ? await InvoiceStore.FindInvoiceFromQuoteAsync(Id) : null;
+        _fromQuote = _invoice.ConvertedFromId is { } quoteId && await InvoiceStore.GetAsync(quoteId) is { } quote
+            ? new InvoiceLink(quote.Id, quote.Number)
+            : null;
+    }
+
+    async Task OnRepeatSetAsync()
+    {
+        _repeating = false;
+        await LoadAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -209,7 +302,15 @@
     {
         var items = new List<(DateTime, string, string)> { (_invoice!.CreatedAt, "invoice", "Created") };
         if (_invoice.SentAt is { } sent) items.Add((sent, "send", "Marked as sent"));
+        if (_invoice.AnsweredAt is { } answered)
+            items.Add(_invoice.Status == InvoiceStatus.Declined ? (answered, "x", "Declined") : (answered, "check", "Accepted"));
         items.AddRange(_invoice.Payments.Select(p => (p.CreatedAt, "check", $"Payment of {Format.Money(p.AmountCents)} recorded")));
+        items.AddRange(_invoice.Reminders.Select(r => (r.CreatedAt, "bell", r.Tone switch
+        {
+            ReminderTone.Polite => "Friendly reminder emailed",
+            ReminderTone.Firm => "Firm reminder emailed",
+            _ => "Final reminder emailed",
+        })));
         if (_invoice.VoidedAt is { } voided) items.Add((voided, "ban", "Voided"));
         return items.OrderByDescending(i => i.Item1);
     }
@@ -250,10 +351,91 @@
         }
     }
 
+    async Task EmailAsync()
+    {
+        _menu = false;
+        _busy = true;
+        try { await Email.EmailInvoiceAsync(Id); }
+        catch (Exception ex) { Toasts.Error(ex); }
+        finally { _busy = false; }
+    }
+
+    async Task OnRemindedAsync()
+    {
+        _reminding = false;
+        await LoadAsync();
+    }
+
     void Duplicate()
     {
         _menu = false;
         Nav.NavigateTo($"invoices/new?duplicate={Id}");
+    }
+
+    async Task AcceptAsync()
+    {
+        _menu = false;
+        var number = _invoice!.Number;
+        try
+        {
+            await InvoiceStore.AcceptQuoteAsync(Id);
+            await LoadAsync();
+            Toasts.Show($"{number} marked as accepted.", ToastKind.Success,
+                new ToastAction("Turn into invoice", TurnIntoInvoiceAsync),
+                new ToastAction("Undo", ReopenAsync));
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+    }
+
+    async Task DeclineAsync()
+    {
+        _menu = false;
+        var number = _invoice!.Number;
+        try
+        {
+            await InvoiceStore.DeclineQuoteAsync(Id);
+            await LoadAsync();
+            Toasts.Show($"{number} marked as declined.", ToastKind.Success, new ToastAction("Undo", ReopenAsync));
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+    }
+
+    // a toast runs this outside a render, so it hops back on to redraw
+    async Task ReopenAsync()
+    {
+        _menu = false;
+        await InvoiceStore.ReopenQuoteAsync(Id);
+        await InvokeAsync(async () =>
+        {
+            await LoadAsync();
+            StateHasChanged();
+        });
+    }
+
+    // opens the editor since a new invoice wants a check before it goes
+    async Task TurnIntoInvoiceAsync()
+    {
+        _busy = true;
+        try
+        {
+            var invoice = await InvoiceStore.TurnIntoInvoiceAsync(Id);
+            Toasts.Show($"{invoice.Number} is ready to check and send.");
+            Nav.NavigateTo($"invoices/{invoice.Id}/edit");
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     async Task VoidAsync()

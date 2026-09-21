@@ -21,14 +21,28 @@ public sealed class Desktop
     public void ShowInFolder(string path) =>
         Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{path}\"") { UseShellExecute = true });
 
-    public string? SaveFileAs(string defaultName, string initialFolder)
+    // web links only, so a bad string can't launch a program
+    public void OpenUrl(string url)
     {
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp))
+            Start(uri.AbsoluteUri);
+    }
+
+    public string? SaveFileAs(string defaultName, string initialFolder) =>
+        SaveFileAs(defaultName, initialFolder, "PDF document (*.pdf)|*.pdf", ".pdf");
+
+    public string? SaveCsvAs(string defaultName, string initialFolder) =>
+        SaveFileAs(defaultName, initialFolder, "CSV file for Excel (*.csv)|*.csv", ".csv");
+
+    static string? SaveFileAs(string defaultName, string initialFolder, string filter, string extension)
+    {
+        Directory.CreateDirectory(initialFolder);
         var dialog = new SaveFileDialog
         {
             FileName = defaultName,
             InitialDirectory = initialFolder,
-            Filter = "PDF document (*.pdf)|*.pdf",
-            DefaultExt = ".pdf",
+            Filter = filter,
+            DefaultExt = extension,
             AddExtension = true,
             OverwritePrompt = true,
         };

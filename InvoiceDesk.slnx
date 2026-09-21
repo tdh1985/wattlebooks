@@ -3,7 +3,4 @@
     <Project Path="src/InvoiceDesk.App/InvoiceDesk.App.csproj" />
     <Project Path="src/InvoiceDesk.Core/InvoiceDesk.Core.csproj" />
   </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/InvoiceDesk.Tests/InvoiceDesk.Tests.csproj" />
-  </Folder>
 </Solution>

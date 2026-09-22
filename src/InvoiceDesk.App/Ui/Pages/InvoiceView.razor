@@ -14,6 +14,7 @@
 
 @if (_invoice is not null && _profile is not null)
 {
+    var rules = Countries.For(_profile.Country);
     var totals = _invoice.Totals();
     var paid = _invoice.PaidCents;
     var balance = totals.TotalCents - paid;
@@ -127,10 +128,10 @@
             <aside class="side">
                 <section class="panel panel-pad">
                     <div class="money-rows">
-                        <div class="row"><span class="soft">@(totals.IsTaxInvoice ? "Total inc. GST" : "Total")</span><span class="num">@Format.Money(totals.TotalCents)</span></div>
+                        <div class="row"><span class="soft">@(totals.IsTaxInvoice ? $"Total inc. {rules.TaxWord}" : "Total")</span><span class="num">@Format.Money(totals.TotalCents)</span></div>
                         @if (totals.IsTaxInvoice)
                         {
-                            <div class="row"><span class="soft">GST included</span><span class="num">@Format.Money(totals.TaxCents)</span></div>
+                            <div class="row"><span class="soft">@rules.TaxName included</span><span class="num">@Format.Money(totals.TaxCents)</span></div>
                         }
                         @if (IsQuote)
                         {
@@ -294,7 +295,7 @@
     {
         var parts = new List<string>();
         if (Format.Method(payment.Method) is { Length: > 0 } method) parts.Add(method);
-        if (payment.TaxCents > 0) parts.Add($"includes {Format.Money(payment.TaxCents)} GST");
+        if (payment.TaxCents > 0) parts.Add($"includes {Format.Money(payment.TaxCents)} {Format.Country.TaxWord}");
         return string.Join(", ", parts);
     }
 

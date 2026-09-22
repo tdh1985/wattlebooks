@@ -63,8 +63,8 @@
         new("Actions", "invoice", "Invoices", "", "invoices"),
         new("Actions", "invoice", "Quotes", "", "invoices?kind=quote"),
         new("Actions", "wallet", "Money in and out", "", "money"),
-        new("Actions", "chart", "Reports", "BAS worksheet, profit and loss", "reports"),
-        new("Actions", "sliders", "Settings", "Business details, GST, numbering", "settings"),
+        new("Actions", "chart", "Reports", $"{Format.Country.ReturnTitle}, profit and loss", "reports"),
+        new("Actions", "sliders", "Settings", $"Business details, {Format.Country.TaxWord}, numbering", "settings"),
         Theme.IsDark
             ? new("Actions", "sun", "Switch to light theme", "", null, () => SetTheme("light"))
             : new("Actions", "moon", "Switch to dark theme", "", null, () => SetTheme("dark")),

@@ -1,7 +1,9 @@
 @* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
 @* no injected services since HtmlRenderer also renders this for pdfs *@
 @{
+    var rules = Countries.For(Profile.Country);
     var totals = Invoice.Totals();
+    var bands = totals.Bands;
     var paid = Invoice.PaidCents;
     var balance = Math.Max(0, totals.TotalCents - paid);
     var status = InvoiceStatusResolver.Resolve(Invoice.Kind, Invoice.Status, totals.TotalCents, paid, Invoice.DueDate, Today);
@@ -10,6 +12,8 @@
     var lines = Invoice.Lines.Where(l => !string.IsNullOrWhiteSpace(l.Description) || l.UnitPriceCents != 0).ToList();
     var hasGstFree = totals.IsTaxInvoice && lines.Any(l => l.TaxCode == TaxCode.Zero);
     var hasBank = Profile.AccountNumber.Length > 0 || Profile.BankCode.Length > 0;
+    var showVatColumn = rules.HasReducedRate && totals.IsTaxInvoice;
+    var columnCount = showVatColumn ? 5 : 4;
 }
 <article class="doc doc-@InvoiceTemplates.Normalise(Template ?? Profile.InvoiceTemplate)" style="--doc-accent: @Profile.AccentColour">
     <header class="doc-head">
@@ -20,9 +24,9 @@
             }
             <div class="doc-from-text">
                 <div class="doc-biz">@(Profile.Name.Length > 0 ? Profile.Name : "Your business name")</div>
-                @if (Abn.IsValid(Profile.TaxNumber))
+                @if (rules.TaxNumber.IsValid(Profile.TaxNumber))
                 {
-                    <div class="doc-small">ABN @Abn.Format(Profile.TaxNumber)</div>
+                    <div class="doc-small">@rules.TaxNumber.Label @rules.TaxNumber.Display(Profile.TaxNumber)</div>
                 }
                 @if (Profile.Address.Length > 0)
                 {
@@ -62,9 +66,9 @@
                 {
                     <div class="doc-small doc-pre">@client.Address</div>
                 }
-                @if (Abn.IsValid(client.TaxNumber))
+                @if (rules.TaxNumber.IsValid(client.TaxNumber))
                 {
-                    <div class="doc-small">ABN @Abn.Format(client.TaxNumber)</div>
+                    <div class="doc-small">@rules.TaxNumber.Label @rules.TaxNumber.Display(client.TaxNumber)</div>
                 }
                 @if (client.Website.Length > 0)
                 {
@@ -99,6 +103,10 @@
                 <th>Description</th>
                 <th class="n">Qty</th>
                 <th class="n">Unit price</th>
+                @if (showVatColumn)
+                {
+                    <th class="n">VAT</th>
+                }
                 <th class="n">Amount</th>
             </tr>
         </thead>
@@ -108,19 +116,23 @@
                 <tr>
                     <td class="doc-desc">
                         <span class="doc-pre">@line.Description</span>
-                        @if (totals.IsTaxInvoice && line.TaxCode == TaxCode.Zero)
+                        @if (!rules.HasReducedRate && totals.IsTaxInvoice && line.TaxCode == TaxCode.Zero)
                         {
-                            <span class="doc-tag">GST-free</span>
+                            <span class="doc-tag">@rules.ZeroLabel</span>
                         }
                     </td>
                     <td class="n">@Format.Quantity(line.Quantity)</td>
                     <td class="n">@Format.Amount(line.UnitPriceCents)</td>
+                    @if (showVatColumn)
+                    {
+                        <td class="n">@LineRate(line)</td>
+                    }
                     <td class="n">@Format.Amount(MoneyMath.LineAmount(line.Quantity, line.UnitPriceCents))</td>
                 </tr>
             }
             @if (lines.Count == 0)
             {
-                <tr><td colspan="4" class="doc-placeholder">Line items appear here</td></tr>
+                <tr><td colspan="@columnCount" class="doc-placeholder">Line items appear here</td></tr>
             }
         </tbody>
     </table>
@@ -129,11 +141,11 @@
         <div class="doc-summary-notes">
             @if (!totals.IsTaxInvoice)
             {
-                <p class="doc-small">No GST has been charged.</p>
+                <p class="doc-small">No @rules.TaxWord has been charged.</p>
             }
-            @if (hasGstFree)
+            @if (!rules.HasReducedRate && hasGstFree)
             {
-                <p class="doc-small">Items marked GST-free have no GST included.</p>
+                <p class="doc-small">Items marked @rules.ZeroLabel have no @rules.TaxWord included.</p>
             }
             @if (quote)
             {
@@ -153,10 +165,13 @@
             }
             @if (totals.IsTaxInvoice)
             {
-                <div class="doc-row"><span>Subtotal (ex GST)</span><span class="n">@Format.Amount(totals.SubtotalCents)</span></div>
-                <div class="doc-row"><span>GST @Format.Percent(Invoice.TaxRatePpm)</span><span class="n">@Format.Amount(totals.TaxCents)</span></div>
+                <div class="doc-row"><span>Subtotal (ex @rules.TaxWord)</span><span class="n">@Format.Amount(totals.SubtotalCents)</span></div>
+                @foreach (var band in bands)
+                {
+                    <div class="doc-row"><span>@rules.TaxName @Format.Percent(band.RatePpm)</span><span class="n">@Format.Amount(band.TaxCents)</span></div>
+                }
             }
-            <div class="doc-row doc-total"><span>@(totals.IsTaxInvoice ? "Total inc. GST" : "Total")</span><span class="n">@Format.Money(totals.TotalCents)</span></div>
+            <div class="doc-row doc-total"><span>@(totals.IsTaxInvoice ? $"Total inc. {rules.TaxWord}" : "Total")</span><span class="n">@Format.Money(totals.TotalCents)</span></div>
             @if (paid > 0)
             {
                 <div class="doc-row"><span>Paid</span><span class="n">&minus;@Format.Amount(paid)</span></div>
@@ -184,8 +199,15 @@
                 {
                     <div><dt>Account name</dt><dd>@Profile.BankAccountName</dd></div>
                 }
-                <div><dt>BSB</dt><dd class="n">@Profile.BankCode</dd></div>
+                @if (rules.BankCode is { } bank && Profile.BankCode.Length > 0)
+                {
+                    <div><dt>@bank.Label</dt><dd class="n">@Profile.BankCode</dd></div>
+                }
                 <div><dt>Account number</dt><dd class="n">@Profile.AccountNumber</dd></div>
+                @if (Profile.SwiftCode.Length > 0)
+                {
+                    <div><dt>SWIFT/BIC</dt><dd class="n">@Profile.SwiftCode</dd></div>
+                }
                 <div><dt>Reference</dt><dd class="n">@(Invoice.Number.Length > 0 ? Invoice.Number : NumberPreview)</dd></div>
             </dl>
         </section>
@@ -205,4 +227,12 @@
     [Parameter] public bool AnimateStamp { get; set; }
     // lets settings show every layout side by side before one is saved
     [Parameter] public string? Template { get; set; }
+
+    string LineRate(InvoiceLine line) => line.TaxCode switch
+    {
+        TaxCode.Standard => Format.Percent(Invoice.TaxRatePpm),
+        TaxCode.Reduced => Format.Percent(Invoice.ReducedRatePpm),
+        TaxCode.Exempt => Countries.For(Profile.Country).ExemptLabel,
+        _ => "0%",
+    };
 }

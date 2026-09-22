@@ -1,5 +1,8 @@
 @* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
 @* no injected services since HtmlRenderer also renders this for pdfs *@
+@{
+    var rules = Countries.For(Profile.Country);
+}
 <article class="doc doc-report" style="--doc-accent: @Profile.AccentColour">
     <header class="doc-head">
         <div class="doc-from">
@@ -9,9 +12,9 @@
             }
             <div class="doc-from-text">
                 <div class="doc-biz">@(Profile.Name.Length > 0 ? Profile.Name : "Your business name")</div>
-                @if (Abn.IsValid(Profile.TaxNumber))
+                @if (rules.TaxNumber.IsValid(Profile.TaxNumber))
                 {
-                    <div class="doc-small">ABN @Abn.Format(Profile.TaxNumber)</div>
+                    <div class="doc-small">@rules.TaxNumber.Label @rules.TaxNumber.Display(Profile.TaxNumber)</div>
                 }
             </div>
         </div>

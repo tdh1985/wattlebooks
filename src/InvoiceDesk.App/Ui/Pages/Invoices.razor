@@ -67,7 +67,7 @@
     else if (_all.Count == 0)
     {
         <EmptyState Title="No invoices yet" IconName="invoice"
-                    Text="Create your first invoice. Charging GST makes it a tax invoice; leaving it off makes it a plain invoice.">
+                    Text="@($"Create your first invoice. Charging {Format.Country.TaxWord} makes it a tax invoice; leaving it off makes it a plain invoice.")">
             <a class="btn btn-primary" href="invoices/new"><Icon Name="plus" Size="16" /> New invoice</a>
         </EmptyState>
     }

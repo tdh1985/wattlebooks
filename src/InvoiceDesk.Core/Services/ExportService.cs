@@ -8,10 +8,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceDesk.Core.Services;
 
-public sealed class ExportService(IDbContextFactory<AppDbContext> factory, TimeProvider clock)
+public sealed class ExportService(IDbContextFactory<AppDbContext> factory, TimeProvider clock, ProfileService profiles)
 {
     public async Task WriteTransactionsCsvAsync(DateRange range, Stream output)
     {
+        var rules = Countries.For((await profiles.GetAsync()).Country);
         await using var db = await factory.CreateDbContextAsync();
         var txs = (await db.Transactions.AsNoTracking().AsSplitQuery()
                 .Include(t => t.Category).Include(t => t.Invoice).Include(t => t.Attachments)
@@ -20,7 +21,7 @@ public sealed class ExportService(IDbContextFactory<AppDbContext> factory, TimeP
             .OrderBy(t => t.Date).ThenBy(t => t.Id);
 
         await WriteAsync(output,
-            Csv.Line("Date", "Type", "Party", "Description", "Category", "Amount inc GST", "GST", "Amount ex GST",
+            Csv.Line("Date", "Type", "Party", "Description", "Category", $"Amount inc {rules.TaxWord}", rules.TaxName, $"Amount ex {rules.TaxWord}",
                 "Invoice", "Method", "Receipt attached"),
             txs.Select(t => Csv.Line(
                 Csv.Date(t.Date), Labels.Direction(t.Direction), Csv.Text(t.Party), Csv.Text(t.Description),
@@ -31,6 +32,7 @@ public sealed class ExportService(IDbContextFactory<AppDbContext> factory, TimeP
     // drafts and quotes aren't real invoices, so an accountant never needs them
     public async Task WriteInvoicesCsvAsync(DateRange range, Stream output)
     {
+        var rules = Countries.For((await profiles.GetAsync()).Country);
         await using var db = await factory.CreateDbContextAsync();
         var today = clock.Today();
         var invoices = (await db.Invoices.AsNoTracking().AsSplitQuery()
@@ -40,7 +42,7 @@ public sealed class ExportService(IDbContextFactory<AppDbContext> factory, TimeP
             .OrderBy(i => i.IssueDate).ThenBy(i => i.Id);
 
         await WriteAsync(output,
-            Csv.Line("Number", "Client", "Issued", "Due", "Status", "Subtotal ex GST", "GST", "Total", "Paid", "Balance"),
+            Csv.Line("Number", "Client", "Issued", "Due", "Status", $"Subtotal ex {rules.TaxWord}", rules.TaxName, "Total", "Paid", "Balance"),
             invoices.Select(i =>
             {
                 var s = InvoiceSummary.From(i, today);
@@ -61,8 +63,8 @@ public sealed class ExportService(IDbContextFactory<AppDbContext> factory, TimeP
             Csv.Line("", bas.NetGstCents >= 0 ? "GST to pay" : "GST refund", Csv.Money(Math.Abs(bas.NetGstCents))),
         ]);
 
-    public static Task WriteProfitAndLossCsvAsync(ProfitAndLoss pl, Stream output) =>
-        WriteAsync(output, Csv.Line("Section", "Category", "Amount ex GST"),
+    public static Task WriteProfitAndLossCsvAsync(ProfitAndLoss pl, CountryRules country, Stream output) =>
+        WriteAsync(output, Csv.Line("Section", "Category", $"Amount ex {country.TaxWord}"),
             pl.Income.Select(c => Csv.Line("Income", Csv.Text(c.Category), Csv.Money(c.ExTaxCents)))
                 .Append(Csv.Line("Income", "Total income", Csv.Money(pl.IncomeCents)))
                 .Concat(pl.Expenses.Select(c => Csv.Line("Expenses", Csv.Text(c.Category), Csv.Money(c.ExTaxCents))))

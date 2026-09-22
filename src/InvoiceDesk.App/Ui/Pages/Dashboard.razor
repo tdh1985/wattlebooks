@@ -22,7 +22,7 @@
                 <div class="step @(HasBusiness ? "done" : null)">
                     <span class="step-num">@(HasBusiness ? "✓" : "1")</span>
                     <h3>Add your business details</h3>
-                    <p class="soft small">Your name and ABN go on every invoice. Tax invoices need both.</p>
+                    <p class="soft small">Your name and @Format.Country.TaxNumber.Label go on every invoice. Tax invoices need both.</p>
                     @if (!HasBusiness)
                     {
                         <a class="btn btn-sm" href="settings">Open settings</a>
@@ -40,7 +40,7 @@
                 <div class="step @(_invoiceCount > 0 ? "done" : null)">
                     <span class="step-num">@(_invoiceCount > 0 ? "✓" : "3")</span>
                     <h3>Create your first invoice</h3>
-                    <p class="soft small">GST on makes it a tax invoice; off makes it a plain invoice.</p>
+                    <p class="soft small">@Format.Country.TaxWord on makes it a tax invoice; off makes it a plain invoice.</p>
                     @if (_invoiceCount == 0)
                     {
                         <a class="btn btn-sm btn-primary" href="invoices/new">New invoice</a>
@@ -90,20 +90,20 @@
             <div class="ledger-cell">
                 <div class="ledger-label">Received this month</div>
                 <div class="ledger-value">@Format.Money(_data.ReceivedMonthCents)</div>
-                <div class="ledger-note">Including GST</div>
+                <div class="ledger-note">Including @Format.Country.TaxWord</div>
             </div>
             <div class="ledger-cell">
                 <div class="ledger-label">Spent this month</div>
                 <div class="ledger-value">@Format.Money(_data.SpentMonthCents)</div>
-                <div class="ledger-note">Including GST</div>
+                <div class="ledger-note">Including @Format.Country.TaxWord</div>
             </div>
-            <div class="ledger-cell">
+            <div class="ledger-cell" title="Profit for this @FinancialPeriods.YearNoun(Countries.For(_profile!.Country))">
                 <div class="ledger-label">Profit, @_data.YearLabel</div>
                 <div class="ledger-value">@Format.Money(_data.ProfitYearCents)</div>
-                <div class="ledger-note">Money in less money out, excluding GST</div>
+                <div class="ledger-note">Money in less money out, excluding @Format.Country.TaxWord</div>
             </div>
             <div class="ledger-cell">
-                <a class="ledger-label" href="reports" title="Open the BAS worksheet">GST for @_data.PeriodLabel <Icon Name="chevron-down" Size="13" Class="rot-270" /></a>
+                <a class="ledger-label" href="reports" title="Open the @Format.Country.ReturnTitle">@Format.Country.TaxName for @_data.PeriodLabel <Icon Name="chevron-down" Size="13" Class="rot-270" /></a>
                 <div class="ledger-value">@Format.Money(Math.Abs(_data.TaxNetPeriodCents))</div>
                 <div class="ledger-note">
                     @(_data.TaxNetPeriodCents >= 0 ? "To pay" : "Refund due"): collected @Format.Money(_data.TaxCollectedPeriodCents), paid @Format.Money(_data.TaxPaidPeriodCents)

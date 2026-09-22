@@ -377,6 +377,8 @@ kbd {
 }
 .textarea { height: auto; min-height: 76px; padding: 8px 11px; resize: vertical; line-height: 1.45; }
 .select { appearance: none; padding-right: 32px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237B859C' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; }
+/* the vat rate picker in a narrow line column, same height as other inputs */
+.select-sm { height: 36px; padding: 0 22px 0 6px; font-size: 13px; background-position: right 6px center; }
 .input:hover, .select:hover, .textarea:hover { border-color: color-mix(in oklab, var(--rule-strong) 60%, var(--ink-3)); }
 .input:focus, .select:focus, .textarea:focus {
     outline: none;
@@ -902,6 +904,8 @@ a.ledger-label:hover { color: var(--accent-text); }
 .lines { display: flex; flex-direction: column; }
 .lines-head, .line { display: grid; grid-template-columns: minmax(0, 1fr) 60px 112px 48px 96px 28px; gap: 8px; align-items: start; }
 .lines.no-gst .lines-head, .lines.no-gst .line { grid-template-columns: minmax(0, 1fr) 60px 112px 96px 28px; }
+/* the vat rate picker needs more room than the plain zero-rated tick box */
+.lines.has-rate .lines-head, .lines.has-rate .line { grid-template-columns: minmax(0, 1fr) 60px 112px 92px 96px 28px; }
 .lines-head { padding-bottom: 8px; border-bottom: 1px solid var(--rule-strong); color: var(--ink-3); font-size: 12px; font-weight: 600; }
 .lines-head .r { text-align: right; }
 .lines-head .c { text-align: center; }

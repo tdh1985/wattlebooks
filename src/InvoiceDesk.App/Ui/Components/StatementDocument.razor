@@ -1,6 +1,7 @@
 @* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
 @* no injected services since HtmlRenderer also renders this for pdfs *@
 @{
+    var rules = Countries.For(Profile.Country);
     var client = Statement.Client;
     var hasBank = Profile.AccountNumber.Length > 0 || Profile.BankCode.Length > 0;
 }
@@ -13,9 +14,9 @@
             }
             <div class="doc-from-text">
                 <div class="doc-biz">@(Profile.Name.Length > 0 ? Profile.Name : "Your business name")</div>
-                @if (Abn.IsValid(Profile.TaxNumber))
+                @if (rules.TaxNumber.IsValid(Profile.TaxNumber))
                 {
-                    <div class="doc-small">ABN @Abn.Format(Profile.TaxNumber)</div>
+                    <div class="doc-small">@rules.TaxNumber.Label @rules.TaxNumber.Display(Profile.TaxNumber)</div>
                 }
                 @if (Profile.Address.Length > 0)
                 {
@@ -125,7 +126,10 @@
                 {
                     <div><dt>Account name</dt><dd>@Profile.BankAccountName</dd></div>
                 }
-                <div><dt>BSB</dt><dd class="n">@Profile.BankCode</dd></div>
+                @if (rules.BankCode is { } bank && Profile.BankCode.Length > 0)
+                {
+                    <div><dt>@bank.Label</dt><dd class="n">@Profile.BankCode</dd></div>
+                }
                 <div><dt>Account number</dt><dd class="n">@Profile.AccountNumber</dd></div>
                 <div><dt>Reference</dt><dd>The invoice numbers you're paying</dd></div>
             </dl>

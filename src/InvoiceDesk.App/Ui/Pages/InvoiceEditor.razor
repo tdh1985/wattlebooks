@@ -19,6 +19,7 @@
 
 @if (_invoice is not null && _profile is not null)
 {
+    var rules = Countries.For(_profile.Country);
     var totals = _invoice.Totals();
     <div class="editor">
         <div class="editor-form scroll">
@@ -153,23 +154,30 @@
                     <div class="gst-row">
                         <label class="switch">
                             <input type="checkbox" checked="@_invoice.TaxEnabled" @onchange="OnGstChanged" />
-                            <span>Charge GST (@Format.Percent(_invoice.TaxRatePpm))</span>
+                            <span>Charge @rules.TaxName@(rules.HasReducedRate ? "" : $" ({Format.Percent(_invoice.TaxRatePpm)})")</span>
                         </label>
-                        <span class="heading-preview">The heading will read <strong>@_invoice.Heading(Countries.For(_profile.Country))</strong></span>
+                        <span class="heading-preview">The heading will read <strong>@_invoice.Heading(rules)</strong></span>
                     </div>
                     @if (_invoice.TaxEnabled && !_profile.TaxRegistered)
                     {
-                        <div class="banner banner-warn"><Icon Name="alert" Size="16" /><div>Your settings say you're not registered for GST. Only registered businesses can charge it. <a href="settings#gst">Check GST settings</a></div></div>
+                        <div class="banner banner-warn"><Icon Name="alert" Size="16" /><div>Your settings say you're not registered for @rules.TaxWord. Only registered businesses can charge it. <a href="settings#gst">Check @rules.TaxWord settings</a></div></div>
                     }
 
-                    <div class="lines @(_invoice.TaxEnabled ? null : "no-gst") mt-16">
+                    <div class="lines @(_invoice.TaxEnabled ? null : "no-gst") @(_invoice.TaxEnabled && rules.HasReducedRate ? "has-rate" : null) mt-16">
                         <div class="lines-head">
                             <span>Description</span>
                             <span class="r">Qty</span>
                             <span class="r">Unit price</span>
                             @if (_invoice.TaxEnabled)
                             {
-                                <span class="c" title="Tick for items with no GST, like some exports or medical services">GST-free</span>
+                                @if (rules.HasReducedRate)
+                                {
+                                    <span class="c">VAT</span>
+                                }
+                                else
+                                {
+                                    <span class="c" title="Tick for items with no @rules.TaxWord, like some exports or medical services">@rules.ZeroLabel</span>
+                                }
                             }
                             <span class="r">Amount</span>
                             <span></span>
@@ -211,9 +219,21 @@
                                             AriaLabel="Unit price" OnKeyDown="e => OnLineKey(e, index)" />
                                 @if (_invoice.TaxEnabled)
                                 {
-                                    <label class="check" title="GST-free">
-                                        <input type="checkbox" aria-label="GST-free" checked="@(line.TaxCode == TaxCode.Zero)" @onchange="e => SetGstFree(line, e)" />
-                                    </label>
+                                    @if (rules.HasReducedRate)
+                                    {
+                                        <select class="select select-sm" aria-label="VAT rate" value="@((int)line.TaxCode)" @onchange="e => SetTaxCode(line, e)">
+                                            <option value="@((int)TaxCode.Standard)">@Format.Percent(_invoice.TaxRatePpm)</option>
+                                            <option value="@((int)TaxCode.Reduced)">@Format.Percent(_invoice.ReducedRatePpm)</option>
+                                            <option value="@((int)TaxCode.Zero)">0%</option>
+                                            <option value="@((int)TaxCode.Exempt)">@rules.ExemptLabel</option>
+                                        </select>
+                                    }
+                                    else
+                                    {
+                                        <label class="check" title="@rules.ZeroLabel">
+                                            <input type="checkbox" aria-label="@rules.ZeroLabel" checked="@(line.TaxCode == TaxCode.Zero)" @onchange="e => SetGstFree(line, e)" />
+                                        </label>
+                                    }
                                 }
                                 <span class="line-amount num">@Format.Amount(MoneyMath.LineAmount(line.Quantity, line.UnitPriceCents))</span>
                                 <button type="button" class="btn btn-ghost btn-icon btn-sm" aria-label="Remove line"
@@ -226,10 +246,20 @@
                     <div class="editor-totals">
                         @if (totals.IsTaxInvoice)
                         {
-                            <div class="row"><span>Subtotal (ex GST)</span><span class="num">@Format.Money(totals.SubtotalCents)</span></div>
-                            <div class="row"><span>GST</span><span class="num">@Format.Money(totals.TaxCents)</span></div>
+                            <div class="row"><span>Subtotal (ex @rules.TaxWord)</span><span class="num">@Format.Money(totals.SubtotalCents)</span></div>
+                            @if (totals.Bands.Count == 1)
+                            {
+                                <div class="row"><span>@rules.TaxName</span><span class="num">@Format.Money(totals.TaxCents)</span></div>
+                            }
+                            else
+                            {
+                                @foreach (var band in totals.Bands)
+                                {
+                                    <div class="row"><span>@rules.TaxName @Format.Percent(band.RatePpm)</span><span class="num">@Format.Money(band.TaxCents)</span></div>
+                                }
+                            }
                         }
-                        <div class="row total"><span>@(totals.IsTaxInvoice ? "Total inc. GST" : "Total")</span><span class="num">@Format.Money(totals.TotalCents)</span></div>
+                        <div class="row total"><span>@(totals.IsTaxInvoice ? $"Total inc. {rules.TaxWord}" : "Total")</span><span class="num">@Format.Money(totals.TotalCents)</span></div>
                     </div>
 
                     <div class="field mt-24">
@@ -595,6 +625,12 @@
     void SetGstFree(InvoiceLine line, ChangeEventArgs e)
     {
         line.TaxCode = e.Value is true ? TaxCode.Zero : TaxCode.Standard;
+        Changed();
+    }
+
+    void SetTaxCode(InvoiceLine line, ChangeEventArgs e)
+    {
+        line.TaxCode = Enum.TryParse<TaxCode>(e.Value?.ToString(), out var code) ? code : TaxCode.Standard;
         Changed();
     }
 

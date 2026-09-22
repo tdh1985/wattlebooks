@@ -101,12 +101,15 @@ public static class EmailTemplates
 
     static string PaymentBlock(BusinessProfile profile, string reference)
     {
-        if (string.IsNullOrWhiteSpace(profile.BankCode) || string.IsNullOrWhiteSpace(profile.AccountNumber)) return "";
+        var rules = Countries.For(profile.Country);
+        var needsCode = rules.BankCode is not null;
+        if (string.IsNullOrWhiteSpace(profile.AccountNumber) || (needsCode && string.IsNullOrWhiteSpace(profile.BankCode))) return "";
         var block = new StringBuilder("You can pay by bank transfer to:\n");
         if (!string.IsNullOrWhiteSpace(profile.BankAccountName)) block.Append($"Account name: {profile.BankAccountName.Trim()}\n");
-        block.Append($"BSB: {profile.BankCode.Trim()}\n")
-            .Append($"Account number: {profile.AccountNumber.Trim()}\n")
-            .Append($"Reference: {reference}\n\n");
+        if (rules.BankCode is { } bank) block.Append($"{bank.Label}: {profile.BankCode.Trim()}\n");
+        block.Append($"Account number: {profile.AccountNumber.Trim()}\n");
+        if (!string.IsNullOrWhiteSpace(profile.SwiftCode)) block.Append($"SWIFT/BIC: {profile.SwiftCode.Trim()}\n");
+        block.Append($"Reference: {reference}\n\n");
         return block.ToString();
     }
 

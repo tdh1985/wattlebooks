@@ -19,7 +19,7 @@
                     <input id="client-contact" class="input" @bind="_client.ContactName" />
                 </div>
                 <div class="field">
-                    <label for="client-abn">ABN</label>
+                    <label for="client-abn">@Format.Country.TaxNumber.Label</label>
                     <input id="client-abn" class="input num" style="text-align:left" @bind="_client.TaxNumber" placeholder="Optional" />
                 </div>
                 <div class="field">

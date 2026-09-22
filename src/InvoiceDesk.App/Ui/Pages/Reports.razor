@@ -192,7 +192,7 @@
             await using (var file = System.IO.File.Create(target))
             {
                 if (_kind == "bas") await ExportService.WriteBasCsvAsync(_bas!, file);
-                else await ExportService.WriteProfitAndLossCsvAsync(_pl!, file);
+                else await ExportService.WriteProfitAndLossCsvAsync(_pl!, Countries.For(_profile!.Country), file);
             }
             Saved(target);
         }

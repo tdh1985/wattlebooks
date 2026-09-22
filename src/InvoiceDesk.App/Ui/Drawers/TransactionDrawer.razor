@@ -12,6 +12,7 @@
         @if (_tx is not null)
         {
             var isOut = _tx.Direction == Direction.Out;
+            var rules = Countries.For(_profile?.Country);
             <form id="tx-form" class="col gap-16" @onsubmit="SaveAsync">
                 @if (_errors is { Count: > 0 })
                 {
@@ -51,20 +52,23 @@
                     <div class="field @FieldState("amount")">
                         <label for="tx-amount">@(isOut ? "Amount paid" : "Amount received")</label>
                         <MoneyInput Id="tx-amount" Cents="_tx.AmountCents" CentsChanged="SetAmount" />
-                        <span class="hint">Including any GST.</span>
+                        <span class="hint">Including any @rules.TaxWord.</span>
                     </div>
                     <div class="field @FieldState("date")">
                         <label for="tx-date">Date</label>
                         <input id="tx-date" type="date" class="input" value="@Format.Iso(_tx.Date)" @onchange="SetDate" />
                     </div>
-                    <div class="field @FieldState("gst")">
-                        <label for="tx-gst">GST included</label>
-                        <MoneyInput Id="tx-gst" Cents="_tx.TaxCents" CentsChanged="SetGst" />
-                        <label class="check small soft">
-                            <input type="checkbox" checked="@_autoGst" @onchange="ToggleAutoGst" />
-                            Work it out for me (@Format.Percent(_profile?.TaxRatePpm ?? 100_000) GST)
-                        </label>
-                    </div>
+                    @if (!isOut || rules.ExpensesCarryTax)
+                    {
+                        <div class="field @FieldState("gst")">
+                            <label for="tx-gst">@rules.TaxName included</label>
+                            <MoneyInput Id="tx-gst" Cents="_tx.TaxCents" CentsChanged="SetGst" />
+                            <label class="check small soft">
+                                <input type="checkbox" checked="@_autoGst" @onchange="ToggleAutoGst" />
+                                Work it out for me (@Format.Percent(_profile?.TaxRatePpm ?? 100_000) @rules.TaxName)
+                            </label>
+                        </div>
+                    }
                     <div class="field">
                         <label for="tx-category">Category</label>
                         <select id="tx-category" class="select @(_categoryGuessed ? "guessed" : null)" value="@(_tx.CategoryId?.ToString() ?? "")" @onchange="SetCategory">
@@ -330,7 +334,7 @@
         {
             SetAmount(total);
             _filled.Add("amount");
-            if (_profile!.TaxRegistered && guess.TaxCents is { } gst)
+            if (_profile!.TaxRegistered && Countries.For(_profile.Country).ExpensesCarryTax && guess.TaxCents is { } gst)
             {
                 _tx.TaxCents = gst;
                 _autoGst = false;

@@ -198,7 +198,7 @@
                             <div><dt>On their invoices</dt><dd>@c.InvoiceNote</dd></div>
                         }
                         <div><dt>Address</dt><dd>@(c.Address.Length > 0 ? c.Address : "–")</dd></div>
-                        <div><dt>ABN</dt><dd class="num">@(c.TaxNumber.Length > 0 ? Abn.Format(c.TaxNumber) : "–")</dd></div>
+                        <div><dt>@Format.Country.TaxNumber.Label</dt><dd class="num">@(c.TaxNumber.Length > 0 ? Format.Country.TaxNumber.Display(c.TaxNumber) : "–")</dd></div>
                         @if (c.Notes.Length > 0)
                         {
                             <div><dt>Private notes</dt><dd>@c.Notes</dd></div>

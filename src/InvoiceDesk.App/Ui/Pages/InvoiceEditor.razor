@@ -160,7 +160,7 @@
                     </div>
                     @if (_invoice.TaxEnabled && !_profile.TaxRegistered)
                     {
-                        <div class="banner banner-warn"><Icon Name="alert" Size="16" /><div>Your settings say you're not registered for @rules.TaxWord. Only registered businesses can charge it. <a href="settings#gst">Check @rules.TaxWord settings</a></div></div>
+                        <div class="banner banner-warn"><Icon Name="alert" Size="16" /><div>Your settings say you're not registered for @rules.TaxWord. Only registered businesses can charge it. <a href="settings#tax">Check @rules.TaxWord settings</a></div></div>
                     }
 
                     <div class="lines @(_invoice.TaxEnabled ? null : "no-gst") @(_invoice.TaxEnabled && rules.HasReducedRate ? "has-rate" : null) mt-16">

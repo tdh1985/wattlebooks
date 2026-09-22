@@ -11,41 +11,66 @@ public readonly record struct DateRange(DateOnly Start, DateOnly End)
 
 public static class FinancialPeriods
 {
-    // en-AU abbreviates september as "sept", ato quarter labels use three letters
+    // month names stay invariant because en-AU abbreviates september as "sept"
     static readonly CultureInfo Months = CultureInfo.InvariantCulture;
 
-    public static DateRange FinancialYear(DateOnly d)
+    public static DateRange TaxYear(DateOnly d, CountryRules c)
     {
-        var start = d.Month >= 7 ? d.Year : d.Year - 1;
-        return new(new DateOnly(start, 7, 1), new DateOnly(start + 1, 6, 30));
+        var thisYear = new DateOnly(d.Year, c.TaxYearStartMonth, c.TaxYearStartDay);
+        var start = d >= thisYear ? thisYear : thisYear.AddYears(-1);
+        return new(start, start.AddYears(1).AddDays(-1));
     }
 
-    public static DateRange BasQuarter(DateOnly d)
+    public static string TaxYearLabel(DateOnly d, CountryRules c)
     {
-        var start = new DateOnly(d.Year, (d.Month - 1) / 3 * 3 + 1, 1);
-        return new(start, start.AddMonths(3).AddDays(-1));
+        var start = TaxYear(d, c).Start.Year;
+        return c.YearLabel switch
+        {
+            YearLabelStyle.FinancialYear => $"FY {start}–{(start + 1) % 100:00}",
+            YearLabelStyle.TaxYear => $"Tax year {start}–{(start + 1) % 100:00}",
+            _ => start.ToString(CultureInfo.InvariantCulture),
+        };
     }
 
-    public static DateRange PreviousBasQuarter(DateOnly d) => BasQuarter(BasQuarter(d).Start.AddDays(-1));
+    // months is 1/2/3/6/12 and one period ends in endMonth
+    public static DateRange ReturnPeriod(DateOnly d, int months, int endMonth)
+    {
+        var index = d.Year * 12 + d.Month - 1;
+        var ahead = ((endMonth - 1 - index) % months + months) % months;
+        var startIndex = index + ahead - months + 1;
+        var start = new DateOnly(startIndex / 12, startIndex % 12 + 1, 1);
+        return new(start, start.AddMonths(months).AddDays(-1));
+    }
 
-    public static IReadOnlyList<DateRange> BasQuartersIn(DateRange financialYear) =>
-        Enumerable.Range(0, 4).Select(i => BasQuarter(financialYear.Start.AddMonths(i * 3))).ToList();
+    public static DateRange PreviousReturnPeriod(DateOnly d, int months, int endMonth) =>
+        ReturnPeriod(ReturnPeriod(d, months, endMonth).Start.AddDays(-1), months, endMonth);
+
+    public static string ReturnPeriodLabel(DateRange p, CountryRules c)
+    {
+        if (p == TaxYear(p.Start, c)) return TaxYearLabel(p.Start, c);
+        if (p.Start.Year == p.End.Year && p.Start.Month == p.End.Month) return p.End.ToString("MMM yyyy", Months);
+        if (p.Start.Year == p.End.Year) return $"{p.Start.ToString("MMM", Months)}–{p.End.ToString("MMM", Months)} {p.End.Year}";
+        return $"{p.Start.ToString("MMM yyyy", Months)} – {p.End.ToString("MMM yyyy", Months)}";
+    }
+
+    public static string PeriodNoun(int months) => months switch
+    {
+        1 => "month",
+        3 => "quarter",
+        12 => "year",
+        _ => "period",
+    };
+
+    public static string YearNoun(CountryRules c) => c.YearLabel switch
+    {
+        YearLabelStyle.FinancialYear => "financial year",
+        YearLabelStyle.TaxYear => "tax year",
+        _ => "year",
+    };
 
     public static DateRange Month(DateOnly d)
     {
         var start = new DateOnly(d.Year, d.Month, 1);
         return new(start, start.AddMonths(1).AddDays(-1));
-    }
-
-    public static string FinancialYearLabel(DateOnly d)
-    {
-        var start = FinancialYear(d).Start.Year;
-        return $"FY {start}–{(start + 1) % 100:00}";
-    }
-
-    public static string BasQuarterLabel(DateOnly d)
-    {
-        var q = BasQuarter(d);
-        return $"{q.Start.ToString("MMM", Months)}–{q.End.ToString("MMM", Months)} {q.End.Year}";
     }
 }

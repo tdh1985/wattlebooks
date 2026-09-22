@@ -9,6 +9,7 @@
 @inject Desktop Desktop
 @inject AppPaths Paths
 @inject RecurringService Recurring
+@inject ProfileService Profiles
 
 <div class="page">
     <PageHeader Title="@(_quotes ? "Quotes" : "Invoices")">
@@ -251,6 +252,7 @@
     InvoiceFilter _filter = InvoiceFilter.All;
     string _search = "";
     DateOnly _today;
+    BusinessProfile? _profile;
     bool _exporting;
     string _exportPeriod = "fy";
     bool _showRepeating;
@@ -290,10 +292,13 @@
     // last year is there because that's what a tax return needs
     IEnumerable<(string Key, string Label, DateRange Range)> ExportPeriods()
     {
-        var lastFy = FinancialPeriods.FinancialYear(_today).Start.AddDays(-1);
-        yield return ("quarter", FinancialPeriods.BasQuarterLabel(_today), FinancialPeriods.BasQuarter(_today));
-        yield return ("fy", FinancialPeriods.FinancialYearLabel(_today), FinancialPeriods.FinancialYear(_today));
-        yield return ("last-fy", FinancialPeriods.FinancialYearLabel(lastFy), FinancialPeriods.FinancialYear(lastFy));
+        var country = Countries.For(_profile!.Country);
+        var period = FinancialPeriods.ReturnPeriod(_today, _profile.TaxPeriodMonths, _profile.TaxPeriodEndMonth);
+        var fy = FinancialPeriods.TaxYear(_today, country);
+        var lastFy = FinancialPeriods.TaxYear(fy.Start.AddDays(-1), country);
+        yield return ("quarter", FinancialPeriods.ReturnPeriodLabel(period, country), period);
+        yield return ("fy", FinancialPeriods.TaxYearLabel(_today, country), fy);
+        yield return ("last-fy", FinancialPeriods.TaxYearLabel(lastFy.Start, country), lastFy);
         yield return ("all", "All time", new DateRange(DateOnly.MinValue, DateOnly.MaxValue));
     }
 
@@ -339,6 +344,7 @@
     async Task LoadAsync()
     {
         _today = Clock.Today();
+        _profile = await Profiles.GetAsync();
         _all = (await InvoiceStore.ListAsync(kind: _quotes ? InvoiceKind.Quote : InvoiceKind.Invoice))
             .Where(s => !Toasts.IsPending($"invoice:{s.Id}"))
             .ToList();

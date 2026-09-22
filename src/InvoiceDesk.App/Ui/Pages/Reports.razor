@@ -92,18 +92,27 @@
     bool _fitted;
     bool _busy;
 
-    PeriodChoice Period => Periods().First(p => p.Key == _period);
+    PeriodChoice Period => Periods().FirstOrDefault(p => p.Key == _period) ?? Periods().First();
 
-    // the quarter just gone is the one you're usually lodging
+    // the period just gone is the one you're usually lodging
     IEnumerable<PeriodChoice> Periods()
     {
-        var prev = FinancialPeriods.PreviousBasQuarter(_today);
-        var fy = FinancialPeriods.FinancialYear(_today);
-        var lastFy = FinancialPeriods.FinancialYear(fy.Start.AddDays(-1));
-        yield return new("q-prev", FinancialPeriods.BasQuarterLabel(prev.Start), "Last quarter", prev);
-        yield return new("q", FinancialPeriods.BasQuarterLabel(_today), "This quarter, so far", FinancialPeriods.BasQuarter(_today));
-        yield return new("fy", FinancialPeriods.FinancialYearLabel(_today), "This financial year, so far", fy);
-        yield return new("fy-prev", FinancialPeriods.FinancialYearLabel(lastFy.Start), "Last financial year", lastFy);
+        var country = Countries.For(_profile!.Country);
+        var (months, end) = (_profile.TaxPeriodMonths, _profile.TaxPeriodEndMonth);
+        var noun = FinancialPeriods.PeriodNoun(months);
+        var yearNoun = FinancialPeriods.YearNoun(country);
+        var current = FinancialPeriods.ReturnPeriod(_today, months, end);
+        var prev = FinancialPeriods.PreviousReturnPeriod(_today, months, end);
+        var fy = FinancialPeriods.TaxYear(_today, country);
+        var lastFy = FinancialPeriods.TaxYear(fy.Start.AddDays(-1), country);
+        // a yearly return matching the tax year would repeat the same range
+        if (current != fy)
+        {
+            yield return new("q-prev", FinancialPeriods.ReturnPeriodLabel(prev, country), $"Last {noun}", prev);
+            yield return new("q", FinancialPeriods.ReturnPeriodLabel(current, country), $"This {noun}, so far", current);
+        }
+        yield return new("fy", FinancialPeriods.TaxYearLabel(_today, country), $"This {yearNoun}, so far", fy);
+        yield return new("fy-prev", FinancialPeriods.TaxYearLabel(lastFy.Start, country), $"Last {yearNoun}", lastFy);
     }
 
     protected override async Task OnInitializedAsync()

@@ -11,6 +11,7 @@
 @inject Desktop Desktop
 @inject AppPaths Paths
 @inject IJSRuntime JS
+@inject ProfileService Profiles
 
 <div class="page">
     <PageHeader Title="Money in &amp; out">
@@ -173,6 +174,7 @@
 
     List<Transaction>? _rows;
     bool _hasAny;
+    BusinessProfile? _profile;
     List<Category> _categories = [];
     string _tab = "all";
     string _period = "fy";
@@ -214,16 +216,17 @@
         await LoadAsync();
     }
 
-    static DateRange? Range(string period, DateOnly today) => period switch
+    DateRange? Range(string period, DateOnly today) => period switch
     {
         "month" => FinancialPeriods.Month(today),
-        "quarter" => FinancialPeriods.BasQuarter(today),
-        "fy" => FinancialPeriods.FinancialYear(today),
+        "quarter" => FinancialPeriods.ReturnPeriod(today, _profile?.TaxPeriodMonths ?? 3, _profile?.TaxPeriodEndMonth ?? 3),
+        "fy" => FinancialPeriods.TaxYear(today, Countries.For(_profile?.Country)),
         _ => null,
     };
 
     async Task LoadAsync()
     {
+        _profile = await Profiles.GetAsync();
         var range = Range(_period, Clock.Today());
         _rows = await Ledger.ListAsync(new TransactionFilter(TabDirection, range, _categoryId));
         // first-run help only makes sense when nothing has ever been recorded
@@ -233,11 +236,12 @@
     string PeriodLabel(string period)
     {
         var today = Clock.Today();
+        var country = Countries.For(_profile?.Country);
         return period switch
         {
             "month" => "This month",
-            "quarter" => FinancialPeriods.BasQuarterLabel(today),
-            "fy" => FinancialPeriods.FinancialYearLabel(today),
+            "quarter" => FinancialPeriods.ReturnPeriodLabel(Range(period, today)!.Value, country),
+            "fy" => FinancialPeriods.TaxYearLabel(today, country),
             _ => "All time",
         };
     }

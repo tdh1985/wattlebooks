@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceDesk.Core.Services;
 
-public sealed class DashboardService(IDbContextFactory<AppDbContext> factory, TimeProvider clock)
+public sealed class DashboardService(IDbContextFactory<AppDbContext> factory, TimeProvider clock, ProfileService profiles)
 {
     const int RecentCount = 8;
 
@@ -24,9 +24,11 @@ public sealed class DashboardService(IDbContextFactory<AppDbContext> factory, Ti
         var open = summaries.Where(s => s.IsAwaitingPayment).ToList();
         var overdue = open.Where(s => s.Status == DisplayStatus.Overdue).OrderBy(s => s.DueDate).ToList();
 
+        var profile = await profiles.GetAsync();
+        var country = Countries.For(profile.Country);
         var month = FinancialPeriods.Month(today);
-        var fy = FinancialPeriods.FinancialYear(today);
-        var quarter = FinancialPeriods.BasQuarter(today);
+        var year = FinancialPeriods.TaxYear(today, country);
+        var period = FinancialPeriods.ReturnPeriod(today, profile.TaxPeriodMonths, profile.TaxPeriodEndMonth);
 
         long Sum(Direction d, DateRange r, Func<Transaction, long> pick) => CashTotals.Sum(txs, d, r, pick);
 
@@ -42,11 +44,11 @@ public sealed class DashboardService(IDbContextFactory<AppDbContext> factory, Ti
             OverdueCount: overdue.Count,
             ReceivedMonthCents: Sum(Direction.In, month, t => t.AmountCents),
             SpentMonthCents: Sum(Direction.Out, month, t => t.AmountCents),
-            ProfitYearCents: Sum(Direction.In, fy, t => t.ExTaxCents) - Sum(Direction.Out, fy, t => t.ExTaxCents),
-            TaxCollectedPeriodCents: CashTotals.TaxCollected(txs, quarter),
-            TaxPaidPeriodCents: CashTotals.TaxPaid(txs, quarter),
-            YearLabel: FinancialPeriods.FinancialYearLabel(today),
-            PeriodLabel: FinancialPeriods.BasQuarterLabel(today),
+            ProfitYearCents: Sum(Direction.In, year, t => t.ExTaxCents) - Sum(Direction.Out, year, t => t.ExTaxCents),
+            TaxCollectedPeriodCents: CashTotals.TaxCollected(txs, period),
+            TaxPaidPeriodCents: CashTotals.TaxPaid(txs, period),
+            YearLabel: FinancialPeriods.TaxYearLabel(today, country),
+            PeriodLabel: FinancialPeriods.ReturnPeriodLabel(period, country),
             Months: months,
             Overdue: overdue,
             Recent: Recent(invoices, txs));

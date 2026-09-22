@@ -15,13 +15,18 @@ public static partial class ReceiptParser
 {
     const int PartyLinesToCheck = 6;
 
-    public static ReceiptGuess Parse(string text, DateOnly today, IReadOnlyList<string> knownParties)
+    public static ReceiptGuess Parse(string text, DateOnly today, IReadOnlyList<string> knownParties, ReceiptRules? rules = null)
     {
+        rules ??= Australia.Rules.Receipts;
         var lines = text.Split('\n').Select(l => FixDigits(l.Trim())).Where(l => l.Length > 0).ToList();
         if (lines.Count == 0) return new ReceiptGuess(null, null, null, null);
 
         var total = FindTotal(lines);
-        return new ReceiptGuess(FindParty(text, lines, knownParties), FindDate(lines, today), total, FindGst(lines, total));
+        return new ReceiptGuess(
+            FindParty(text, lines, knownParties, rules.MonthFirst),
+            FindDate(lines, today, rules.MonthFirst),
+            total,
+            FindTax(lines, total, rules.TaxCapPpm));
     }
 
     // ocr reads columns one after another, so rows are rebuilt from where each word sits
@@ -48,7 +53,7 @@ public static partial class ReceiptParser
     static string FixDigits(string line) => string.Join(' ', line.Split(' ').Select(token =>
     {
         if (token.Count(char.IsAsciiDigit) < 2) return token;
-        var rest = token.Where(c => !char.IsAsciiDigit(c) && !"$.,/:-".Contains(c)).ToList();
+        var rest = token.Where(c => !char.IsAsciiDigit(c) && !"$£€.,/:-".Contains(c)).ToList();
         if (rest.Count == 0 || rest.Count > 2 || rest.Any(c => !"OoDeIl|SB".Contains(c))) return token;
         return new string(token.Select(c => c switch
         {
@@ -72,25 +77,25 @@ public static partial class ReceiptParser
         }
         if (candidates.Count > 0) return candidates.Max();
 
-        var all = lines.Where(l => !IsGstLine(l)).Select(LastAmount).OfType<long>().ToList();
+        var all = lines.Where(l => !IsTaxLine(l)).Select(LastAmount).OfType<long>().ToList();
         return all.Count > 0 ? all.Max() : null;
     }
 
-    // gst in a price that includes it is 1/11, so anything bigger is some other number
-    static long? FindGst(List<string> lines, long? total)
+    // tax inside a price can't beat the top rate, so bigger is something else
+    static long? FindTax(List<string> lines, long? total, int capPpm)
     {
         if (total is not { } t) return null;
-        return lines.Where(IsGstLine).Select(LastAmount).OfType<long>()
-            .Where(g => g > 0 && g <= t / 11 + 1)
+        return lines.Where(IsTaxLine).Select(LastAmount).OfType<long>()
+            .Where(g => g > 0 && g <= MoneyMath.TaxFromInclusive(t, capPpm) + 1)
             .Cast<long?>()
             .FirstOrDefault();
     }
 
-    static DateOnly? FindDate(List<string> lines, DateOnly today)
+    static DateOnly? FindDate(List<string> lines, DateOnly today, bool monthFirst)
     {
         foreach (var line in lines)
         {
-            foreach (var date in DatesIn(line))
+            foreach (var date in DatesIn(line, monthFirst))
             {
                 if (date <= today && date >= today.AddYears(-2)) return date;
             }
@@ -98,14 +103,17 @@ public static partial class ReceiptParser
         return null;
     }
 
-    static IEnumerable<DateOnly> DatesIn(string line)
+    static IEnumerable<DateOnly> DatesIn(string line, bool monthFirst)
     {
         foreach (Match m in NumericDate().Matches(line))
         {
             var year = int.Parse(m.Groups[3].Value, CultureInfo.InvariantCulture);
             if (year < 100) year += 2000;
-            // australian receipts put the day first
-            if (Make(year, int.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture), int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture)) is { } d)
+            // most receipts put the day first, us ones put the month first
+            var first = int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture);
+            var second = int.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture);
+            var (month, day) = monthFirst ? (first, second) : (second, first);
+            if (Make(year, month, day) is { } d)
                 yield return d;
         }
         foreach (Match m in NamedDate().Matches(line))
@@ -133,7 +141,7 @@ public static partial class ReceiptParser
         _ => 0,
     };
 
-    static string? FindParty(string text, List<string> lines, IReadOnlyList<string> knownParties)
+    static string? FindParty(string text, List<string> lines, IReadOnlyList<string> knownParties, bool monthFirst)
     {
         // a supplier seen before wins, spelled the way it was saved
         var known = knownParties
@@ -144,23 +152,23 @@ public static partial class ReceiptParser
             .FirstOrDefault();
         if (known is not null) return known;
 
-        var first = lines.Take(PartyLinesToCheck).FirstOrDefault(LooksLikeName);
+        var first = lines.Take(PartyLinesToCheck).FirstOrDefault(l => LooksLikeName(l, monthFirst));
         if (first is null) return null;
         return first.Any(char.IsLower) ? first : CultureInfo.InvariantCulture.TextInfo.ToTitleCase(first.ToLowerInvariant());
     }
 
-    static bool LooksLikeName(string line) =>
+    static bool LooksLikeName(string line, bool monthFirst) =>
         line.Count(char.IsLetter) >= 3
         && !char.IsDigit(line[0])
         && !NotAName().IsMatch(line)
         && !Postcode().IsMatch(line)
         && LastAmount(line) is null
-        && !DatesIn(line).Any();
+        && !DatesIn(line, monthFirst).Any();
 
-    static bool IsGstLine(string line) => GstWord().IsMatch(line) && !TotalIncludingGst().IsMatch(line);
+    static bool IsTaxLine(string line) => TaxWord().IsMatch(line) && !TotalIncludingTax().IsMatch(line);
 
     static bool IsTotalLine(string line) =>
-        TotalWord().IsMatch(line) && !SubTotal().IsMatch(line) && !IsGstLine(line);
+        TotalWord().IsMatch(line) && !SubTotal().IsMatch(line) && !IsTaxLine(line);
 
     // the right-most figure is the price on a receipt line
     static long? LastAmount(string line)
@@ -176,7 +184,7 @@ public static partial class ReceiptParser
     [GeneratedRegex(@"(?<![\d.,])(\d{1,3}(?:,\d{3})+|\d+)\s*[.,]\s*(\d{2})(?![\d])")]
     private static partial Regex Amount();
 
-    [GeneratedRegex(@"^\$?\s*[\d,]+\s*[.,]\s*\d{2}$")]
+    [GeneratedRegex(@"^[$£€]?\s*[\d,]+\s*[.,]\s*\d{2}$")]
     private static partial Regex AmountOnly();
 
     [GeneratedRegex(@"\b(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4}|\d{2})\b")]
@@ -197,16 +205,16 @@ public static partial class ReceiptParser
     [GeneratedRegex(@"\bsub\s*-?\s*total", RegexOptions.IgnoreCase)]
     private static partial Regex SubTotal();
 
-    [GeneratedRegex(@"\b(gst|tax)\b", RegexOptions.IgnoreCase)]
-    private static partial Regex GstWord();
+    [GeneratedRegex(@"\b(gst|vat|hst|tax|sales\s+tax)\b", RegexOptions.IgnoreCase)]
+    private static partial Regex TaxWord();
 
-    // "total inc gst" is the total, "total includes gst" is the gst
-    [GeneratedRegex(@"\b(inc|incl|including)\.?\s*gst\b", RegexOptions.IgnoreCase)]
-    private static partial Regex TotalIncludingGst();
+    // "total inc vat" is the total, "total includes vat" is the tax
+    [GeneratedRegex(@"\b(inc|incl|including)\.?\s*(gst|vat|hst|tax)\b", RegexOptions.IgnoreCase)]
+    private static partial Regex TotalIncludingTax();
 
-    [GeneratedRegex(@"^(tax\s+)?(invoice|receipt)\b|\babn\b|www\.|https?:|@|\b(ph|phone|tel|date|welcome|thank)\b", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^(tax\s+)?(invoice|receipt)\b|\babn\b|www\.|https?:|@|\b(ph|phone|tel|date|welcome|thank)\b|\bvat\s*(no|reg)|\bgst\s*(no|reg|#)", RegexOptions.IgnoreCase)]
     private static partial Regex NotAName();
 
-    [GeneratedRegex(@"\b(NSW|VIC|QLD|TAS|SA|WA|NT|ACT)\b\s*\d{4}\b", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\b(NSW|VIC|QLD|TAS|SA|WA|NT|ACT)\b\s*\d{4}\b|\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b|\b[A-Z]\d[A-Z]\s?\d[A-Z]\d\b|\b[A-Z]{2}\s+\d{5}(?:-\d{4})?\b", RegexOptions.IgnoreCase)]
     private static partial Regex Postcode();
 }

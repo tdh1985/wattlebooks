@@ -305,7 +305,7 @@
         {
             var text = await Reader.ReadTextAsync(file.TempPath);
             var guess = string.IsNullOrWhiteSpace(text) ? null
-                : ReceiptParser.Parse(text, Clock.Today(), await Suggestions.PartiesAsync(Direction.Out, take: 500));
+                : ReceiptParser.Parse(text, Clock.Today(), await Suggestions.PartiesAsync(Direction.Out, take: 500), Countries.For(_profile!.Country).Receipts);
             await ApplyAsync(guess);
         }
         catch (Exception ex)

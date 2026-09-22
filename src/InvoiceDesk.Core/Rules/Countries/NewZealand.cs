@@ -51,7 +51,7 @@ public static partial class NewZealand
         DefaultPeriodEndMonth = 3,
         ExpensesCarryTax = true,
         Return = ReturnKind.NzGst,
-        TaxOffice = "IRD",
+        TaxOffice = "the IRD",
         OverseasNote = "Zero-rated: supplied to a client outside New Zealand.",
         ReceiptTaxCapPpm = 150_000,
     };

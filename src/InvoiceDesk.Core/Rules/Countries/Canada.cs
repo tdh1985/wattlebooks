@@ -77,7 +77,7 @@ public static partial class Canada
         DefaultPeriodEndMonth = 12,
         ExpensesCarryTax = true,
         Return = ReturnKind.CaGstHst,
-        TaxOffice = "CRA",
+        TaxOffice = "the CRA",
         OverseasNote = "Zero-rated export: no GST/HST charged.",
         ReceiptTaxCapPpm = 150_000,
         Provinces = Provinces,

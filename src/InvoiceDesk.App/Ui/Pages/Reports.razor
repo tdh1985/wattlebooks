@@ -14,7 +14,7 @@
 
 <div class="page">
     <PageHeader Title="Reports">
-        <Subtitle>@(_profile is null ? "" : $"Your {Countries.For(_profile.Country).ReturnShortName} figures and profit for any {FinancialPeriods.PeriodNoun(_profile.TaxPeriodMonths)} or year, ready to save or send to your accountant.")</Subtitle>
+        <Subtitle>@(_profile is null ? "" : $"Your {Countries.For(_profile.Country).ReturnShortName} figures and profit for any {PeriodPhrase(_profile.TaxPeriodMonths)}, ready to save or send to your accountant.")</Subtitle>
     </PageHeader>
 
     @if (_profile is not null)
@@ -94,6 +94,13 @@
     bool _busy;
 
     PeriodChoice Period => Periods().FirstOrDefault(p => p.Key == _period) ?? Periods().First();
+
+    // an annual filer's period is already "year", so don't repeat it
+    static string PeriodPhrase(int months)
+    {
+        var noun = FinancialPeriods.PeriodNoun(months);
+        return noun == "year" ? noun : $"{noun} or year";
+    }
 
     // the period just gone is the one you're usually lodging
     IEnumerable<PeriodChoice> Periods()

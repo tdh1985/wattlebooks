@@ -59,7 +59,7 @@ public static partial class Australia
         DefaultPeriodEndMonth = 3,
         ExpensesCarryTax = true,
         Return = ReturnKind.Bas,
-        TaxOffice = "ATO",
+        TaxOffice = "the ATO",
         OverseasNote = "No GST has been charged, as this is a supply to a client outside Australia.",
         ReceiptTaxCapPpm = 100_000,
     };

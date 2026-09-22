@@ -6,7 +6,7 @@ namespace InvoiceDesk.Core.Rules;
 
 public sealed record WorldCountry(string Code, string Name);
 
-// every country a client can be in, named by windows so nothing is typed by hand
+// every country a client can be in, named by windows so none are typed
 public static class WorldCountries
 {
     static readonly Lazy<IReadOnlyList<WorldCountry>> List = new(Build);

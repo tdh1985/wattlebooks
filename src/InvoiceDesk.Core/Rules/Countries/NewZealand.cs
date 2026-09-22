@@ -56,7 +56,7 @@ public static partial class NewZealand
         ReceiptTaxCapPpm = 150_000,
     };
 
-    // bank, branch, account and a two or three digit suffix
+    // bank and branch then account and a two or three digit suffix
     static string NormaliseAccount(string s) => NumberChecks.Digits(s).Length switch
     {
         15 => NumberChecks.Group(s, 2, 4, 7, 2),

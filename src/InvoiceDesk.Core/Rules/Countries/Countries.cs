@@ -4,7 +4,7 @@ namespace InvoiceDesk.Core.Rules;
 
 public static class Countries
 {
-    public static IReadOnlyList<CountryRules> All { get; } = [Australia.Rules];
+    public static IReadOnlyList<CountryRules> All { get; } = [Australia.Rules, NewZealand.Rules, UnitedKingdom.Rules, Canada.Rules, UnitedStates.Rules];
 
     // anything unknown is treated as australia, which is what 1.1.0 data is
     public static CountryRules For(string? code) =>

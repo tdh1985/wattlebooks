@@ -66,9 +66,18 @@
                 {
                     <div class="doc-small doc-pre">@client.Address</div>
                 }
-                @if (rules.TaxNumber.IsValid(client.TaxNumber))
+                @if (InvoiceDefaults.IsOverseas(client, Profile))
                 {
-                    <div class="doc-small">@rules.TaxNumber.Label @rules.TaxNumber.Display(client.TaxNumber)</div>
+                    <div class="doc-small">@WorldCountries.Name(client.Country)</div>
+                }
+                var clientTaxRule = InvoiceDefaults.TaxNumberRuleFor(client, Profile);
+                @if (clientTaxRule is not null && clientTaxRule.IsValid(client.TaxNumber))
+                {
+                    <div class="doc-small">@clientTaxRule.Label @clientTaxRule.Display(client.TaxNumber)</div>
+                }
+                else if (clientTaxRule is null && client.TaxNumber.Length > 0)
+                {
+                    <div class="doc-small">Tax number @client.TaxNumber</div>
                 }
                 @if (client.Website.Length > 0)
                 {
@@ -141,7 +150,7 @@
         <div class="doc-summary-notes">
             @if (!totals.IsTaxInvoice)
             {
-                <p class="doc-small">No @rules.TaxWord has been charged.</p>
+                <p class="doc-small">@(InvoiceDefaults.IsOverseas(client, Profile) && Profile.OverseasNote.Length > 0 ? Profile.OverseasNote : $"No {rules.TaxWord} has been charged.")</p>
             }
             @if (!rules.HasReducedRate && hasGstFree)
             {

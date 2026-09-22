@@ -1,5 +1,6 @@
 @* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
 @inject ClientService Clients
+@inject ProfileService Profiles
 @inject ToastService Toasts
 
 <Drawer Open="Open" Title="@(IsNew ? "New client" : "Edit client")" OnClose="OnClose">
@@ -19,8 +20,9 @@
                     <input id="client-contact" class="input" @bind="_client.ContactName" />
                 </div>
                 <div class="field">
-                    <label for="client-abn">@Format.Country.TaxNumber.Label</label>
-                    <input id="client-abn" class="input num" style="text-align:left" @bind="_client.TaxNumber" placeholder="Optional" />
+                    <label for="client-tax-number">@(TaxRule?.Label ?? "Tax number")</label>
+                    <input id="client-tax-number" class="input num" style="text-align:left" @bind="_client.TaxNumber" placeholder="@TaxRule?.Placeholder" />
+                    <span class="hint @(TaxNumberBad ? "field-error" : null)">@TaxNumberHint</span>
                 </div>
                 <div class="field">
                     <label for="client-email">Email</label>
@@ -39,6 +41,45 @@
                     <textarea id="client-address" class="textarea" rows="3" @bind="_client.Address"></textarea>
                     <span class="hint">Printed under "Bill to" on invoices.</span>
                 </div>
+                <div class="field">
+                    <label for="client-country">Country</label>
+                    <select id="client-country" class="select" value="@_client.Country" @onchange="OnCountryChanged">
+                        <option value="">@Format.Country.Name (same as you)</option>
+                        @foreach (var c in Countries.All.Where(c => c.Code != Format.Country.Code))
+                        {
+                            <option value="@c.Code">@c.Name</option>
+                        }
+                        <option disabled>──────────</option>
+                        @foreach (var c in WorldCountries.All.Where(c => !Countries.IsSupported(c.Code)))
+                        {
+                            <option value="@c.Code">@c.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="client-currency">Currency</label>
+                    <select id="client-currency" class="select" @bind="_client.Currency">
+                        <option value="">Your currency (@Format.Country.Currency)</option>
+                        @foreach (var c in Currencies.All.Where(c => c.Code != Format.Country.Currency))
+                        {
+                            <option value="@c.Code">@Currencies.Label(c.Code)</option>
+                        }
+                    </select>
+                    <span class="hint">New invoices for this client start in this currency.</span>
+                </div>
+                @if (_profile is not null && Format.Country.Provinces.Count > 0 && !InvoiceDefaults.IsOverseas(_client, _profile!))
+                {
+                    <div class="field">
+                        <label for="client-province">Province or territory</label>
+                        <select id="client-province" class="select" @bind="_client.Region">
+                            <option value="">Same as you</option>
+                            @foreach (var p in Format.Country.Provinces)
+                            {
+                                <option value="@p.Code">@p.Name (@p.TaxName @Format.Percent(p.RatePpm))</option>
+                            }
+                        </select>
+                    </div>
+                }
                 <div class="field span-2">
                     <label for="client-invoice-note">Note on their invoices</label>
                     <textarea id="client-invoice-note" class="textarea" rows="2" placeholder="For example: PO 4471, or Attention: Accounts Payable" @bind="_client.InvoiceNote"></textarea>
@@ -65,20 +106,41 @@
     [Parameter] public EventCallback OnClose { get; set; }
 
     Client _client = new();
+    BusinessProfile? _profile;
     IReadOnlyList<string>? _errors;
     bool _wasOpen;
 
     bool IsNew => _client.Id == 0;
 
-    protected override void OnParametersSet()
+    // null before the profile loads, or for a country we don't know
+    TaxNumberRule? TaxRule => _profile is null ? null : InvoiceDefaults.TaxNumberRuleFor(_client, _profile);
+
+    bool TaxNumberBad => TaxRule is not null && _client.TaxNumber.Length > 0 && !TaxRule.IsValid(_client.TaxNumber);
+
+    string TaxNumberHint => TaxRule is null
+        ? "Printed on your invoices to them."
+        : TaxNumberBad ? TaxRule.BadHint : TaxRule.EmptyHint;
+
+    protected override async Task OnParametersSetAsync()
     {
         // copy on open so cancelling leaves the caller's client untouched
         if (Open && !_wasOpen)
         {
             _client = Client?.Clone() ?? new Client();
             _errors = null;
+            _profile = await Profiles.GetAsync();
         }
         _wasOpen = Open;
+    }
+
+    // a client abroad usually pays in their own money, so suggest it once
+    void OnCountryChanged(ChangeEventArgs e)
+    {
+        _client.Country = e.Value?.ToString() ?? "";
+        if (_client.Currency.Length == 0 && WorldCountries.CurrencyOf(_client.Country) is { } cur
+            && Currencies.IsSupported(cur) && cur != Format.Country.Currency)
+            _client.Currency = cur;
+        if (InvoiceDefaults.IsOverseas(_client, _profile!)) _client.Region = "";
     }
 
     async Task SaveAsync()

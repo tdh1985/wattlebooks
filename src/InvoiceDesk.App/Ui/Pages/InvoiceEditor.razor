@@ -478,7 +478,14 @@
     void OnClientChanged(int clientId)
     {
         _invoice!.ClientId = clientId;
-        _invoice.Client = _clients.FirstOrDefault(c => c.Id == clientId);
+        var client = _clients.FirstOrDefault(c => c.Id == clientId);
+        _invoice.Client = client;
+        if (_invoice.Status == InvoiceStatus.Draft && client is not null)
+        {
+            var before = _invoice.Currency;
+            InvoiceDefaults.Apply(_invoice, client, _profile!);
+            if (_invoice.Currency != before) Toasts.Show($"Switched to {Currencies.Label(_invoice.Currency)} for {client.Name}");
+        }
         Changed();
     }
 

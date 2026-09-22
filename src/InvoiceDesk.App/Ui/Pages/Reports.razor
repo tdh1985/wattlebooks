@@ -14,7 +14,7 @@
 
 <div class="page">
     <PageHeader Title="Reports">
-        <Subtitle>Your BAS figures and profit for any quarter or year, ready to save or send to your accountant.</Subtitle>
+        <Subtitle>@(_profile is null ? "" : $"Your {Countries.For(_profile.Country).ReturnShortName} figures and profit for any {FinancialPeriods.PeriodNoun(_profile.TaxPeriodMonths)} or year, ready to save or send to your accountant.")</Subtitle>
     </PageHeader>
 
     @if (_profile is not null)
@@ -23,7 +23,7 @@
             <div class="detail-preview">
                 <div class="doc-stage" @ref="_stage">
                     <div class="doc-frame">
-                        <ReportDocument Bas="@(_kind == "bas" ? _bas : null)" Pl="@(_kind == "pl" ? _pl : null)" Profile="_profile"
+                        <ReportDocument Return="@(_kind == "return" ? _return : null)" Pl="@(_kind == "pl" ? _pl : null)" Profile="_profile"
                                         LogoUrl="@FilesUrl.Logo(_profile)" PeriodLabel="@Period.Label" Today="_today" />
                     </div>
                 </div>
@@ -32,7 +32,7 @@
             <aside class="side">
                 <section class="panel panel-pad col gap-16">
                     <div class="seg" role="group" aria-label="Report">
-                        <button type="button" class="@(_kind == "bas" ? "on" : null)" aria-pressed="@(_kind == "bas")" @onclick="@(() => SetKindAsync("bas"))">BAS worksheet</button>
+                        <button type="button" class="@(_kind == "return" ? "on" : null)" aria-pressed="@(_kind == "return")" @onclick="@(() => SetKindAsync("return"))">@Countries.For(_profile.Country).ReturnTitle</button>
                         <button type="button" class="@(_kind == "pl" ? "on" : null)" aria-pressed="@(_kind == "pl")" @onclick="@(() => SetKindAsync("pl"))">Profit &amp; loss</button>
                     </div>
                     <div class="field">
@@ -51,12 +51,13 @@
 
                 <section class="panel panel-pad">
                     <div class="money-rows">
-                        @if (_kind == "bas" && _bas is { } bas)
+                        @if (_kind == "return" && _return is { } ret)
                         {
-                            <div class="row"><span class="soft">G1 total sales</span><span class="num">@Format.Money(bas.Box("G1"))</span></div>
-                            <div class="row"><span class="soft">1A GST on sales</span><span class="num">@Format.Money(bas.Box("1A"))</span></div>
-                            <div class="row"><span class="soft">1B GST on purchases</span><span class="num">@Format.Money(bas.Box("1B"))</span></div>
-                            <div class="row"><span>@bas.NetLabel</span><span class="big">@Format.Money(Math.Abs(bas.NetCents))</span></div>
+                            @foreach (var b in ret.Boxes.Where(b => b.Line != ReturnLine.Result && (b.Note is null || b.Cents != 0)))
+                            {
+                                <div class="row"><span class="soft">@(b.Code.Length > 0 ? $"{b.Code} " : "")@b.Label</span><span class="num">@(b.WholeUnits ? Format.WholeMoney(b.Cents) : Format.Money(b.Cents))</span></div>
+                            }
+                            <div class="row"><span>@ret.NetLabel</span><span class="big">@Format.Money(Math.Abs(ret.NetCents))</span></div>
                         }
                         else if (_pl is { } pl)
                         {
@@ -83,10 +84,10 @@
     sealed record PeriodChoice(string Key, string Label, string Hint, DateRange Range);
 
     BusinessProfile? _profile;
-    TaxReturn? _bas;
+    TaxReturn? _return;
     ProfitAndLoss? _pl;
     DateOnly _today;
-    string _kind = "bas";
+    string _kind = "return";
     string _period = "q-prev";
     ElementReference _stage;
     bool _fitted;
@@ -128,7 +129,7 @@
         _today = Clock.Today();
         _profile = await Profiles.GetAsync();
         var range = Period.Range;
-        _bas = await ReportStore.TaxReturnAsync(range);
+        _return = await ReportStore.TaxReturnAsync(range);
         _pl = await ReportStore.ProfitAndLossAsync(range);
     }
 
@@ -153,7 +154,7 @@
         await LoadAsync();
     }
 
-    string FileStem => Format.SafeFileName($"{(_kind == "bas" ? "BAS worksheet" : "Profit and loss")}, {Period.Label}");
+    string FileStem => Format.SafeFileName($"{(_kind == "return" ? Countries.For(_profile!.Country).ReturnTitle : "Profit and loss")}, {Period.Label}");
 
     async Task SavePdfAsync()
     {
@@ -164,7 +165,7 @@
         {
             await Documents.ExportAsync<ReportDocument>(new Dictionary<string, object?>
             {
-                [nameof(ReportDocument.Bas)] = _kind == "bas" ? _bas : null,
+                [nameof(ReportDocument.Return)] = _kind == "return" ? _return : null,
                 [nameof(ReportDocument.Pl)] = _kind == "pl" ? _pl : null,
                 [nameof(ReportDocument.Profile)] = _profile,
                 [nameof(ReportDocument.LogoUrl)] = FilesUrl.Logo(_profile),
@@ -191,7 +192,7 @@
         {
             await using (var file = System.IO.File.Create(target))
             {
-                if (_kind == "bas") await ExportService.WriteTaxReturnCsvAsync(_bas!, file);
+                if (_kind == "return") await ExportService.WriteTaxReturnCsvAsync(_return!, file);
                 else await ExportService.WriteProfitAndLossCsvAsync(_pl!, Countries.For(_profile!.Country), file);
             }
             Saved(target);

@@ -19,22 +19,36 @@
             </div>
         </div>
         <div class="doc-title">
-            <h1>@(Bas is not null ? "BAS WORKSHEET" : "PROFIT & LOSS")</h1>
+            <h1>@(Return is not null ? Return.Title.ToUpperInvariant() : "PROFIT & LOSS")</h1>
             <div class="doc-number">@PeriodLabel</div>
         </div>
     </header>
 
-    @if (Bas is { } bas)
+    @if (Return is { } ret)
     {
         <section class="doc-section">
-            <h2>GST for @PeriodLabel</h2>
-            <p class="doc-small">@Format.DateLong(bas.Period.Start) to @Format.DateLong(bas.Period.End), cash basis</p>
+            <h2>@rules.TaxName for @PeriodLabel</h2>
+            <p class="doc-small">@Format.DateLong(ret.Period.Start) to @Format.DateLong(ret.Period.End), cash basis</p>
             <table class="doc-lines">
                 <tbody>
-                    <tr><td><span class="doc-code">G1</span>Total sales, including GST</td><td class="n">@Format.Money(bas.Box("G1"))</td></tr>
-                    <tr><td><span class="doc-code">1A</span>GST on sales</td><td class="n">@Format.Money(bas.Box("1A"))</td></tr>
-                    <tr><td><span class="doc-code">1B</span>GST on purchases</td><td class="n">@Format.Money(bas.Box("1B"))</td></tr>
-                    <tr class="doc-sum"><td>@bas.Boxes[^1].Label</td><td class="n">@Format.Money(Math.Abs(bas.NetCents))</td></tr>
+                    @foreach (var b in ret.Boxes)
+                    {
+                        var cents = b.Line == ReturnLine.Result ? Math.Abs(b.Cents) : b.Cents;
+                        <tr class="@(b.Line switch { ReturnLine.Result => "doc-sum", ReturnLine.Total => "doc-total-row", _ => null })">
+                            <td>
+                                @if (b.Code.Length > 0)
+                                {
+                                    <span class="doc-code">@b.Code</span>
+                                }
+                                @b.Label
+                                @if (b.Note is not null)
+                                {
+                                    <span class="doc-tag">@b.Note</span>
+                                }
+                            </td>
+                            <td class="n">@(b.WholeUnits ? Format.WholeMoney(cents) : Format.Money(cents))</td>
+                        </tr>
+                    }
                 </tbody>
             </table>
         </section>
@@ -43,13 +57,13 @@
             <h2>Where G1 comes from</h2>
             <p class="doc-small">Money received in the period by category, so you can check what belongs in total sales.</p>
             <table class="doc-lines">
-                <thead><tr><th>Category</th><th class="n">GST</th><th class="n">Received</th></tr></thead>
+                <thead><tr><th>Category</th><th class="n">@rules.TaxName</th><th class="n">Received</th></tr></thead>
                 <tbody>
-                    @foreach (var c in bas.SalesByCategory)
+                    @foreach (var c in ret.SalesByCategory)
                     {
                         <tr><td>@c.Category</td><td class="n">@Format.Amount(c.TaxCents)</td><td class="n">@Format.Amount(c.AmountCents)</td></tr>
                     }
-                    @if (bas.SalesByCategory.Count == 0)
+                    @if (ret.SalesByCategory.Count == 0)
                     {
                         <tr><td colspan="3" class="doc-placeholder">No money came in during this period.</td></tr>
                     }
@@ -59,14 +73,14 @@
 
         <p class="doc-disclaimer">
             Worked out from payments received and expenses paid in the period. Bank interest and some other income may not belong in G1,
-            so check with your accountant or the ATO before you lodge. This isn't tax advice.
+            so check with your accountant or @rules.TaxOffice before you lodge. This isn't tax advice.
         </p>
     }
     else if (Pl is { } pl)
     {
         <section class="doc-section">
             <h2>Income</h2>
-            <p class="doc-small">@Format.DateLong(pl.Period.Start) to @Format.DateLong(pl.Period.End), cash basis, amounts exclude GST</p>
+            <p class="doc-small">@Format.DateLong(pl.Period.Start) to @Format.DateLong(pl.Period.End), cash basis, amounts exclude @rules.TaxWord</p>
             <table class="doc-lines">
                 <tbody>
                     @foreach (var c in pl.Income)
@@ -109,7 +123,7 @@
 </article>
 
 @code {
-    [Parameter] public TaxReturn? Bas { get; set; }
+    [Parameter] public TaxReturn? Return { get; set; }
     [Parameter] public ProfitAndLoss? Pl { get; set; }
     [Parameter, EditorRequired] public BusinessProfile Profile { get; set; } = default!;
     [Parameter] public string? LogoUrl { get; set; }

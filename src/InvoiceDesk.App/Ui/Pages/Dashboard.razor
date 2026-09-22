@@ -108,10 +108,18 @@
             </div>
             <div class="ledger-cell">
                 <a class="ledger-label" href="reports" title="Open the @Format.Country.ReturnTitle">@Format.Country.TaxName for @_data.PeriodLabel <Icon Name="chevron-down" Size="13" Class="rot-270" /></a>
-                <div class="ledger-value">@Format.Money(Math.Abs(_data.TaxNetPeriodCents))</div>
-                <div class="ledger-note">
-                    @(_data.TaxNetPeriodCents >= 0 ? "To pay" : "Refund due"): collected @Format.Money(_data.TaxCollectedPeriodCents), paid @Format.Money(_data.TaxPaidPeriodCents)
-                </div>
+                @if (Format.Country.ExpensesCarryTax)
+                {
+                    <div class="ledger-value">@Format.Money(Math.Abs(_data.TaxNetPeriodCents))</div>
+                    <div class="ledger-note">
+                        @(_data.TaxNetPeriodCents >= 0 ? "To pay" : "Refund due"): collected @Format.Money(_data.TaxCollectedPeriodCents), paid @Format.Money(_data.TaxPaidPeriodCents)
+                    </div>
+                }
+                else
+                {
+                    <div class="ledger-value">@Format.Money(_data.TaxCollectedPeriodCents)</div>
+                    <div class="ledger-note">Collected</div>
+                }
             </div>
         </div>
 

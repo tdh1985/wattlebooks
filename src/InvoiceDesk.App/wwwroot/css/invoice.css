@@ -240,6 +240,7 @@
 .doc-report .doc-lines td { padding: 8px 0; }
 .doc-report .doc-sub td { color: var(--doc-ink-2); }
 .doc-report .doc-sum td { border-bottom: 0; border-top: 1.5px solid var(--doc-ink); font-weight: 600; }
+.doc-report .doc-total-row td { font-weight: 600; }
 .doc-code { display: inline-block; min-width: 30px; margin-right: 8px; color: var(--doc-accent); font: 700 12px/1 var(--doc-num); }
 .doc-disclaimer { margin-top: 26px; color: var(--doc-ink-3); font-size: 11px; }
 

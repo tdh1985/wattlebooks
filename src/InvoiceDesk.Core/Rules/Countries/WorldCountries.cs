@@ -19,6 +19,13 @@ public static class WorldCountries
     public static string Name(string code) =>
         All.FirstOrDefault(c => string.Equals(c.Code, code, StringComparison.OrdinalIgnoreCase))?.Name ?? code;
 
+    public static string? CurrencyOf(string code)
+    {
+        if (!IsKnown(code)) return null;
+        try { return new RegionInfo(code.ToUpperInvariant()).ISOCurrencySymbol; }
+        catch (ArgumentException) { return null; }
+    }
+
     static IReadOnlyList<WorldCountry> Build() =>
         CultureInfo.GetCultures(CultureTypes.SpecificCultures)
             .Select(Region)

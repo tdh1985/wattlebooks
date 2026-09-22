@@ -18,7 +18,13 @@ public sealed class InvoiceService(
     {
         var profile = await profiles.GetAsync();
         var today = clock.Today();
-        return new Invoice
+        Client? client = null;
+        if (clientId is { } id)
+        {
+            await using var db = await factory.CreateDbContextAsync();
+            client = await db.Clients.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
+        }
+        var draft = new Invoice
         {
             Kind = kind,
             ClientId = clientId ?? 0,
@@ -26,14 +32,12 @@ public sealed class InvoiceService(
             // a quote's due date is the day its price stops holding
             DueDate = today.AddDays(kind == InvoiceKind.Quote ? profile.QuoteValidDays : profile.PaymentTermsDays),
             Status = InvoiceStatus.Draft,
-            TaxEnabled = profile.TaxRegistered,
-            TaxRatePpm = profile.TaxRatePpm,
-            ReducedRatePpm = profile.ReducedRatePpm,
-            Currency = Countries.For(profile.Country).Currency,
             // the default notes are payment terms, which a quote doesn't have yet
             Notes = kind == InvoiceKind.Quote ? "" : profile.DefaultInvoiceNotes,
             Lines = [new InvoiceLine { Quantity = 1 }],
         };
+        InvoiceDefaults.Apply(draft, client, profile);
+        return draft;
     }
 
     public async Task<Invoice?> GetAsync(int id)
@@ -83,6 +87,7 @@ public sealed class InvoiceService(
         var errors = new List<string>();
         if (invoice.ClientId <= 0) errors.Add("Choose a client.");
         if (invoice.DueDate < invoice.IssueDate) errors.Add("The due date can't be before the issue date.");
+        if (!Currencies.IsSupported(invoice.Currency)) errors.Add("Choose a currency from the list.");
         ValidationException.ThrowIfAny(errors);
 
         await using var db = await factory.CreateDbContextAsync();
@@ -106,6 +111,8 @@ public sealed class InvoiceService(
             entity = await db.Invoices.Include(i => i.Lines).Include(i => i.Payments)
                          .SingleOrDefaultAsync(i => i.Id == invoice.Id)
                      ?? throw new ValidationException("This invoice no longer exists.");
+            if (entity.Status != InvoiceStatus.Draft && !string.Equals(entity.Currency, invoice.Currency, StringComparison.OrdinalIgnoreCase))
+                throw new ValidationException("The currency can't change once the invoice is sent.");
             if (entity.Status == InvoiceStatus.Void) throw new ValidationException("Void invoices can't be changed.");
             if (entity.Status is InvoiceStatus.Accepted or InvoiceStatus.Declined)
                 throw new ValidationException("Your client has answered this quote, so it can't be changed. Duplicate it for a new one.");
@@ -121,7 +128,7 @@ public sealed class InvoiceService(
         entity.TaxEnabled = invoice.TaxEnabled;
         entity.TaxRatePpm = invoice.TaxRatePpm;
         entity.ReducedRatePpm = invoice.ReducedRatePpm;
-        entity.Currency = invoice.Currency;
+        entity.Currency = invoice.Currency.ToUpperInvariant();
         entity.Notes = Text.Clean(invoice.Notes);
         var order = 0;
         foreach (var line in invoice.Lines)

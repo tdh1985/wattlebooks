@@ -43,15 +43,15 @@ public sealed partial class ProfileService(IDbContextFactory<AppDbContext> facto
 
         var oldCurrency = Countries.For(profile.Country).Currency;
         target.ApplyDefaults(profile);
-        var drafts = await db.Invoices.Include(i => i.Lines)
-            .Where(i => i.Status == InvoiceStatus.Draft && i.Currency == oldCurrency)
+        var drafts = await db.Invoices.Include(i => i.Lines).Include(i => i.Client)
+            .Where(i => i.Status == InvoiceStatus.Draft)
             .ToListAsync();
         foreach (var draft in drafts)
         {
-            draft.Currency = target.Currency;
-            draft.TaxEnabled = profile.TaxRegistered;
-            draft.TaxRatePpm = profile.TaxRatePpm;
-            draft.ReducedRatePpm = profile.ReducedRatePpm;
+            // a hand-picked overseas currency stays put when the country changes
+            var keep = draft.Currency != oldCurrency ? draft.Currency : null;
+            InvoiceDefaults.Apply(draft, draft.Client, profile);
+            if (keep is not null) draft.Currency = keep;
             if (target.HasReducedRate) continue;
             foreach (var line in draft.Lines)
             {

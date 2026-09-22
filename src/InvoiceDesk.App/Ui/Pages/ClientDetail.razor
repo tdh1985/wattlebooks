@@ -206,7 +206,7 @@
                         {
                             <div><dt>Currency</dt><dd>@Currencies.Label(c.Currency)</dd></div>
                         }
-                        <div><dt>@Format.Country.TaxNumber.Label</dt><dd class="num">@(c.TaxNumber.Length > 0 ? Format.Country.TaxNumber.Display(c.TaxNumber) : "–")</dd></div>
+                        <div><dt>@(ClientTaxRule(c)?.Label ?? "Tax number")</dt><dd class="num">@(c.TaxNumber.Length == 0 ? "–" : ClientTaxRule(c) is { } rule ? rule.Display(c.TaxNumber) : c.TaxNumber)</dd></div>
                         @if (c.Notes.Length > 0)
                         {
                             <div><dt>Private notes</dt><dd>@c.Notes</dd></div>
@@ -225,6 +225,7 @@
     [Parameter] public int Id { get; set; }
 
     ClientSummary? _summary;
+    BusinessProfile? _profile;
     List<InvoiceSummary> _invoices = [];
     List<InvoiceSummary> _quotes = [];
     PaymentHabit? _habit;
@@ -248,10 +249,14 @@
             Nav.NavigateTo("clients");
             return;
         }
+        _profile = await Profiles.GetAsync();
         _invoices = await InvoiceStore.ListAsync(clientId: Id);
         _quotes = await InvoiceStore.ListAsync(clientId: Id, kind: InvoiceKind.Quote);
         _habit = await Insights.GetClientHabitAsync(Id);
     }
+
+    // null before the profile loads, or for a country we don't know
+    TaxNumberRule? ClientTaxRule(Client client) => _profile is null ? null : InvoiceDefaults.TaxNumberRuleFor(client, _profile);
 
     static string HabitLine(PaymentHabit h) => h.AverageDaysLate switch
     {

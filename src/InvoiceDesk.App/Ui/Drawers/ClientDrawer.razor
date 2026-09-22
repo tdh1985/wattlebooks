@@ -140,7 +140,7 @@
         if (_client.Currency.Length == 0 && WorldCountries.CurrencyOf(_client.Country) is { } cur
             && Currencies.IsSupported(cur) && cur != Format.Country.Currency)
             _client.Currency = cur;
-        if (InvoiceDefaults.IsOverseas(_client, _profile!)) _client.Region = "";
+        if (_profile is not null && InvoiceDefaults.IsOverseas(_client, _profile)) _client.Region = "";
     }
 
     async Task SaveAsync()

@@ -33,7 +33,7 @@ public sealed partial class ProfileService(IDbContextFactory<AppDbContext> facto
         db.Entry(existing).CurrentValues.SetValues(profile);
         // the logo only changes through SetLogoAsync so a stale form can't drop it
         existing.LogoAttachmentId = logoId;
-        // the country only changes through ChangeCountryAsync so a stale form can't flip it
+        // only ChangeCountryAsync changes the country so a stale form can't flip it
         existing.Country = country;
         await db.SaveChangesAsync();
         Changed?.Invoke();

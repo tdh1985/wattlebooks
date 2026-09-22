@@ -93,7 +93,7 @@ public sealed record CountryRules
     public Province? FindProvince(string? code) =>
         Provinces.FirstOrDefault(p => string.Equals(p.Code, code, StringComparison.OrdinalIgnoreCase));
 
-    // what a business in this country starts with, before the owner changes anything
+    // what a business here starts with before the owner changes anything
     public void ApplyDefaults(BusinessProfile p)
     {
         p.Country = Code;

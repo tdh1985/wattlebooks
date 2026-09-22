@@ -11,7 +11,7 @@ public sealed record InvoiceTotals(
 
 public static class InvoiceCalculator
 {
-    // tax is worked out once per rate, not per line, so rounding can't pile up
+    // tax is worked out once per rate so rounding can't pile up
     public static InvoiceTotals Calculate(IEnumerable<InvoiceLine> lines, bool taxEnabled, int ratePpm, int reducedRatePpm = 0)
     {
         long subtotal = 0, standard = 0, reduced = 0;

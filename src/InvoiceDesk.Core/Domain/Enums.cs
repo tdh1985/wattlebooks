@@ -20,5 +20,5 @@ public enum ReminderTone { Polite = 0, Firm = 1, Final = 2 }
 
 public enum RepeatEvery { Weekly = 0, Fortnightly = 1, Monthly = 2, Quarterly = 3, Yearly = 4 }
 
-// zero covers gst-free, zero-rated and non-taxable, exempt is only asked for in the uk
+// zero covers gst-free, zero-rated and non-taxable while exempt is uk only
 public enum TaxCode { Standard = 0, Zero = 1, Reduced = 2, Exempt = 3 }

@@ -55,69 +55,78 @@
             <dt>Statement date</dt>
             <dd>@Format.DateLong(Statement.AsOf)</dd>
             <dt>Invoices unpaid</dt>
-            <dd>@Lines.Count</dd>
+            <dd>@InvoiceCount</dd>
             <dt class="doc-due">Total owing</dt>
-            <dd class="doc-due">@Format.Money(TotalDueCents)</dd>
+            <dd class="doc-due">@TotalOwingText</dd>
         </dl>
     </section>
 
-    <dl class="doc-aged">
-        @foreach (var (label, cents) in Buckets)
-        {
-            <div class="@(cents > 0 && label != "Not yet due" ? "late" : null)">
-                <dt>@label</dt>
-                <dd class="n">@Format.Money(cents)</dd>
+    @foreach (var section in Statement.Sections)
+    {
+        <section class="@(Statement.Sections.Count > 1 ? "doc-section" : null)">
+            @if (Statement.Sections.Count > 1)
+            {
+                <h2>Owing in @section.Currency</h2>
+            }
+            <dl class="doc-aged">
+                @foreach (var (label, cents) in Buckets(section.Aged))
+                {
+                    <div class="@(cents > 0 && label != "Not yet due" ? "late" : null)">
+                        <dt>@label</dt>
+                        <dd class="n">@Format.Money(cents, section.Currency)</dd>
+                    </div>
+                }
+            </dl>
+
+            <table class="doc-lines">
+                <thead>
+                    <tr>
+                        <th>Invoice</th>
+                        <th>Issued</th>
+                        <th>Due</th>
+                        <th class="n">Total</th>
+                        <th class="n">Paid</th>
+                        <th class="n">Owing</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in section.Lines)
+                    {
+                        var s = line.Invoice;
+                        <tr>
+                            <td>
+                                <span class="doc-inv">@s.Number</span>
+                                @if (line.DaysOverdue > 0)
+                                {
+                                    <span class="doc-tag doc-late">@(line.DaysOverdue == 1 ? "1 day overdue" : $"{line.DaysOverdue} days overdue")</span>
+                                }
+                            </td>
+                            <td>@Format.DateLong(s.IssueDate)</td>
+                            <td>@Format.DateLong(s.DueDate)</td>
+                            <td class="n">@Format.Amount(s.TotalCents)</td>
+                            <td class="n">@(s.PaidCents > 0 ? Format.Amount(s.PaidCents) : "–")</td>
+                            <td class="n">@Format.Amount(s.BalanceCents)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="doc-summary">
+                <div></div>
+                <div class="doc-totals">
+                    <div class="doc-row doc-total"><span>Total owing</span><span class="n">@Format.Money(section.Aged.Total, section.Currency)</span></div>
+                </div>
             </div>
-        }
-    </dl>
-
-    <table class="doc-lines">
-        <thead>
-            <tr>
-                <th>Invoice</th>
-                <th>Issued</th>
-                <th>Due</th>
-                <th class="n">Total</th>
-                <th class="n">Paid</th>
-                <th class="n">Owing</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var line in Lines)
-            {
-                var s = line.Invoice;
-                <tr>
-                    <td>
-                        <span class="doc-inv">@s.Number</span>
-                        @if (line.DaysOverdue > 0)
-                        {
-                            <span class="doc-tag doc-late">@(line.DaysOverdue == 1 ? "1 day overdue" : $"{line.DaysOverdue} days overdue")</span>
-                        }
-                    </td>
-                    <td>@Format.DateLong(s.IssueDate)</td>
-                    <td>@Format.DateLong(s.DueDate)</td>
-                    <td class="n">@Format.Amount(s.TotalCents)</td>
-                    <td class="n">@(s.PaidCents > 0 ? Format.Amount(s.PaidCents) : "–")</td>
-                    <td class="n">@Format.Amount(s.BalanceCents)</td>
-                </tr>
-            }
-            @if (Lines.Count == 0)
-            {
-                <tr><td colspan="6" class="doc-placeholder">Nothing is owing. Thank you.</td></tr>
-            }
-        </tbody>
-    </table>
-
-    <div class="doc-summary">
-        <div></div>
-        <div class="doc-totals">
-            <div class="doc-row doc-total"><span>Total owing</span><span class="n">@Format.Money(TotalDueCents)</span></div>
-        </div>
-    </div>
+        </section>
+    }
+    @if (Statement.Sections.Count == 0)
+    {
+        <p class="doc-placeholder">Nothing is owing. Thank you.</p>
+    }
 
     <div class="doc-spacer"></div>
 
-    @if (hasBank && TotalDueCents > 0)
+    @if (hasBank && Statement.Sections.Any(s => s.Aged.Total > 0))
     {
         <section class="doc-remit">
             <div class="doc-remit-title">How to pay</div>
@@ -146,22 +155,19 @@
     [Parameter, EditorRequired] public BusinessProfile Profile { get; set; } = default!;
     [Parameter] public string? LogoUrl { get; set; }
 
-    // one page shows every section together until each currency gets its own
-    List<StatementLine> Lines => Statement.Sections.SelectMany(s => s.Lines).ToList();
+    int InvoiceCount => Statement.Sections.Sum(s => s.Lines.Count);
 
-    AgedTotals Aged => new(
-        Statement.Sections.Sum(s => s.Aged.Current), Statement.Sections.Sum(s => s.Aged.Late1To30),
-        Statement.Sections.Sum(s => s.Aged.Late31To60), Statement.Sections.Sum(s => s.Aged.Late61To90),
-        Statement.Sections.Sum(s => s.Aged.LateOver90));
+    // several currencies need each one named, not summed into one wrong total
+    string TotalOwingText => Statement.Sections.Count == 0
+        ? Format.Money(0)
+        : Format.MoneyList(Statement.Sections.Select(s => new CurrencyAmount(s.Currency, s.Aged.Total)));
 
-    long TotalDueCents => Aged.Total;
-
-    IEnumerable<(string Label, long Cents)> Buckets =>
+    static IEnumerable<(string Label, long Cents)> Buckets(AgedTotals aged) =>
     [
-        ("Not yet due", Aged.Current),
-        ("1–30 days", Aged.Late1To30),
-        ("31–60 days", Aged.Late31To60),
-        ("61–90 days", Aged.Late61To90),
-        ("Over 90 days", Aged.LateOver90),
+        ("Not yet due", aged.Current),
+        ("1–30 days", aged.Late1To30),
+        ("31–60 days", aged.Late31To60),
+        ("61–90 days", aged.Late61To90),
+        ("Over 90 days", aged.LateOver90),
     ];
 }

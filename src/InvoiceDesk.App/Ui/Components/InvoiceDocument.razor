@@ -14,6 +14,8 @@
     var hasBank = Profile.AccountNumber.Length > 0 || Profile.BankCode.Length > 0;
     var showVatColumn = rules.HasReducedRate && totals.IsTaxInvoice;
     var columnCount = showVatColumn ? 5 : 4;
+    var foreign = Invoice.Currency != rules.Currency;
+    var totalLabel = (totals.IsTaxInvoice ? $"Total inc. {rules.TaxWord}" : "Total") + (foreign ? $" ({Invoice.Currency})" : "");
 }
 <article class="doc doc-@InvoiceTemplates.Normalise(Template ?? Profile.InvoiceTemplate)" style="--doc-accent: @Profile.AccentColour">
     <header class="doc-head">
@@ -101,7 +103,7 @@
             @if (!quote)
             {
                 <dt class="doc-due">Amount due</dt>
-                <dd class="doc-due">@Format.Money(balance)</dd>
+                <dd class="doc-due">@Format.Money(balance, Invoice.Currency)</dd>
             }
         </dl>
     </section>
@@ -180,11 +182,11 @@
                     <div class="doc-row"><span>@rules.TaxName @Format.Percent(band.RatePpm)</span><span class="n">@Format.Amount(band.TaxCents)</span></div>
                 }
             }
-            <div class="doc-row doc-total"><span>@(totals.IsTaxInvoice ? $"Total inc. {rules.TaxWord}" : "Total")</span><span class="n">@Format.Money(totals.TotalCents)</span></div>
+            <div class="doc-row doc-total"><span>@totalLabel</span><span class="n">@Format.Money(totals.TotalCents, Invoice.Currency)</span></div>
             @if (paid > 0)
             {
                 <div class="doc-row"><span>Paid</span><span class="n">&minus;@Format.Amount(paid)</span></div>
-                <div class="doc-row doc-balance"><span>Balance due</span><span class="n">@Format.Money(balance)</span></div>
+                <div class="doc-row doc-balance"><span>Balance due</span><span class="n">@Format.Money(balance, Invoice.Currency)</span></div>
             }
         </div>
     </div>

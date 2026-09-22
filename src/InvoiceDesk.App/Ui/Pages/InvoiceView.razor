@@ -128,10 +128,10 @@
             <aside class="side">
                 <section class="panel panel-pad">
                     <div class="money-rows">
-                        <div class="row"><span class="soft">@(totals.IsTaxInvoice ? $"Total inc. {rules.TaxWord}" : "Total")</span><span class="num">@Format.Money(totals.TotalCents)</span></div>
+                        <div class="row"><span class="soft">@(totals.IsTaxInvoice ? $"Total inc. {rules.TaxWord}" : "Total")</span><span class="num">@Format.Money(totals.TotalCents, _invoice.Currency)</span></div>
                         @if (totals.IsTaxInvoice)
                         {
-                            <div class="row"><span class="soft">@rules.TaxName included</span><span class="num">@Format.Money(totals.TaxCents)</span></div>
+                            <div class="row"><span class="soft">@rules.TaxName included</span><span class="num">@Format.Money(totals.TaxCents, _invoice.Currency)</span></div>
                         }
                         @if (IsQuote)
                         {
@@ -139,8 +139,8 @@
                         }
                         else
                         {
-                            <div class="row"><span class="soft">Paid</span><span class="num">@Format.Money(paid)</span></div>
-                            <div class="row"><span>Balance due</span><span class="big">@Format.Money(Math.Max(0, balance))</span></div>
+                            <div class="row"><span class="soft">Paid</span><span class="num">@Format.Money(paid, _invoice.Currency)</span></div>
+                            <div class="row"><span>Balance due</span><span class="big">@Format.Money(Math.Max(0, balance), _invoice.Currency)</span></div>
                         }
                     </div>
                     @if (awaiting)
@@ -162,9 +162,13 @@
                         <div class="payment" @key="payment.Id">
                             <div class="row between">
                                 <span class="primary">@Format.Date(payment.Date)</span>
-                                <span class="num amount-in">@Format.Money(payment.AmountCents)</span>
+                                <span class="num amount-in">@Format.Money(payment.InvoiceAmountCents, _invoice.Currency)</span>
                             </div>
                             <div class="small muted">@PaymentDetail(payment)</div>
+                            @if (payment.ForeignAmountCents is not null)
+                            {
+                                <div class="small muted">reached your bank as @Format.Money(payment.AmountCents)</div>
+                            }
                             @if (payment.Attachments.Count > 0)
                             {
                                 <div class="mt-8"><AttachmentGallery Items="payment.Attachments" /></div>
@@ -305,7 +309,7 @@
         if (_invoice.SentAt is { } sent) items.Add((sent, "send", "Marked as sent"));
         if (_invoice.AnsweredAt is { } answered)
             items.Add(_invoice.Status == InvoiceStatus.Declined ? (answered, "x", "Declined") : (answered, "check", "Accepted"));
-        items.AddRange(_invoice.Payments.Select(p => (p.CreatedAt, "check", $"Payment of {Format.Money(p.AmountCents)} recorded")));
+        items.AddRange(_invoice.Payments.Select(p => (p.CreatedAt, "check", $"Payment of {Format.Money(p.InvoiceAmountCents, _invoice.Currency)} recorded")));
         items.AddRange(_invoice.Reminders.Select(r => (r.CreatedAt, "bell", r.Tone switch
         {
             ReminderTone.Polite => "Friendly reminder emailed",

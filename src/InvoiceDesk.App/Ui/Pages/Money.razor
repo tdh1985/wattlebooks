@@ -145,6 +145,10 @@
                             <td class="num soft">@(t.TaxCents > 0 ? Format.Amount(t.TaxCents) : "–")</td>
                             <td class="num @(t.Direction == Direction.In ? "amount-in" : "amount-out")">
                                 @(t.Direction == Direction.In ? "+" : "−")@Format.Money(t.AmountCents)
+                                @if (t.ForeignAmountCents is not null)
+                                {
+                                    <div class="small muted">@Format.Money(t.ForeignAmountCents.Value, t.ForeignCurrency)</div>
+                                }
                             </td>
                         </tr>
                     }

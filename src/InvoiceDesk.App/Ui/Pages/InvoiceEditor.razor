@@ -149,6 +149,18 @@
                                 }
                             </div>
                         </div>
+                        @if (_invoice.Status == InvoiceStatus.Draft)
+                        {
+                            <div class="field">
+                                <label for="invoice-currency">Currency</label>
+                                <select id="invoice-currency" class="select" @bind="_invoice.Currency" @bind:after="Changed" disabled="@(_invoice.Status != InvoiceStatus.Draft)">
+                                    @foreach (var c in Currencies.All)
+                                    {
+                                        <option value="@c.Code">@Currencies.Label(c.Code)</option>
+                                    }
+                                </select>
+                            </div>
+                        }
                     </div>
 
                     <div class="gst-row">
@@ -246,20 +258,20 @@
                     <div class="editor-totals">
                         @if (totals.IsTaxInvoice)
                         {
-                            <div class="row"><span>Subtotal (ex @rules.TaxWord)</span><span class="num">@Format.Money(totals.SubtotalCents)</span></div>
+                            <div class="row"><span>Subtotal (ex @rules.TaxWord)</span><span class="num">@Format.Money(totals.SubtotalCents, _invoice.Currency)</span></div>
                             @if (totals.Bands.Count == 1)
                             {
-                                <div class="row"><span>@rules.TaxName</span><span class="num">@Format.Money(totals.TaxCents)</span></div>
+                                <div class="row"><span>@rules.TaxName</span><span class="num">@Format.Money(totals.TaxCents, _invoice.Currency)</span></div>
                             }
                             else
                             {
                                 @foreach (var band in totals.Bands)
                                 {
-                                    <div class="row"><span>@rules.TaxName @Format.Percent(band.RatePpm)</span><span class="num">@Format.Money(band.TaxCents)</span></div>
+                                    <div class="row"><span>@rules.TaxName @Format.Percent(band.RatePpm)</span><span class="num">@Format.Money(band.TaxCents, _invoice.Currency)</span></div>
                                 }
                             }
                         }
-                        <div class="row total"><span>@(totals.IsTaxInvoice ? $"Total inc. {rules.TaxWord}" : "Total")</span><span class="num">@Format.Money(totals.TotalCents)</span></div>
+                        <div class="row total"><span>@(totals.IsTaxInvoice ? $"Total inc. {rules.TaxWord}" : "Total")</span><span class="num">@Format.Money(totals.TotalCents, _invoice.Currency)</span></div>
                     </div>
 
                     <div class="field mt-24">

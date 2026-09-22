@@ -79,6 +79,10 @@
                     <p class="hero-figure">@Format.Money(0)</p>
                     <p class="hero-sub">@(_invoiceCount == 0 ? "Invoices you send and haven't been paid for will add up here." : "Every invoice you've sent has been paid.")</p>
                 }
+                @if (_data.OtherOutstanding.Count > 0)
+                {
+                    <div class="small muted">plus @Format.MoneyList(_data.OtherOutstanding) in other currencies</div>
+                }
             </div>
             <div class="page-actions">
                 <a class="btn" href="money?new=out"><Icon Name="receipt" Size="16" /> Add expense</a>
@@ -138,6 +142,10 @@
                                 expected from @forecast.Items.Count invoice@(forecast.Items.Count == 1 ? "" : "s"), allowing for how late each client usually pays@(overdueCents > 0 ? $". {Format.Money(overdueCents)} of it is already overdue." : ".")
                             </span>
                         </div>
+                        @if (forecast.Other.Count > 0)
+                        {
+                            <div class="small muted">plus @Format.MoneyList(forecast.Other) in other currencies</div>
+                        }
                         @* overdue ones are listed just below, so only the rest go here *@
                         @if (upcoming.Count > 0)
                         {
@@ -150,7 +158,7 @@
                                                 <span class="list-title">@e.Invoice.ClientName</span>
                                                 <span class="list-sub">@e.Invoice.Number, @ExpectedLabel(e)</span>
                                             </span>
-                                            <span class="num">@Format.Money(e.Invoice.BalanceCents)</span>
+                                            <span class="num">@Format.Money(e.Invoice.BalanceCents, e.Invoice.Currency)</span>
                                         </a>
                                     </li>
                                 }
@@ -182,7 +190,7 @@
                                             <span class="list-title">@s.ClientName</span>
                                             <span class="list-sub danger-text">@s.Number, @Format.Due(s.DueDate, Clock.Today())</span>
                                         </span>
-                                        <span class="num">@Format.Money(s.BalanceCents)</span>
+                                        <span class="num">@Format.Money(s.BalanceCents, s.Currency)</span>
                                     </a>
                                     <button type="button" class="btn btn-sm" title="Email @s.ClientName a reminder" @onclick="() => _remindId = s.Id"><Icon Name="bell" Size="14" /> Remind</button>
                                 </li>
@@ -210,7 +218,7 @@
                                             <span class="list-sub">@item.Detail</span>
                                         </span>
                                         <span class="col" style="align-items:flex-end">
-                                            <span class="num">@Format.Money(item.AmountCents)</span>
+                                            <span class="num">@Format.Money(item.AmountCents, item.Currency.Length > 0 ? item.Currency : Format.Country.Currency)</span>
                                             <span class="list-sub">@Format.DateShort(DateOnly.FromDateTime(item.At))</span>
                                         </span>
                                     </a>

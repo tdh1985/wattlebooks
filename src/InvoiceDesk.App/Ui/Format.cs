@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using InvoiceDesk.Core.Domain;
 using InvoiceDesk.Core.Rules;
+using InvoiceDesk.Core.Services;
 
 namespace InvoiceDesk.App.Ui;
 
@@ -21,6 +22,13 @@ public static class Format
     public static string Money(long cents, string currency) => Currencies.Format(cents, currency, Country.Currency);
 
     public static string Amount(long cents) => Currencies.Amount(cents);
+
+    public static string MoneyList(IEnumerable<CurrencyAmount> amounts) =>
+        Labels.JoinAnd(amounts.Select(a => Money(a.Cents, a.Currency)));
+
+    // hmrc wants some vat return boxes in whole pounds
+    public static string WholeMoney(long cents) =>
+        (cents < 0 ? "-" : "") + Currencies.Find(Country.Currency)!.Symbol + (Math.Abs(cents) / 100).ToString("#,0", Invariant);
 
     public static string MoneyInput(long cents) => (cents / 100m).ToString("0.00", Invariant);
 

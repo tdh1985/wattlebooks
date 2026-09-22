@@ -65,14 +65,14 @@
         <div class="ledger-strip" style="margin-bottom:32px">
             <div class="ledger-cell">
                 <div class="ledger-label">Billed</div>
-                <div class="ledger-value">@Format.Money(_summary.BilledCents)</div>
+                <div class="ledger-value">@Format.Money(_summary.BilledCents, _summary.Currency)</div>
                 <div class="ledger-note">Invoices you've sent</div>
             </div>
             <div class="ledger-cell">
                 <div class="ledger-label">Still owing</div>
-                <div class="ledger-value">@Format.Money(_summary.OutstandingCents)</div>
+                <div class="ledger-value">@Format.Money(_summary.OutstandingCents, _summary.Currency)</div>
                 <div class="ledger-note @(overdue.Count > 0 ? "danger-text" : null)">
-                    @(overdue.Count > 0 ? $"{Format.Money(overdue.Sum(s => s.BalanceCents))} overdue" : "Nothing overdue")
+                    @(overdue.Count > 0 ? $"{Format.Money(overdue.Sum(s => s.BalanceCents), _summary.Currency)} overdue" : "Nothing overdue")
                 </div>
             </div>
             <div class="ledger-cell">
@@ -117,8 +117,8 @@
                                     <td class="primary num">@s.Number</td>
                                     <td class="nowrap">@Format.Date(s.IssueDate)</td>
                                     <td class="nowrap">@Format.Date(s.DueDate)</td>
-                                    <td class="num">@Format.Money(s.TotalCents)</td>
-                                    <td class="num">@(s.IsAwaitingPayment ? Format.Money(s.BalanceCents) : "–")</td>
+                                    <td class="num">@Format.Money(s.TotalCents, s.Currency)</td>
+                                    <td class="num">@(s.IsAwaitingPayment ? Format.Money(s.BalanceCents, s.Currency) : "–")</td>
                                     <td><StatusPill Status="s.Status" /></td>
                                 </tr>
                             }
@@ -147,7 +147,7 @@
                                     <td class="primary num">@s.Number</td>
                                     <td class="nowrap">@Format.Date(s.IssueDate)</td>
                                     <td class="nowrap">@Format.Date(s.DueDate)</td>
-                                    <td class="num">@Format.Money(s.TotalCents)</td>
+                                    <td class="num">@Format.Money(s.TotalCents, s.Currency)</td>
                                     <td><StatusPill Status="s.Status" /></td>
                                 </tr>
                             }

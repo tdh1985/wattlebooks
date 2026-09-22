@@ -136,7 +136,7 @@
             if (!offeredPayment && r is { Kind: SearchKind.Invoice, Status: DisplayStatus.Sent or DisplayStatus.PartPaid or DisplayStatus.Overdue })
             {
                 offeredPayment = true;
-                found.Add(new("Invoices", "check", $"Record payment for {r.Title}", $"{Format.Money(r.BalanceCents ?? 0)} to come in", $"invoices/{r.Id}?pay=1"));
+                found.Add(new("Invoices", "check", $"Record payment for {r.Title}", $"{Format.Money(r.BalanceCents ?? 0, r.Currency ?? Format.Country.Currency)} to come in", $"invoices/{r.Id}?pay=1"));
             }
         }
         _items = found.Concat(actions).ToList();
@@ -147,9 +147,9 @@
     static Item ToItem(SearchResult r) => r.Kind switch
     {
         SearchKind.Client => new("Clients", "users", r.Title, r.Subtitle, $"clients/{r.Id}"),
-        SearchKind.Invoice => new("Invoices", "invoice", r.Title, $"{r.Subtitle}  {Format.Money(r.AmountCents ?? 0)}", $"invoices/{r.Id}"),
-        SearchKind.Quote => new("Quotes", "invoice", r.Title, $"{r.Subtitle}  {Format.Money(r.AmountCents ?? 0)}", $"invoices/{r.Id}"),
-        _ => new("Money", "receipt", r.Title, $"{r.Subtitle}  {Format.Money(r.AmountCents ?? 0)}  {(r.Date is { } d ? Format.Date(d) : "")}", $"money?open={r.Id}"),
+        SearchKind.Invoice => new("Invoices", "invoice", r.Title, $"{r.Subtitle}  {Format.Money(r.AmountCents ?? 0, r.Currency ?? Format.Country.Currency)}", $"invoices/{r.Id}"),
+        SearchKind.Quote => new("Quotes", "invoice", r.Title, $"{r.Subtitle}  {Format.Money(r.AmountCents ?? 0, r.Currency ?? Format.Country.Currency)}", $"invoices/{r.Id}"),
+        _ => new("Money", "receipt", r.Title, $"{r.Subtitle}  {Format.Money(r.AmountCents ?? 0, r.Currency ?? Format.Country.Currency)}  {(r.Date is { } d ? Format.Date(d) : "")}", $"money?open={r.Id}"),
     };
 
     async Task DuplicateLastAsync()

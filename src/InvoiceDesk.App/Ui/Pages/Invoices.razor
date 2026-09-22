@@ -173,10 +173,10 @@
                                 <span class="secondary">@Format.ValidUntil(s.DueDate, _today)</span>
                             }
                         </td>
-                        <td class="num">@Format.Money(s.TotalCents)</td>
+                        <td class="num">@Format.Money(s.TotalCents, s.Currency)</td>
                         @if (!_quotes)
                         {
-                            <td class="num">@(s.IsAwaitingPayment ? Format.Money(s.BalanceCents) : "–")</td>
+                            <td class="num">@(s.IsAwaitingPayment ? Format.Money(s.BalanceCents, s.Currency) : "–")</td>
                         }
                         <td><StatusPill Status="s.Status" /></td>
                     </tr>

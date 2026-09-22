@@ -61,8 +61,8 @@
                         <td class="truncate" style="max-width:240px">@c.Email</td>
                         <td class="nowrap">@c.Phone</td>
                         <td class="num">@row.InvoiceCount</td>
-                        <td class="num">@Format.Money(row.BilledCents)</td>
-                        <td class="num">@(row.OutstandingCents > 0 ? Format.Money(row.OutstandingCents) : "–")</td>
+                        <td class="num">@Format.Money(row.BilledCents, row.Currency)</td>
+                        <td class="num">@(row.OutstandingCents > 0 ? Format.Money(row.OutstandingCents, row.Currency) : "–")</td>
                     </tr>
                 }
             </tbody>

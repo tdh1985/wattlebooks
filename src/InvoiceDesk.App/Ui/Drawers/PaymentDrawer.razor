@@ -12,13 +12,28 @@
             }
             @if (Invoice is not null)
             {
-                <p class="soft">@Invoice.Number for @Invoice.Client?.Name. Balance due <strong class="num">@Format.Money(BalanceCents)</strong>.</p>
+                <p class="soft">@Invoice.Number for @Invoice.Client?.Name. Balance due <strong class="num">@Format.Money(BalanceCents, Invoice.Currency)</strong>.</p>
             }
             <div class="form-grid">
-                <div class="field">
-                    <label for="payment-amount">Amount received</label>
-                    <MoneyInput Id="payment-amount" @bind-Cents="_amount" />
-                </div>
+                @if (Foreign)
+                {
+                    <div class="field">
+                        <label for="payment-amount">Amount paid (@Invoice!.Currency)</label>
+                        <MoneyInput Id="payment-amount" @bind-Cents="_amount" />
+                    </div>
+                    <div class="field">
+                        <label for="payment-home">Amount that reached your bank (@Format.Country.Currency)</label>
+                        <MoneyInput Id="payment-home" @bind-Cents="_homeAmount" />
+                        <span class="hint">Used for your reports and @Format.Country.TaxWord. Any exchange difference or bank fee needs no extra entry.</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="field">
+                        <label for="payment-amount">Amount received</label>
+                        <MoneyInput Id="payment-amount" @bind-Cents="_amount" />
+                    </div>
+                }
                 <div class="field">
                     <label for="payment-date">Date received</label>
                     <input id="payment-date" type="date" class="input" value="@Format.Iso(_date)" @onchange="OnDateChanged" />
@@ -39,7 +54,7 @@
             </div>
             @if (BalanceCents > 0 && _amount > BalanceCents)
             {
-                <div class="banner banner-warn"><Icon Name="alert" Size="16" /><div>That's more than the balance due of @Format.Money(BalanceCents).</div></div>
+                <div class="banner banner-warn"><Icon Name="alert" Size="16" /><div>That's more than the balance due of @Format.Money(BalanceCents, Invoice!.Currency).</div></div>
             }
             <div class="field">
                 <span class="label">Remittance or receipt</span>
@@ -49,8 +64,8 @@
         </form>
     </ChildContent>
     <Footer>
-        <button type="submit" form="payment-form" class="btn btn-primary" disabled="@(_saving || _amount <= 0)">
-            <Icon Name="check" Size="16" /> Record @Format.Money(_amount)
+        <button type="submit" form="payment-form" class="btn btn-primary" disabled="@(_saving || _amount <= 0 || (Foreign && _homeAmount <= 0))">
+            <Icon Name="check" Size="16" /> Record @Format.Money(_amount, Invoice!.Currency)
         </button>
         <button type="button" class="btn btn-ghost" @onclick="OnClose">Cancel</button>
     </Footer>
@@ -64,6 +79,7 @@
     [Parameter] public EventCallback OnClose { get; set; }
 
     long _amount;
+    long _homeAmount;
     DateOnly _date;
     PaymentMethod _method = PaymentMethod.BankTransfer;
     string _note = "";
@@ -72,11 +88,14 @@
     bool _saving;
     bool _wasOpen;
 
+    bool Foreign => Invoice is not null && Invoice.Currency != Format.Country.Currency;
+
     protected override void OnParametersSet()
     {
         if (Open && !_wasOpen)
         {
             _amount = Math.Max(0, BalanceCents);
+            _homeAmount = 0;
             _date = Clock.Today();
             _method = PaymentMethod.BankTransfer;
             _note = "";
@@ -98,8 +117,9 @@
         _saving = true;
         try
         {
-            await InvoiceStore.RecordPaymentAsync(Invoice.Id, new PaymentInput(_date, _amount, _method, _note), _files);
-            Toasts.Show($"Payment of {Format.Money(_amount)} recorded");
+            await InvoiceStore.RecordPaymentAsync(Invoice.Id,
+                new PaymentInput(_date, _amount, _method, _note, Foreign ? _homeAmount : null), _files);
+            Toasts.Show($"Payment of {Format.Money(_amount, Invoice.Currency)} recorded");
             await OnSaved.InvokeAsync();
         }
         catch (ValidationException ex)

@@ -256,7 +256,7 @@
                         <div class="field span-2">
                             <label for="tax-overseas">Note on invoices to overseas clients</label>
                             <textarea id="tax-overseas" class="textarea" rows="2" @bind="_profile.OverseasNote" @bind:event="oninput" @bind:after="MarkDirty"></textarea>
-                            <span class="hint">@($"Printed when an invoice to a client outside {Rules.Name} has no {Rules.TaxWord}.")</span>
+                            <span class="hint">@($"Printed when an invoice to an overseas client has no {Rules.TaxWord}.")</span>
                         </div>
                     </div>
                 </section>
@@ -500,7 +500,7 @@
         await LoadCategoriesAsync();
     }
 
-    // only the country's own fields refresh so other unsaved edits on the page survive
+    // only the country's own fields refresh so other unsaved edits survive
     async Task ChangeCountryAsync(ChangeEventArgs e)
     {
         try

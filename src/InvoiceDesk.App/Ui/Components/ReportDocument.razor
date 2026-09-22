@@ -2,6 +2,8 @@
 @* no injected services since HtmlRenderer also renders this for pdfs *@
 @{
     var rules = Countries.For(Profile.Country);
+    // only the BAS worksheet actually has a box called G1
+    var salesFigure = rules.Return == ReturnKind.Bas ? "G1" : "your sales figure";
 }
 <article class="doc doc-report" style="--doc-accent: @Profile.AccentColour">
     <header class="doc-head">
@@ -54,7 +56,7 @@
         </section>
 
         <section class="doc-section">
-            <h2>Where G1 comes from</h2>
+            <h2>Where @salesFigure comes from</h2>
             <p class="doc-small">Money received in the period by category, so you can check what belongs in total sales.</p>
             <table class="doc-lines">
                 <thead><tr><th>Category</th><th class="n">@rules.TaxName</th><th class="n">Received</th></tr></thead>
@@ -72,7 +74,7 @@
         </section>
 
         <p class="doc-disclaimer">
-            Worked out from payments received and expenses paid in the period. Bank interest and some other income may not belong in G1,
+            Worked out from payments received and expenses paid in the period. Bank interest and some other income may not belong in @salesFigure,
             so check with your accountant or @rules.TaxOffice before you lodge. This isn't tax advice.
         </p>
     }

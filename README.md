@@ -176,3 +176,8 @@ BAS figures with the ATO or your accountant.
 ## License
 
 [MIT](LICENSE) © 2026 Tim Downey
+
+## Support
+
+If InvoiceDesk saves you time, feel free to buy me a coffee, or more, through
+PayPal at [paypal.me/timdowney](https://paypal.me/timdowney).

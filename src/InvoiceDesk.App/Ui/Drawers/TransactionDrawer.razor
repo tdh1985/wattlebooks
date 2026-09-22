@@ -258,7 +258,7 @@
     void SetAmount(long cents)
     {
         _tx!.AmountCents = cents;
-        if (_autoGst) _tx.TaxCents = Ledger.SuggestTax(cents, _profile!);
+        if (_autoGst) _tx.TaxCents = Ledger.SuggestTax(cents, _profile!, _tx.Direction);
     }
 
     void SetGst(long cents)
@@ -270,7 +270,7 @@
     void ToggleAutoGst(ChangeEventArgs e)
     {
         _autoGst = e.Value is true;
-        if (_autoGst) _tx!.TaxCents = Ledger.SuggestTax(_tx.AmountCents, _profile!);
+        if (_autoGst) _tx!.TaxCents = Ledger.SuggestTax(_tx.AmountCents, _profile!, _tx.Direction);
     }
 
     void SetDate(ChangeEventArgs e)

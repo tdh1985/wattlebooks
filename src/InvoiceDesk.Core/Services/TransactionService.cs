@@ -8,7 +8,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceDesk.Core.Services;
 
-public sealed class TransactionService(IDbContextFactory<AppDbContext> factory, AttachmentStore store, TimeProvider clock)
+public sealed class TransactionService(
+    IDbContextFactory<AppDbContext> factory, AttachmentStore store, TimeProvider clock, ProfileService profiles)
 {
     public event Action? Changed;
 
@@ -40,9 +41,12 @@ public sealed class TransactionService(IDbContextFactory<AppDbContext> factory, 
 
     public async Task<Transaction> SaveAsync(Transaction t, IReadOnlyList<StagedFile> newFiles, IReadOnlyList<int> removedAttachmentIds)
     {
+        var rules = Countries.For((await profiles.GetAsync()).Country);
+        if (t.Direction == Direction.Out && !rules.ExpensesCarryTax) t.TaxCents = 0;
+
         var errors = new List<string>();
         if (t.AmountCents <= 0) errors.Add("Amount must be more than zero.");
-        if (t.TaxCents < 0 || t.TaxCents > t.AmountCents) errors.Add("GST must be between zero and the amount.");
+        if (t.TaxCents < 0 || t.TaxCents > t.AmountCents) errors.Add($"{rules.TaxName} must be between zero and the amount.");
         if (t.Date == default) errors.Add("Choose a date.");
         ValidationException.ThrowIfAny(errors);
 
@@ -108,6 +112,8 @@ public sealed class TransactionService(IDbContextFactory<AppDbContext> factory, 
         Changed?.Invoke();
     }
 
-    public long SuggestTax(long amountCents, BusinessProfile profile) =>
-        profile.TaxRegistered ? MoneyMath.TaxFromInclusive(amountCents, profile.TaxRatePpm) : 0;
+    public long SuggestTax(long amountCents, BusinessProfile profile, Direction direction) =>
+        profile.TaxRegistered && (direction == Direction.In || Countries.For(profile.Country).ExpensesCarryTax)
+            ? MoneyMath.TaxFromInclusive(amountCents, profile.TaxRatePpm)
+            : 0;
 }

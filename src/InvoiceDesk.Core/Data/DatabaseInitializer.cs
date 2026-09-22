@@ -7,8 +7,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceDesk.Core.Data;
 
+public sealed record NewDataCountry(string Code);
+
 public sealed class DatabaseInitializer(
-    AppPaths paths, IDbContextFactory<AppDbContext> factory, AttachmentStore store, TimeProvider clock)
+    AppPaths paths, IDbContextFactory<AppDbContext> factory, AttachmentStore store, TimeProvider clock, NewDataCountry newData)
 {
     public const int BackupsToKeep = 10;
 
@@ -47,12 +49,12 @@ public sealed class DatabaseInitializer(
         foreach (var old in stale) File.Delete(old);
     }
 
-    static async Task SeedAsync(AppDbContext db, CancellationToken ct)
+    async Task SeedAsync(AppDbContext db, CancellationToken ct)
     {
         if (!await db.Profiles.AnyAsync(ct))
         {
             var profile = new BusinessProfile();
-            Australia.Rules.ApplyDefaults(profile);
+            Countries.For(newData.Code).ApplyDefaults(profile);
             db.Profiles.Add(profile);
         }
 

@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Tim Downey. Licensed under the MIT License.
 
 using InvoiceDesk.Core.Data;
+using InvoiceDesk.Core.Rules;
 using InvoiceDesk.Core.Services;
 using InvoiceDesk.Core.Storage;
 using Microsoft.EntityFrameworkCore;
@@ -14,9 +15,10 @@ public static class CoreServices
     // one place builds it so tests can release this database's pooled handles and no other
     public static string ConnectionString(AppPaths paths) => $"Data Source={paths.Database};Foreign Keys=True";
 
-    public static IServiceCollection AddInvoiceDeskCore(this IServiceCollection services, AppPaths paths)
+    public static IServiceCollection AddInvoiceDeskCore(this IServiceCollection services, AppPaths paths, string newDataCountry = "AU")
     {
         services.AddSingleton(paths);
+        services.AddSingleton(new NewDataCountry(Countries.FromRegion(newDataCountry)));
         services.TryAddSingleton<TimeProvider>(TimeProvider.System);
         // split queries so loading lines with payments never multiplies rows
         services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite(

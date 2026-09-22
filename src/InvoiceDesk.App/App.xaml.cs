@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Tim Downey. Licensed under the MIT License.
 
 using System.Diagnostics;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Threading;
 using InvoiceDesk.App.Host;
@@ -95,7 +96,8 @@ public partial class App : Application
         services.AddBlazorWebViewDeveloperTools();
 #endif
         services.AddLogging(logging => logging.AddProvider(new FileLogProvider()));
-        services.AddInvoiceDeskCore(paths);
+        // a brand-new data folder starts in the country windows is set to
+        services.AddInvoiceDeskCore(paths, RegionInfo.CurrentRegion.TwoLetterISORegionName);
         services.AddInvoiceDeskUi();
         _services = services.BuildServiceProvider();
 

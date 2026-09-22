@@ -98,15 +98,15 @@
                 <div class="ledger-note">Including GST</div>
             </div>
             <div class="ledger-cell">
-                <div class="ledger-label">Profit, @_data.FyLabel</div>
-                <div class="ledger-value">@Format.Money(_data.ProfitFyCents)</div>
+                <div class="ledger-label">Profit, @_data.YearLabel</div>
+                <div class="ledger-value">@Format.Money(_data.ProfitYearCents)</div>
                 <div class="ledger-note">Money in less money out, excluding GST</div>
             </div>
             <div class="ledger-cell">
-                <a class="ledger-label" href="reports" title="Open the BAS worksheet">GST for @_data.QuarterLabel <Icon Name="chevron-down" Size="13" Class="rot-270" /></a>
-                <div class="ledger-value">@Format.Money(Math.Abs(_data.GstNetQuarterCents))</div>
+                <a class="ledger-label" href="reports" title="Open the BAS worksheet">GST for @_data.PeriodLabel <Icon Name="chevron-down" Size="13" Class="rot-270" /></a>
+                <div class="ledger-value">@Format.Money(Math.Abs(_data.TaxNetPeriodCents))</div>
                 <div class="ledger-note">
-                    @(_data.GstNetQuarterCents >= 0 ? "To pay" : "Refund due"): collected @Format.Money(_data.GstCollectedQuarterCents), paid @Format.Money(_data.GstPaidQuarterCents)
+                    @(_data.TaxNetPeriodCents >= 0 ? "To pay" : "Refund due"): collected @Format.Money(_data.TaxCollectedPeriodCents), paid @Format.Money(_data.TaxPaidPeriodCents)
                 </div>
             </div>
         </div>

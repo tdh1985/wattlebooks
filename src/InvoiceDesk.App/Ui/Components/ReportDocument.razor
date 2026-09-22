@@ -9,9 +9,9 @@
             }
             <div class="doc-from-text">
                 <div class="doc-biz">@(Profile.Name.Length > 0 ? Profile.Name : "Your business name")</div>
-                @if (Abn.IsValid(Profile.Abn))
+                @if (Abn.IsValid(Profile.TaxNumber))
                 {
-                    <div class="doc-small">ABN @Abn.Format(Profile.Abn)</div>
+                    <div class="doc-small">ABN @Abn.Format(Profile.TaxNumber)</div>
                 }
             </div>
         </div>
@@ -44,7 +44,7 @@
                 <tbody>
                     @foreach (var c in bas.SalesByCategory)
                     {
-                        <tr><td>@c.Category</td><td class="n">@Format.Amount(c.GstCents)</td><td class="n">@Format.Amount(c.AmountCents)</td></tr>
+                        <tr><td>@c.Category</td><td class="n">@Format.Amount(c.TaxCents)</td><td class="n">@Format.Amount(c.AmountCents)</td></tr>
                     }
                     @if (bas.SalesByCategory.Count == 0)
                     {
@@ -68,7 +68,7 @@
                 <tbody>
                     @foreach (var c in pl.Income)
                     {
-                        <tr class="doc-sub"><td>@c.Category</td><td class="n">@Format.Amount(c.ExGstCents)</td></tr>
+                        <tr class="doc-sub"><td>@c.Category</td><td class="n">@Format.Amount(c.ExTaxCents)</td></tr>
                     }
                     <tr class="doc-sum"><td>Total income</td><td class="n">@Format.Money(pl.IncomeCents)</td></tr>
                 </tbody>
@@ -81,7 +81,7 @@
                 <tbody>
                     @foreach (var c in pl.Expenses)
                     {
-                        <tr class="doc-sub"><td>@c.Category</td><td class="n">@Format.Amount(c.ExGstCents)</td></tr>
+                        <tr class="doc-sub"><td>@c.Category</td><td class="n">@Format.Amount(c.ExTaxCents)</td></tr>
                     }
                     <tr class="doc-sum"><td>Total expenses</td><td class="n">@Format.Money(pl.ExpensesCents)</td></tr>
                 </tbody>

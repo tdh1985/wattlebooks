@@ -10,9 +10,9 @@ public static class CashTotals
     public static long Sum(IEnumerable<Transaction> txs, Direction direction, DateRange range, Func<Transaction, long> pick) =>
         txs.Where(t => t.Direction == direction && range.Contains(t.Date)).Sum(pick);
 
-    public static long GstCollected(IEnumerable<Transaction> txs, DateRange range) =>
-        Sum(txs, Direction.In, range, t => t.GstCents);
+    public static long TaxCollected(IEnumerable<Transaction> txs, DateRange range) =>
+        Sum(txs, Direction.In, range, t => t.TaxCents);
 
-    public static long GstPaid(IEnumerable<Transaction> txs, DateRange range) =>
-        Sum(txs, Direction.Out, range, t => t.GstCents);
+    public static long TaxPaid(IEnumerable<Transaction> txs, DateRange range) =>
+        Sum(txs, Direction.Out, range, t => t.TaxCents);
 }

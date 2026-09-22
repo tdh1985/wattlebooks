@@ -4,34 +4,46 @@ using InvoiceDesk.Core.Domain;
 
 namespace InvoiceDesk.Core.Rules;
 
-public sealed record InvoiceTotals(long SubtotalCents, long TaxableCents, long GstCents, long TotalCents, bool IsTaxInvoice)
-{
-    public string Heading => IsTaxInvoice ? "TAX INVOICE" : "INVOICE";
-}
+public sealed record TaxBand(int RatePpm, long TaxableCents, long TaxCents);
+
+public sealed record InvoiceTotals(
+    long SubtotalCents, long TaxableCents, long TaxCents, long TotalCents, bool IsTaxInvoice, IReadOnlyList<TaxBand> Bands);
 
 public static class InvoiceCalculator
 {
-    public static InvoiceTotals Calculate(IEnumerable<InvoiceLine> lines, bool gstEnabled, int rateBasisPoints)
+    // tax is worked out once per rate, not per line, so rounding can't pile up
+    public static InvoiceTotals Calculate(IEnumerable<InvoiceLine> lines, bool taxEnabled, int ratePpm, int reducedRatePpm = 0)
     {
-        long subtotal = 0, taxable = 0;
-        var anyTaxable = false;
+        long subtotal = 0, standard = 0, reduced = 0;
+        bool anyStandard = false, anyReduced = false;
         foreach (var line in lines)
         {
             var amount = MoneyMath.LineAmount(line.Quantity, line.UnitPriceCents);
             subtotal += amount;
-            if (line.GstFree) continue;
-            taxable += amount;
-            anyTaxable = true;
+            switch (line.TaxCode)
+            {
+                case TaxCode.Standard:
+                    standard += amount;
+                    anyStandard = true;
+                    break;
+                case TaxCode.Reduced:
+                    reduced += amount;
+                    anyReduced = true;
+                    break;
+            }
         }
 
-        var isTax = gstEnabled && anyTaxable;
-        var gst = isTax ? MoneyMath.GstOn(taxable, rateBasisPoints) : 0;
-        return new InvoiceTotals(subtotal, taxable, gst, subtotal + gst, isTax);
+        var isTax = taxEnabled && (anyStandard || anyReduced);
+        var bands = new List<TaxBand>();
+        if (isTax && anyStandard) bands.Add(new TaxBand(ratePpm, standard, MoneyMath.TaxOn(standard, ratePpm)));
+        if (isTax && anyReduced) bands.Add(new TaxBand(reducedRatePpm, reduced, MoneyMath.TaxOn(reduced, reducedRatePpm)));
+        var tax = bands.Sum(b => b.TaxCents);
+        return new InvoiceTotals(subtotal, standard + reduced, tax, subtotal + tax, isTax, bands);
     }
 
     public static InvoiceTotals Totals(this Invoice invoice) =>
-        Calculate(invoice.Lines, invoice.GstEnabled, invoice.GstRateBasisPoints);
+        Calculate(invoice.Lines, invoice.TaxEnabled, invoice.TaxRatePpm, invoice.ReducedRatePpm);
 
-    public static string Heading(this Invoice invoice) =>
-        invoice.Kind == InvoiceKind.Quote ? "QUOTE" : invoice.Totals().Heading;
+    public static string Heading(this Invoice invoice, CountryRules country) =>
+        invoice.Kind == InvoiceKind.Quote ? "QUOTE" : invoice.Totals().IsTaxInvoice ? country.TaxedHeading : "INVOICE";
 }

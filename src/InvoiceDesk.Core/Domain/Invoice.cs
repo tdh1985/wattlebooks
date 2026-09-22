@@ -12,8 +12,10 @@ public class Invoice
     public DateOnly IssueDate { get; set; }
     public DateOnly DueDate { get; set; }
     public InvoiceStatus Status { get; set; }
-    public bool GstEnabled { get; set; }
-    public int GstRateBasisPoints { get; set; } = 1000;
+    public bool TaxEnabled { get; set; }
+    public int TaxRatePpm { get; set; } = 100_000;
+    public int ReducedRatePpm { get; set; }
+    public string Currency { get; set; } = "AUD";
     public string Notes { get; set; } = "";
     public DateTime CreatedAt { get; set; }
     public DateTime? SentAt { get; set; }
@@ -26,5 +28,5 @@ public class Invoice
     public List<Attachment> Attachments { get; set; } = [];
     public List<Reminder> Reminders { get; set; } = [];
 
-    public long PaidCents => Payments.Where(p => p.Direction == Direction.In).Sum(p => p.AmountCents);
+    public long PaidCents => Payments.Where(p => p.Direction == Direction.In).Sum(p => p.InvoiceAmountCents);
 }

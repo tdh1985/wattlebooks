@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace InvoiceDesk.Core.Rules;
 
-public sealed record ReceiptGuess(string? Party, DateOnly? Date, long? TotalCents, long? GstCents);
+public sealed record ReceiptGuess(string? Party, DateOnly? Date, long? TotalCents, long? TaxCents);
 
 // one word the ocr found and the box it sits in on the page
 public readonly record struct PageWord(string Text, double X, double Y, double Width, double Height);

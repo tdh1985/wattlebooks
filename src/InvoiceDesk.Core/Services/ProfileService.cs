@@ -29,9 +29,12 @@ public sealed partial class ProfileService(IDbContextFactory<AppDbContext> facto
         await using var db = await factory.CreateDbContextAsync();
         var existing = await db.Profiles.SingleAsync();
         var logoId = existing.LogoAttachmentId;
+        var country = existing.Country;
         db.Entry(existing).CurrentValues.SetValues(profile);
         // the logo only changes through SetLogoAsync so a stale form can't drop it
         existing.LogoAttachmentId = logoId;
+        // the country only changes through ChangeCountryAsync so a stale form can't flip it
+        existing.Country = country;
         await db.SaveChangesAsync();
         Changed?.Invoke();
     }
@@ -77,15 +80,16 @@ public sealed partial class ProfileService(IDbContextFactory<AppDbContext> facto
 
     public static List<string> Validate(BusinessProfile p)
     {
+        var rules = Countries.For(p.Country);
         var errors = new List<string>();
-        if (p.Abn.Length > 0 && !Abn.IsValid(p.Abn)) errors.Add("ABN must be 11 digits and pass the ATO check.");
+        if (p.TaxNumber.Length > 0 && !rules.TaxNumber.IsValid(p.TaxNumber)) errors.Add(rules.TaxNumber.InvalidMessage);
         if (p.Website.Length > 0 && !WebAddress.IsValid(p.Website)) errors.Add("That website doesn't look right. Use something like www.yourbusiness.com.au.");
         if (!HexColour().IsMatch(p.AccentColour)) errors.Add("Accent colour must look like #4F46E5.");
-        if (p.Bsb.Length > 0 && !BsbFormat().IsMatch(p.Bsb)) errors.Add("BSB must be 6 digits.");
+        if (p.BankCode.Length > 0 && rules.BankCode is { } bank && !bank.IsValid(p.BankCode)) errors.Add(bank.InvalidMessage);
         if (p.NumberPadding is < 0 or > 8) errors.Add("Number padding must be between 0 and 8.");
         if (p.NextInvoiceNumber < 1) errors.Add("Next invoice number must be 1 or more.");
         if (p.PaymentTermsDays is < 0 or > 365) errors.Add("Payment terms must be between 0 and 365 days.");
-        if (p.GstRateBasisPoints is < 0 or > 10000) errors.Add("GST rate must be between 0% and 100%.");
+        if (p.TaxRatePpm is < 0 or > 1_000_000) errors.Add($"{rules.TaxName} rate must be between 0% and 100%.");
         if (p.InvoicePrefix.Length > 12) errors.Add("Invoice prefix must be 12 characters or fewer.");
         if (p.QuotePrefix.Length > 12) errors.Add("Quote prefix must be 12 characters or fewer.");
         // one prefix for both would weave the two number runs together
@@ -97,8 +101,9 @@ public sealed partial class ProfileService(IDbContextFactory<AppDbContext> facto
 
     static void Normalise(BusinessProfile p)
     {
+        var rules = Countries.For(p.Country);
         p.Name = Text.Clean(p.Name);
-        p.Abn = Text.Clean(p.Abn).Replace(" ", "");
+        p.TaxNumber = rules.TaxNumber.Normalise(Text.Clean(p.TaxNumber));
         p.Address = Text.Clean(p.Address);
         p.Email = Text.Clean(p.Email);
         p.Phone = Text.Clean(p.Phone);
@@ -112,13 +117,11 @@ public sealed partial class ProfileService(IDbContextFactory<AppDbContext> facto
         p.QuotePrefix = Text.Clean(p.QuotePrefix);
         p.FooterNote = Text.Clean(p.FooterNote);
         p.InvoiceTemplate = InvoiceTemplates.Normalise(p.InvoiceTemplate);
-        var bsbDigits = new string(Text.Clean(p.Bsb).Where(char.IsAsciiDigit).ToArray());
-        p.Bsb = bsbDigits.Length == 6 ? $"{bsbDigits[..3]}-{bsbDigits[3..]}" : Text.Clean(p.Bsb);
+        p.BankCode = rules.BankCode is { } bank ? bank.Normalise(Text.Clean(p.BankCode)) : Text.Clean(p.BankCode);
+        p.SwiftCode = Text.Clean(p.SwiftCode);
+        p.OverseasNote = Text.Clean(p.OverseasNote);
     }
 
     [GeneratedRegex("^#[0-9A-Fa-f]{6}$")]
     private static partial Regex HexColour();
-
-    [GeneratedRegex(@"^\d{3}-\d{3}$")]
-    private static partial Regex BsbFormat();
 }

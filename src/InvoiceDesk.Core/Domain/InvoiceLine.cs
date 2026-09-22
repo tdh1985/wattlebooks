@@ -10,11 +10,11 @@ public class InvoiceLine
     public string Description { get; set; } = "";
     public decimal Quantity { get; set; } = 1;
     public long UnitPriceCents { get; set; }
-    public bool GstFree { get; set; }
+    public TaxCode TaxCode { get; set; }
 
     public InvoiceLine Copy() => new()
     {
         SortOrder = SortOrder, Description = Description, Quantity = Quantity,
-        UnitPriceCents = UnitPriceCents, GstFree = GstFree,
+        UnitPriceCents = UnitPriceCents, TaxCode = TaxCode,
     };
 }

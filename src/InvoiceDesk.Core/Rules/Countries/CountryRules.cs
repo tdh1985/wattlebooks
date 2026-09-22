@@ -1,5 +1,7 @@
 // Copyright (c) 2026 Tim Downey. Licensed under the MIT License.
 
+using InvoiceDesk.Core.Domain;
+
 namespace InvoiceDesk.Core.Rules;
 
 public enum ReturnKind { Bas, NzGst, UkVat, CaGstHst, UsSalesTax }
@@ -90,4 +92,17 @@ public sealed record CountryRules
 
     public Province? FindProvince(string? code) =>
         Provinces.FirstOrDefault(p => string.Equals(p.Code, code, StringComparison.OrdinalIgnoreCase));
+
+    // what a business in this country starts with, before the owner changes anything
+    public void ApplyDefaults(BusinessProfile p)
+    {
+        p.Country = Code;
+        p.TaxRegistered = RegisteredByDefault;
+        p.Region = DefaultRegion;
+        p.TaxRatePpm = FindProvince(DefaultRegion)?.RatePpm ?? StandardRatePpm;
+        p.ReducedRatePpm = ReducedRatePpm;
+        p.TaxPeriodMonths = DefaultPeriodMonths;
+        p.TaxPeriodEndMonth = DefaultPeriodEndMonth;
+        p.OverseasNote = OverseasNote;
+    }
 }

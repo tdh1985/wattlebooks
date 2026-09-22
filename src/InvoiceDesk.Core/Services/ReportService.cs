@@ -7,9 +7,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceDesk.Core.Services;
 
-public sealed record CategoryTotal(string Category, long AmountCents, long GstCents)
+public sealed record CategoryTotal(string Category, long AmountCents, long TaxCents)
 {
-    public long ExGstCents => AmountCents - GstCents;
+    public long ExTaxCents => AmountCents - TaxCents;
 }
 
 // labels match the simpler bas: G1 total sales, 1A gst on sales, 1B gst on purchases
@@ -21,8 +21,8 @@ public sealed record BasSummary(DateRange Period, long TotalSalesCents, long Gst
 
 public sealed record ProfitAndLoss(DateRange Period, IReadOnlyList<CategoryTotal> Income, IReadOnlyList<CategoryTotal> Expenses)
 {
-    public long IncomeCents => Income.Sum(c => c.ExGstCents);
-    public long ExpensesCents => Expenses.Sum(c => c.ExGstCents);
+    public long IncomeCents => Income.Sum(c => c.ExTaxCents);
+    public long ExpensesCents => Expenses.Sum(c => c.ExTaxCents);
     public long ProfitCents => IncomeCents - ExpensesCents;
 }
 
@@ -36,8 +36,8 @@ public sealed class ReportService(IDbContextFactory<AppDbContext> factory)
         var txs = await LoadAsync(period);
         return new BasSummary(period,
             CashTotals.Sum(txs, Direction.In, period, t => t.AmountCents),
-            CashTotals.GstCollected(txs, period),
-            CashTotals.GstPaid(txs, period),
+            CashTotals.TaxCollected(txs, period),
+            CashTotals.TaxPaid(txs, period),
             ByCategory(txs, Direction.In));
     }
 
@@ -59,7 +59,7 @@ public sealed class ReportService(IDbContextFactory<AppDbContext> factory)
     static List<CategoryTotal> ByCategory(IEnumerable<Transaction> txs, Direction direction) =>
         txs.Where(t => t.Direction == direction)
             .GroupBy(t => t.Category?.Name ?? Uncategorised)
-            .Select(g => new CategoryTotal(g.Key, g.Sum(t => t.AmountCents), g.Sum(t => t.GstCents)))
+            .Select(g => new CategoryTotal(g.Key, g.Sum(t => t.AmountCents), g.Sum(t => t.TaxCents)))
             .OrderBy(c => c.Category == Uncategorised)
             .ThenByDescending(c => c.AmountCents)
             .ThenBy(c => c.Category)

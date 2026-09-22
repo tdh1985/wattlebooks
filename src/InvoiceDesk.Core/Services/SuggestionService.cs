@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceDesk.Core.Services;
 
-public sealed record LineSuggestion(string Description, long UnitPriceCents, bool GstFree, bool ForThisClient);
+public sealed record LineSuggestion(string Description, long UnitPriceCents, TaxCode TaxCode, bool ForThisClient);
 
 // suggestions come only from what was already typed, nothing leaves the pc
 public sealed class SuggestionService(IDbContextFactory<AppDbContext> factory)
@@ -23,7 +23,7 @@ public sealed class SuggestionService(IDbContextFactory<AppDbContext> factory)
         var lines = await db.InvoiceLines.AsNoTracking()
             .Join(db.Invoices.Where(i => i.Status == InvoiceStatus.Sent), l => l.InvoiceId, i => i.Id, (l, i) => new
             {
-                l.Description, l.UnitPriceCents, l.GstFree, i.ClientId, i.IssueDate, InvoiceId = i.Id, l.SortOrder,
+                l.Description, l.UnitPriceCents, l.TaxCode, i.ClientId, i.IssueDate, InvoiceId = i.Id, l.SortOrder,
             })
             .ToListAsync();
 
@@ -36,7 +36,7 @@ public sealed class SuggestionService(IDbContextFactory<AppDbContext> factory)
                 var pick = (ours.Count > 0 ? ours : g.ToList())
                     .OrderByDescending(l => l.IssueDate).ThenByDescending(l => l.InvoiceId).ThenBy(l => l.SortOrder)
                     .First();
-                return (Pick: pick, Suggestion: new LineSuggestion(pick.Description, pick.UnitPriceCents, pick.GstFree, ours.Count > 0));
+                return (Pick: pick, Suggestion: new LineSuggestion(pick.Description, pick.UnitPriceCents, pick.TaxCode, ours.Count > 0));
             })
             .OrderByDescending(x => x.Suggestion.ForThisClient)
             .ThenByDescending(x => x.Pick.IssueDate).ThenByDescending(x => x.Pick.InvoiceId)

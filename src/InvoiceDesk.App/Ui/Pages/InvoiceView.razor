@@ -130,7 +130,7 @@
                         <div class="row"><span class="soft">@(totals.IsTaxInvoice ? "Total inc. GST" : "Total")</span><span class="num">@Format.Money(totals.TotalCents)</span></div>
                         @if (totals.IsTaxInvoice)
                         {
-                            <div class="row"><span class="soft">GST included</span><span class="num">@Format.Money(totals.GstCents)</span></div>
+                            <div class="row"><span class="soft">GST included</span><span class="num">@Format.Money(totals.TaxCents)</span></div>
                         }
                         @if (IsQuote)
                         {
@@ -294,7 +294,7 @@
     {
         var parts = new List<string>();
         if (Format.Method(payment.Method) is { Length: > 0 } method) parts.Add(method);
-        if (payment.GstCents > 0) parts.Add($"includes {Format.Money(payment.GstCents)} GST");
+        if (payment.TaxCents > 0) parts.Add($"includes {Format.Money(payment.TaxCents)} GST");
         return string.Join(", ", parts);
     }
 

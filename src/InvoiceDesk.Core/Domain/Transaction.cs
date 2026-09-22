@@ -8,7 +8,7 @@ public class Transaction
     public Direction Direction { get; set; }
     public DateOnly Date { get; set; }
     public long AmountCents { get; set; }
-    public long GstCents { get; set; }
+    public long TaxCents { get; set; }
     public int? CategoryId { get; set; }
     public Category? Category { get; set; }
     public string Party { get; set; } = "";
@@ -20,5 +20,11 @@ public class Transaction
     public DateTime CreatedAt { get; set; }
     public List<Attachment> Attachments { get; set; } = [];
 
-    public long ExGstCents => AmountCents - GstCents;
+    // what the client paid in the invoice's own currency, when that isn't ours
+    public long? ForeignAmountCents { get; set; }
+    public string ForeignCurrency { get; set; } = "";
+
+    public long InvoiceAmountCents => ForeignAmountCents ?? AmountCents;
+
+    public long ExTaxCents => AmountCents - TaxCents;
 }

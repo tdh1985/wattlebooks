@@ -60,7 +60,7 @@
                 <div class="ledger-cell">
                     <div class="ledger-label">Money in</div>
                     <div class="ledger-value">@Format.Money(inCents)</div>
-                    <div class="ledger-note">GST collected @Format.Money(rows.Where(t => t.Direction == Direction.In).Sum(t => t.GstCents))</div>
+                    <div class="ledger-note">GST collected @Format.Money(rows.Where(t => t.Direction == Direction.In).Sum(t => t.TaxCents))</div>
                 </div>
             }
             @if (_tab != "in")
@@ -68,7 +68,7 @@
                 <div class="ledger-cell">
                     <div class="ledger-label">Money out</div>
                     <div class="ledger-value">@Format.Money(outCents)</div>
-                    <div class="ledger-note">GST paid @Format.Money(rows.Where(t => t.Direction == Direction.Out).Sum(t => t.GstCents))</div>
+                    <div class="ledger-note">GST paid @Format.Money(rows.Where(t => t.Direction == Direction.Out).Sum(t => t.TaxCents))</div>
                 </div>
             }
             @if (_tab == "all")
@@ -141,7 +141,7 @@
                                     <span class="muted" title="No receipt attached">–</span>
                                 }
                             </td>
-                            <td class="num soft">@(t.GstCents > 0 ? Format.Amount(t.GstCents) : "–")</td>
+                            <td class="num soft">@(t.TaxCents > 0 ? Format.Amount(t.TaxCents) : "–")</td>
                             <td class="num @(t.Direction == Direction.In ? "amount-in" : "amount-out")">
                                 @(t.Direction == Direction.In ? "+" : "−")@Format.Money(t.AmountCents)
                             </td>

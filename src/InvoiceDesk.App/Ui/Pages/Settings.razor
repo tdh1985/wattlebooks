@@ -43,7 +43,7 @@
                         <div class="field">
                             <label for="biz-abn">ABN</label>
                             <input id="biz-abn" class="input num" style="text-align:left" placeholder="11 digits"
-                                   @bind="_profile.Abn" @bind:event="oninput" @bind:after="MarkDirty" />
+                                   @bind="_profile.TaxNumber" @bind:event="oninput" @bind:after="MarkDirty" />
                             <span class="hint @(AbnState == false ? "field-error" : null)">@AbnHint</span>
                         </div>
                         <div class="field">
@@ -106,7 +106,7 @@
                         <div class="field">
                             <label for="bank-bsb">BSB</label>
                             <input id="bank-bsb" class="input num" style="text-align:left" placeholder="000-000"
-                                   @bind="_profile.Bsb" @bind:event="oninput" @bind:after="MarkDirty" />
+                                   @bind="_profile.BankCode" @bind:event="oninput" @bind:after="MarkDirty" />
                         </div>
                         <div class="field">
                             <label for="bank-acc">Account number</label>
@@ -175,7 +175,7 @@
                     <p class="soft">When you're registered, new invoices start as tax invoices with GST added. You can still turn GST off on any single invoice.</p>
                     <div class="col gap-16">
                         <label class="switch">
-                            <input type="checkbox" @bind="_profile.GstRegistered" @bind:after="MarkDirty" />
+                            <input type="checkbox" @bind="_profile.TaxRegistered" @bind:after="MarkDirty" />
                             <span>I'm registered for GST</span>
                         </label>
                         <div class="field" style="max-width:200px">
@@ -387,15 +387,15 @@
 
     decimal GstPercent
     {
-        get => (_profile?.GstRateBasisPoints ?? 0) / 100m;
-        set { if (_profile is not null) _profile.GstRateBasisPoints = (int)Math.Round(value * 100); }
+        get => (_profile?.TaxRatePpm ?? 0) / 10_000m;
+        set { if (_profile is not null) _profile.TaxRatePpm = (int)Math.Round(value * 10_000); }
     }
 
-    bool? AbnState => _profile is null || string.IsNullOrWhiteSpace(_profile.Abn) ? null : Abn.IsValid(_profile.Abn);
+    bool? AbnState => _profile is null || string.IsNullOrWhiteSpace(_profile.TaxNumber) ? null : Abn.IsValid(_profile.TaxNumber);
 
     string AbnHint => AbnState switch
     {
-        true => $"Valid ABN: {Abn.Format(_profile!.Abn)}",
+        true => $"Valid ABN: {Abn.Format(_profile!.TaxNumber)}",
         false => "This doesn't pass the ATO's ABN check. Check each digit.",
         _ => "Needed for tax invoices.",
     };
@@ -437,7 +437,7 @@
         IssueDate = DateOnly.FromDateTime(DateTime.Today),
         DueDate = DateOnly.FromDateTime(DateTime.Today).AddDays(14),
         Status = InvoiceStatus.Sent,
-        GstEnabled = true,
+        TaxEnabled = true,
         Client = new Client { Name = "Sample client", ContactName = "Alex Smith", Address = "1 Example Street, Hobart TAS 7000" },
         Lines =
         [

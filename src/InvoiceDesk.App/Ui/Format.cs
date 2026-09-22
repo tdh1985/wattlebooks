@@ -45,7 +45,7 @@ public static class Format
     public static DateOnly? ParseIso(string? value) =>
         DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d) ? d : null;
 
-    public static string Percent(int basisPoints) => (basisPoints / 100m).ToString("0.##", CultureInfo.InvariantCulture) + "%";
+    public static string Percent(int ppm) => (ppm / 10_000m).ToString("0.###", CultureInfo.InvariantCulture) + "%";
 
     public static string Bytes(long bytes) => bytes switch
     {

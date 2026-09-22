@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Tim Downey. Licensed under the MIT License.
 
 using InvoiceDesk.Core.Domain;
+using InvoiceDesk.Core.Rules;
 using InvoiceDesk.Core.Storage;
 using Microsoft.EntityFrameworkCore;
 
@@ -48,7 +49,12 @@ public sealed class DatabaseInitializer(
 
     static async Task SeedAsync(AppDbContext db, CancellationToken ct)
     {
-        if (!await db.Profiles.AnyAsync(ct)) db.Profiles.Add(new BusinessProfile());
+        if (!await db.Profiles.AnyAsync(ct))
+        {
+            var profile = new BusinessProfile();
+            Australia.Rules.ApplyDefaults(profile);
+            db.Profiles.Add(profile);
+        }
 
         if (!await db.Categories.AnyAsync(ct))
         {

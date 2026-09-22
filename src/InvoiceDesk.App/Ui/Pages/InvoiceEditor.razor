@@ -152,22 +152,22 @@
 
                     <div class="gst-row">
                         <label class="switch">
-                            <input type="checkbox" checked="@_invoice.GstEnabled" @onchange="OnGstChanged" />
-                            <span>Charge GST (@Format.Percent(_invoice.GstRateBasisPoints))</span>
+                            <input type="checkbox" checked="@_invoice.TaxEnabled" @onchange="OnGstChanged" />
+                            <span>Charge GST (@Format.Percent(_invoice.TaxRatePpm))</span>
                         </label>
-                        <span class="heading-preview">The heading will read <strong>@_invoice.Heading()</strong></span>
+                        <span class="heading-preview">The heading will read <strong>@_invoice.Heading(Countries.For(_profile.Country))</strong></span>
                     </div>
-                    @if (_invoice.GstEnabled && !_profile.GstRegistered)
+                    @if (_invoice.TaxEnabled && !_profile.TaxRegistered)
                     {
                         <div class="banner banner-warn"><Icon Name="alert" Size="16" /><div>Your settings say you're not registered for GST. Only registered businesses can charge it. <a href="settings#gst">Check GST settings</a></div></div>
                     }
 
-                    <div class="lines @(_invoice.GstEnabled ? null : "no-gst") mt-16">
+                    <div class="lines @(_invoice.TaxEnabled ? null : "no-gst") mt-16">
                         <div class="lines-head">
                             <span>Description</span>
                             <span class="r">Qty</span>
                             <span class="r">Unit price</span>
-                            @if (_invoice.GstEnabled)
+                            @if (_invoice.TaxEnabled)
                             {
                                 <span class="c" title="Tick for items with no GST, like some exports or medical services">GST-free</span>
                             }
@@ -209,10 +209,10 @@
                                        @onchange="e => SetQuantity(line, e)" @onkeydown="e => OnLineKey(e, index)" />
                                 <MoneyInput Id="@($"price-{index}")" Cents="line.UnitPriceCents" CentsChanged="c => SetPrice(line, c)"
                                             AriaLabel="Unit price" OnKeyDown="e => OnLineKey(e, index)" />
-                                @if (_invoice.GstEnabled)
+                                @if (_invoice.TaxEnabled)
                                 {
                                     <label class="check" title="GST-free">
-                                        <input type="checkbox" aria-label="GST-free" checked="@line.GstFree" @onchange="e => SetGstFree(line, e)" />
+                                        <input type="checkbox" aria-label="GST-free" checked="@(line.TaxCode == TaxCode.Zero)" @onchange="e => SetGstFree(line, e)" />
                                     </label>
                                 }
                                 <span class="line-amount num">@Format.Amount(MoneyMath.LineAmount(line.Quantity, line.UnitPriceCents))</span>
@@ -227,7 +227,7 @@
                         @if (totals.IsTaxInvoice)
                         {
                             <div class="row"><span>Subtotal (ex GST)</span><span class="num">@Format.Money(totals.SubtotalCents)</span></div>
-                            <div class="row"><span>GST</span><span class="num">@Format.Money(totals.GstCents)</span></div>
+                            <div class="row"><span>GST</span><span class="num">@Format.Money(totals.TaxCents)</span></div>
                         }
                         <div class="row total"><span>@(totals.IsTaxInvoice ? "Total inc. GST" : "Total")</span><span class="num">@Format.Money(totals.TotalCents)</span></div>
                     </div>
@@ -489,7 +489,7 @@
 
     void OnGstChanged(ChangeEventArgs e)
     {
-        _invoice!.GstEnabled = e.Value is true;
+        _invoice!.TaxEnabled = e.Value is true;
         Changed();
     }
 
@@ -554,7 +554,7 @@
     void PickSuggestion(InvoiceLine line, LineSuggestion s)
     {
         line.Description = s.Description;
-        line.GstFree = s.GstFree;
+        line.TaxCode = s.TaxCode;
         // a price already typed wins over the one from history
         if (line.UnitPriceCents == 0) line.UnitPriceCents = s.UnitPriceCents;
         CloseSuggestions();
@@ -594,7 +594,7 @@
 
     void SetGstFree(InvoiceLine line, ChangeEventArgs e)
     {
-        line.GstFree = e.Value is true;
+        line.TaxCode = e.Value is true ? TaxCode.Zero : TaxCode.Standard;
         Changed();
     }
 
@@ -634,8 +634,10 @@
         ClientId = _invoice.ClientId,
         IssueDate = _invoice.IssueDate,
         DueDate = _invoice.DueDate,
-        GstEnabled = _invoice.GstEnabled,
-        GstRateBasisPoints = _invoice.GstRateBasisPoints,
+        TaxEnabled = _invoice.TaxEnabled,
+        TaxRatePpm = _invoice.TaxRatePpm,
+        ReducedRatePpm = _invoice.ReducedRatePpm,
+        Currency = _invoice.Currency,
         Notes = _invoice.Notes,
         Lines = _invoice.Lines.Select(l => l.Copy()).ToList(),
     };

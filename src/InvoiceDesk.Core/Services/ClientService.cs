@@ -47,11 +47,14 @@ public sealed class ClientService(IDbContextFactory<AppDbContext> factory, TimeP
         entity.Notes = Text.Clean(entity.Notes);
         entity.InvoiceNote = Text.Clean(entity.InvoiceNote);
         entity.Website = Text.Clean(entity.Website);
-        entity.Abn = Text.Clean(entity.Abn).Replace(" ", "");
+        entity.TaxNumber = Text.Clean(entity.TaxNumber).Replace(" ", "");
+        entity.Country = Text.Clean(entity.Country);
+        entity.Region = Text.Clean(entity.Region);
+        entity.Currency = Text.Clean(entity.Currency);
 
         var errors = new List<string>();
         if (entity.Name.Length == 0) errors.Add("Client name is required.");
-        if (entity.Abn.Length > 0 && !Abn.IsValid(entity.Abn)) errors.Add("Client ABN must be 11 digits and pass the ATO check.");
+        if (entity.TaxNumber.Length > 0 && !Abn.IsValid(entity.TaxNumber)) errors.Add("Client ABN must be 11 digits and pass the ATO check.");
         if (entity.Website.Length > 0 && !WebAddress.IsValid(entity.Website)) errors.Add("That website doesn't look right. Use something like www.theirbusiness.com.au.");
         if (entity.Email.Length > 0 && !entity.Email.Contains('@')) errors.Add("That email address doesn't look right.");
         ValidationException.ThrowIfAny(errors);

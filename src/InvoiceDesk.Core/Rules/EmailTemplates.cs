@@ -24,7 +24,7 @@ public static class EmailTemplates
     public static EmailDraft Invoice(Invoice inv, BusinessProfile profile)
     {
         var totals = inv.Totals();
-        var kind = totals.IsTaxInvoice ? "Tax invoice" : "Invoice";
+        var kind = totals.IsTaxInvoice ? Countries.For(profile.Country).TaxedSubject : "Invoice";
         var body = new StringBuilder()
             .Append(Greeting(inv.Client)).Append("\n\n")
             .Append($"Please find attached invoice {inv.Number} for {Money(totals.TotalCents)}, due on {Date(inv.DueDate)}.\n\n")
@@ -100,10 +100,10 @@ public static class EmailTemplates
 
     static string PaymentBlock(BusinessProfile profile, string reference)
     {
-        if (string.IsNullOrWhiteSpace(profile.Bsb) || string.IsNullOrWhiteSpace(profile.AccountNumber)) return "";
+        if (string.IsNullOrWhiteSpace(profile.BankCode) || string.IsNullOrWhiteSpace(profile.AccountNumber)) return "";
         var block = new StringBuilder("You can pay by bank transfer to:\n");
         if (!string.IsNullOrWhiteSpace(profile.BankAccountName)) block.Append($"Account name: {profile.BankAccountName.Trim()}\n");
-        block.Append($"BSB: {profile.Bsb.Trim()}\n")
+        block.Append($"BSB: {profile.BankCode.Trim()}\n")
             .Append($"Account number: {profile.AccountNumber.Trim()}\n")
             .Append($"Reference: {reference}\n\n");
         return block.ToString();

@@ -13,7 +13,7 @@ public sealed record InvoiceLink(int Id, string Number);
 
 public sealed record InvoiceSummary(
     int Id, string Number, int ClientId, string ClientName, DateOnly IssueDate, DateOnly DueDate,
-    long TotalCents, long GstCents, long PaidCents, long BalanceCents, DisplayStatus Status, bool IsTaxInvoice,
+    long TotalCents, long TaxCents, long PaidCents, long BalanceCents, DisplayStatus Status, bool IsTaxInvoice,
     InvoiceKind Kind = InvoiceKind.Invoice)
 {
     public static InvoiceSummary From(Invoice inv, DateOnly today)
@@ -22,7 +22,7 @@ public sealed record InvoiceSummary(
         var paid = inv.PaidCents;
         return new InvoiceSummary(
             inv.Id, inv.Number, inv.ClientId, inv.Client?.Name ?? "", inv.IssueDate, inv.DueDate,
-            totals.TotalCents, totals.GstCents, paid, totals.TotalCents - paid,
+            totals.TotalCents, totals.TaxCents, paid, totals.TotalCents - paid,
             InvoiceStatusResolver.Resolve(inv.Kind, inv.Status, totals.TotalCents, paid, inv.DueDate, today),
             totals.IsTaxInvoice, inv.Kind);
     }
@@ -58,11 +58,11 @@ public sealed record ActivityItem(DateTime At, ActivityKind Kind, int EntityId, 
 
 public sealed record DashboardData(
     long OutstandingCents, int OutstandingCount, long OverdueCents, int OverdueCount,
-    long ReceivedMonthCents, long SpentMonthCents, long ProfitFyCents,
-    long GstCollectedQuarterCents, long GstPaidQuarterCents, string FyLabel, string QuarterLabel,
+    long ReceivedMonthCents, long SpentMonthCents, long ProfitYearCents,
+    long TaxCollectedPeriodCents, long TaxPaidPeriodCents, string YearLabel, string PeriodLabel,
     IReadOnlyList<MonthBar> Months, IReadOnlyList<InvoiceSummary> Overdue, IReadOnlyList<ActivityItem> Recent)
 {
-    public long GstNetQuarterCents => GstCollectedQuarterCents - GstPaidQuarterCents;
+    public long TaxNetPeriodCents => TaxCollectedPeriodCents - TaxPaidPeriodCents;
 }
 
 public enum SearchKind { Client, Invoice, Quote, Transaction }

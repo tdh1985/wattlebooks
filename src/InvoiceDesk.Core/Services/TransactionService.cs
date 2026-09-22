@@ -42,7 +42,7 @@ public sealed class TransactionService(IDbContextFactory<AppDbContext> factory, 
     {
         var errors = new List<string>();
         if (t.AmountCents <= 0) errors.Add("Amount must be more than zero.");
-        if (t.GstCents < 0 || t.GstCents > t.AmountCents) errors.Add("GST must be between zero and the amount.");
+        if (t.TaxCents < 0 || t.TaxCents > t.AmountCents) errors.Add("GST must be between zero and the amount.");
         if (t.Date == default) errors.Add("Choose a date.");
         ValidationException.ThrowIfAny(errors);
 
@@ -62,7 +62,7 @@ public sealed class TransactionService(IDbContextFactory<AppDbContext> factory, 
         entity.Direction = t.Direction;
         entity.Date = t.Date;
         entity.AmountCents = t.AmountCents;
-        entity.GstCents = t.GstCents;
+        entity.TaxCents = t.TaxCents;
         entity.CategoryId = t.CategoryId;
         entity.Party = Text.Clean(t.Party);
         entity.Description = Text.Clean(t.Description);
@@ -108,6 +108,6 @@ public sealed class TransactionService(IDbContextFactory<AppDbContext> factory, 
         Changed?.Invoke();
     }
 
-    public long SuggestGst(long amountCents, BusinessProfile profile) =>
-        profile.GstRegistered ? MoneyMath.GstFromInclusive(amountCents, profile.GstRateBasisPoints) : 0;
+    public long SuggestTax(long amountCents, BusinessProfile profile) =>
+        profile.TaxRegistered ? MoneyMath.TaxFromInclusive(amountCents, profile.TaxRatePpm) : 0;
 }

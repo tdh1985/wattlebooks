@@ -10,8 +10,12 @@ public class Client
     public string Email { get; set; } = "";
     public string Phone { get; set; } = "";
     public string Address { get; set; } = "";
-    public string Abn { get; set; } = "";
+    public string TaxNumber { get; set; } = "";
     public string Website { get; set; } = "";
+    // empty means the same country as the business
+    public string Country { get; set; } = "";
+    public string Region { get; set; } = "";
+    public string Currency { get; set; } = "";
 
     // printed on every invoice to this client, unlike Notes which stay private
     public string InvoiceNote { get; set; } = "";
@@ -23,7 +27,7 @@ public class Client
     public Client Clone() => new()
     {
         Id = Id, Name = Name, ContactName = ContactName, Email = Email, Phone = Phone,
-        Address = Address, Abn = Abn, Website = Website, InvoiceNote = InvoiceNote, Notes = Notes,
-        CreatedAt = CreatedAt, IsArchived = IsArchived,
+        Address = Address, TaxNumber = TaxNumber, Website = Website, InvoiceNote = InvoiceNote, Notes = Notes,
+        Country = Country, Region = Region, Currency = Currency, CreatedAt = CreatedAt, IsArchived = IsArchived,
     };
 }

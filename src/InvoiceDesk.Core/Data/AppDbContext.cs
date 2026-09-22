@@ -46,7 +46,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(t => t.Invoice).WithMany(i => i.Payments).HasForeignKey(t => t.InvoiceId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(t => t.Category).WithMany().HasForeignKey(t => t.CategoryId).OnDelete(DeleteBehavior.SetNull);
             e.HasMany(t => t.Attachments).WithOne().HasForeignKey(a => a.TransactionId).OnDelete(DeleteBehavior.Cascade);
-            e.Ignore(t => t.ExGstCents);
+            e.Ignore(t => t.ExTaxCents);
+            e.Ignore(t => t.InvoiceAmountCents);
         });
 
         b.Entity<Attachment>(e =>

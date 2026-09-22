@@ -26,8 +26,10 @@ public sealed class InvoiceService(
             // a quote's due date is the day its price stops holding
             DueDate = today.AddDays(kind == InvoiceKind.Quote ? profile.QuoteValidDays : profile.PaymentTermsDays),
             Status = InvoiceStatus.Draft,
-            GstEnabled = profile.GstRegistered,
-            GstRateBasisPoints = profile.GstRateBasisPoints,
+            TaxEnabled = profile.TaxRegistered,
+            TaxRatePpm = profile.TaxRatePpm,
+            ReducedRatePpm = profile.ReducedRatePpm,
+            Currency = Countries.For(profile.Country).Currency,
             // the default notes are payment terms, which a quote doesn't have yet
             Notes = kind == InvoiceKind.Quote ? "" : profile.DefaultInvoiceNotes,
             Lines = [new InvoiceLine { Quantity = 1 }],
@@ -116,8 +118,10 @@ public sealed class InvoiceService(
         entity.ClientId = invoice.ClientId;
         entity.IssueDate = invoice.IssueDate;
         entity.DueDate = invoice.DueDate;
-        entity.GstEnabled = invoice.GstEnabled;
-        entity.GstRateBasisPoints = invoice.GstRateBasisPoints;
+        entity.TaxEnabled = invoice.TaxEnabled;
+        entity.TaxRatePpm = invoice.TaxRatePpm;
+        entity.ReducedRatePpm = invoice.ReducedRatePpm;
+        entity.Currency = invoice.Currency;
         entity.Notes = Text.Clean(invoice.Notes);
         var order = 0;
         foreach (var line in invoice.Lines)
@@ -128,7 +132,7 @@ public sealed class InvoiceService(
                 Description = Text.Clean(line.Description),
                 Quantity = line.Quantity,
                 UnitPriceCents = line.UnitPriceCents,
-                GstFree = line.GstFree,
+                TaxCode = line.TaxCode,
             });
         }
 
@@ -154,8 +158,9 @@ public sealed class InvoiceService(
         if (totals.TotalCents < 0) errors.Add("The invoice total can't be negative.");
         if (totals.IsTaxInvoice && inv.Kind == InvoiceKind.Invoice)
         {
-            // ato: a tax invoice must show the seller's identity and abn
-            if (!Abn.IsValid(profile.Abn)) errors.Add("Add your ABN in Settings. Tax invoices must show it.");
+            var rules = Countries.For(profile.Country);
+            // a tax invoice must show the seller's identity and tax number
+            if (rules.TaxNumber.RequiredWhenTaxed && !rules.TaxNumber.IsValid(profile.TaxNumber)) errors.Add(rules.TaxNumber.MissingMessage);
             if (string.IsNullOrWhiteSpace(profile.Name)) errors.Add("Add your business name in Settings.");
         }
         return errors;
@@ -230,8 +235,10 @@ public sealed class InvoiceService(
     {
         var source = await GetAsync(id) ?? throw new ValidationException("This invoice no longer exists.");
         var copy = await NewDraftAsync(source.ClientId, source.Kind);
-        copy.GstEnabled = source.GstEnabled;
-        copy.GstRateBasisPoints = source.GstRateBasisPoints;
+        copy.TaxEnabled = source.TaxEnabled;
+        copy.TaxRatePpm = source.TaxRatePpm;
+        copy.ReducedRatePpm = source.ReducedRatePpm;
+        copy.Currency = source.Currency;
         copy.Notes = source.Notes;
         copy.Lines = source.Lines.Select(l => l.Copy()).ToList();
         return copy;
@@ -284,8 +291,10 @@ public sealed class InvoiceService(
 
         var draft = await NewDraftAsync(quote.ClientId);
         draft.ConvertedFromId = quote.Id;
-        draft.GstEnabled = quote.GstEnabled;
-        draft.GstRateBasisPoints = quote.GstRateBasisPoints;
+        draft.TaxEnabled = quote.TaxEnabled;
+        draft.TaxRatePpm = quote.TaxRatePpm;
+        draft.ReducedRatePpm = quote.ReducedRatePpm;
+        draft.Currency = quote.Currency;
         draft.Lines = quote.Lines.Select(l => l.Copy()).ToList();
         var invoice = await SaveAsync(draft);
 
@@ -322,7 +331,7 @@ public sealed class InvoiceService(
             Direction = Direction.In,
             Date = input.Date,
             AmountCents = input.AmountCents,
-            GstCents = totals.IsTaxInvoice ? MoneyMath.ProportionalGst(input.AmountCents, totals.GstCents, totals.TotalCents) : 0,
+            TaxCents = totals.IsTaxInvoice ? MoneyMath.ProportionalTax(input.AmountCents, totals.TaxCents, totals.TotalCents) : 0,
             CategoryId = sales.Id,
             Party = inv.Client!.Name,
             Description = note.Length == 0 ? $"Payment for {inv.Number}" : $"Payment for {inv.Number} – {note}",

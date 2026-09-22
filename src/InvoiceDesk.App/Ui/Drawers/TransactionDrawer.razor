@@ -59,10 +59,10 @@
                     </div>
                     <div class="field @FieldState("gst")">
                         <label for="tx-gst">GST included</label>
-                        <MoneyInput Id="tx-gst" Cents="_tx.GstCents" CentsChanged="SetGst" />
+                        <MoneyInput Id="tx-gst" Cents="_tx.TaxCents" CentsChanged="SetGst" />
                         <label class="check small soft">
                             <input type="checkbox" checked="@_autoGst" @onchange="ToggleAutoGst" />
-                            Work it out for me (@Format.Percent(_profile?.GstRateBasisPoints ?? 1000) GST)
+                            Work it out for me (@Format.Percent(_profile?.TaxRatePpm ?? 100_000) GST)
                         </label>
                     </div>
                     <div class="field">
@@ -220,7 +220,7 @@
         else
         {
             _tx = new Transaction { Direction = Direction, Date = Clock.Today(), Method = PaymentMethod.None };
-            _autoGst = _profile.GstRegistered;
+            _autoGst = _profile.TaxRegistered;
         }
         _parties = await Suggestions.PartiesAsync(_tx.Direction);
         if (InitialFiles is { Count: > 0 } dropped && TransactionId is null)
@@ -258,19 +258,19 @@
     void SetAmount(long cents)
     {
         _tx!.AmountCents = cents;
-        if (_autoGst) _tx.GstCents = Ledger.SuggestGst(cents, _profile!);
+        if (_autoGst) _tx.TaxCents = Ledger.SuggestTax(cents, _profile!);
     }
 
     void SetGst(long cents)
     {
-        _tx!.GstCents = cents;
+        _tx!.TaxCents = cents;
         _autoGst = false;
     }
 
     void ToggleAutoGst(ChangeEventArgs e)
     {
         _autoGst = e.Value is true;
-        if (_autoGst) _tx!.GstCents = Ledger.SuggestGst(_tx.AmountCents, _profile!);
+        if (_autoGst) _tx!.TaxCents = Ledger.SuggestTax(_tx.AmountCents, _profile!);
     }
 
     void SetDate(ChangeEventArgs e)
@@ -325,17 +325,17 @@
             return;
         }
 
-        _beforeScan = new Before(_tx.AmountCents, _tx.GstCents, _tx.Date, _tx.Party, _tx.CategoryId, _autoGst, _categoryGuessed);
+        _beforeScan = new Before(_tx.AmountCents, _tx.TaxCents, _tx.Date, _tx.Party, _tx.CategoryId, _autoGst, _categoryGuessed);
         if (_tx.AmountCents == 0 && guess.TotalCents is { } total)
         {
             SetAmount(total);
             _filled.Add("amount");
-            if (_profile!.GstRegistered && guess.GstCents is { } gst)
+            if (_profile!.TaxRegistered && guess.TaxCents is { } gst)
             {
-                _tx.GstCents = gst;
+                _tx.TaxCents = gst;
                 _autoGst = false;
             }
-            if (_tx.GstCents > 0) _filled.Add("gst");
+            if (_tx.TaxCents > 0) _filled.Add("gst");
         }
         if (!_dateTouched && guess.Date is { } date && date != _tx.Date)
         {
@@ -358,7 +358,7 @@
     {
         if (_tx is null || _beforeScan is not { } b) return;
         _tx.AmountCents = b.Amount;
-        _tx.GstCents = b.Gst;
+        _tx.TaxCents = b.Gst;
         _tx.Date = b.Date;
         _tx.Party = b.Party;
         _tx.CategoryId = b.CategoryId;

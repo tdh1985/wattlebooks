@@ -24,7 +24,7 @@ public sealed class ExportService(IDbContextFactory<AppDbContext> factory, TimeP
                 "Invoice", "Method", "Receipt attached"),
             txs.Select(t => Csv.Line(
                 Csv.Date(t.Date), Labels.Direction(t.Direction), Csv.Text(t.Party), Csv.Text(t.Description),
-                Csv.Text(t.Category?.Name), Csv.Money(t.AmountCents), Csv.Money(t.GstCents), Csv.Money(t.ExGstCents),
+                Csv.Text(t.Category?.Name), Csv.Money(t.AmountCents), Csv.Money(t.TaxCents), Csv.Money(t.ExTaxCents),
                 Csv.Text(t.Invoice?.Number), Labels.Method(t.Method), t.Attachments.Count > 0 ? "Yes" : "No")));
     }
 
@@ -46,7 +46,7 @@ public sealed class ExportService(IDbContextFactory<AppDbContext> factory, TimeP
                 var s = InvoiceSummary.From(i, today);
                 return Csv.Line(
                     Csv.Text(s.Number), Csv.Text(s.ClientName), Csv.Date(s.IssueDate), Csv.Date(s.DueDate),
-                    Labels.Status(s.Status), Csv.Money(s.TotalCents - s.GstCents), Csv.Money(s.GstCents),
+                    Labels.Status(s.Status), Csv.Money(s.TotalCents - s.TaxCents), Csv.Money(s.TaxCents),
                     Csv.Money(s.TotalCents), Csv.Money(s.PaidCents),
                     Csv.Money(s.Status == DisplayStatus.Void ? 0 : s.BalanceCents));
             }));
@@ -63,9 +63,9 @@ public sealed class ExportService(IDbContextFactory<AppDbContext> factory, TimeP
 
     public static Task WriteProfitAndLossCsvAsync(ProfitAndLoss pl, Stream output) =>
         WriteAsync(output, Csv.Line("Section", "Category", "Amount ex GST"),
-            pl.Income.Select(c => Csv.Line("Income", Csv.Text(c.Category), Csv.Money(c.ExGstCents)))
+            pl.Income.Select(c => Csv.Line("Income", Csv.Text(c.Category), Csv.Money(c.ExTaxCents)))
                 .Append(Csv.Line("Income", "Total income", Csv.Money(pl.IncomeCents)))
-                .Concat(pl.Expenses.Select(c => Csv.Line("Expenses", Csv.Text(c.Category), Csv.Money(c.ExGstCents))))
+                .Concat(pl.Expenses.Select(c => Csv.Line("Expenses", Csv.Text(c.Category), Csv.Money(c.ExTaxCents))))
                 .Append(Csv.Line("Expenses", "Total expenses", Csv.Money(pl.ExpensesCents)))
                 .Append(Csv.Line("Profit", "Net profit", Csv.Money(pl.ProfitCents))));
 

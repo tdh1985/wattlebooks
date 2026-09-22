@@ -8,8 +8,8 @@
     var quote = Invoice.Kind == InvoiceKind.Quote;
     var client = Invoice.Client;
     var lines = Invoice.Lines.Where(l => !string.IsNullOrWhiteSpace(l.Description) || l.UnitPriceCents != 0).ToList();
-    var hasGstFree = totals.IsTaxInvoice && lines.Any(l => l.GstFree);
-    var hasBank = Profile.AccountNumber.Length > 0 || Profile.Bsb.Length > 0;
+    var hasGstFree = totals.IsTaxInvoice && lines.Any(l => l.TaxCode == TaxCode.Zero);
+    var hasBank = Profile.AccountNumber.Length > 0 || Profile.BankCode.Length > 0;
 }
 <article class="doc doc-@InvoiceTemplates.Normalise(Template ?? Profile.InvoiceTemplate)" style="--doc-accent: @Profile.AccentColour">
     <header class="doc-head">
@@ -20,9 +20,9 @@
             }
             <div class="doc-from-text">
                 <div class="doc-biz">@(Profile.Name.Length > 0 ? Profile.Name : "Your business name")</div>
-                @if (Abn.IsValid(Profile.Abn))
+                @if (Abn.IsValid(Profile.TaxNumber))
                 {
-                    <div class="doc-small">ABN @Abn.Format(Profile.Abn)</div>
+                    <div class="doc-small">ABN @Abn.Format(Profile.TaxNumber)</div>
                 }
                 @if (Profile.Address.Length > 0)
                 {
@@ -43,7 +43,7 @@
             </div>
         </div>
         <div class="doc-title">
-            <h1>@Invoice.Heading()</h1>
+            <h1>@Invoice.Heading(Countries.For(Profile.Country))</h1>
             <div class="doc-number">@(Invoice.Number.Length > 0 ? Invoice.Number : NumberPreview)</div>
         </div>
     </header>
@@ -62,9 +62,9 @@
                 {
                     <div class="doc-small doc-pre">@client.Address</div>
                 }
-                @if (Abn.IsValid(client.Abn))
+                @if (Abn.IsValid(client.TaxNumber))
                 {
-                    <div class="doc-small">ABN @Abn.Format(client.Abn)</div>
+                    <div class="doc-small">ABN @Abn.Format(client.TaxNumber)</div>
                 }
                 @if (client.Website.Length > 0)
                 {
@@ -108,7 +108,7 @@
                 <tr>
                     <td class="doc-desc">
                         <span class="doc-pre">@line.Description</span>
-                        @if (totals.IsTaxInvoice && line.GstFree)
+                        @if (totals.IsTaxInvoice && line.TaxCode == TaxCode.Zero)
                         {
                             <span class="doc-tag">GST-free</span>
                         }
@@ -154,7 +154,7 @@
             @if (totals.IsTaxInvoice)
             {
                 <div class="doc-row"><span>Subtotal (ex GST)</span><span class="n">@Format.Amount(totals.SubtotalCents)</span></div>
-                <div class="doc-row"><span>GST @Format.Percent(Invoice.GstRateBasisPoints)</span><span class="n">@Format.Amount(totals.GstCents)</span></div>
+                <div class="doc-row"><span>GST @Format.Percent(Invoice.TaxRatePpm)</span><span class="n">@Format.Amount(totals.TaxCents)</span></div>
             }
             <div class="doc-row doc-total"><span>@(totals.IsTaxInvoice ? "Total inc. GST" : "Total")</span><span class="n">@Format.Money(totals.TotalCents)</span></div>
             @if (paid > 0)
@@ -184,7 +184,7 @@
                 {
                     <div><dt>Account name</dt><dd>@Profile.BankAccountName</dd></div>
                 }
-                <div><dt>BSB</dt><dd class="n">@Profile.Bsb</dd></div>
+                <div><dt>BSB</dt><dd class="n">@Profile.BankCode</dd></div>
                 <div><dt>Account number</dt><dd class="n">@Profile.AccountNumber</dd></div>
                 <div><dt>Reference</dt><dd class="n">@(Invoice.Number.Length > 0 ? Invoice.Number : NumberPreview)</dd></div>
             </dl>

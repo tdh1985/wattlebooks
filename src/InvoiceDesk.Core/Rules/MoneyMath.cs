@@ -4,16 +4,18 @@ namespace InvoiceDesk.Core.Rules;
 
 public static class MoneyMath
 {
+    public const decimal PpmPerWhole = 1_000_000m;
+
     public static long Round(decimal cents) => (long)Math.Round(cents, 0, MidpointRounding.AwayFromZero);
 
     public static long LineAmount(decimal quantity, long unitPriceCents) => Round(quantity * unitPriceCents);
 
-    public static long GstOn(long taxableCents, int rateBasisPoints) => Round(taxableCents * rateBasisPoints / 10000m);
+    public static long TaxOn(long taxableCents, int ratePpm) => Round(taxableCents * (decimal)ratePpm / PpmPerWhole);
 
-    public static long GstFromInclusive(long amountCents, int rateBasisPoints) =>
-        Round(amountCents * (decimal)rateBasisPoints / (10000m + rateBasisPoints));
+    public static long TaxFromInclusive(long amountCents, int ratePpm) =>
+        Round(amountCents * (decimal)ratePpm / (PpmPerWhole + ratePpm));
 
-    // gst on a part payment, so bas figures follow cash received
-    public static long ProportionalGst(long paymentCents, long invoiceGstCents, long invoiceTotalCents) =>
-        invoiceTotalCents == 0 ? 0 : Round((decimal)paymentCents * invoiceGstCents / invoiceTotalCents);
+    // tax on a part payment, so return figures follow cash received
+    public static long ProportionalTax(long paymentCents, long invoiceTaxCents, long invoiceTotalCents) =>
+        invoiceTotalCents == 0 ? 0 : Round((decimal)paymentCents * invoiceTaxCents / invoiceTotalCents);
 }

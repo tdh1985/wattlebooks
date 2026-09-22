@@ -8,6 +8,7 @@ using InvoiceDesk.App.Ui;
 using InvoiceDesk.Core;
 using InvoiceDesk.Core.Data;
 using InvoiceDesk.Core.Rules;
+using InvoiceDesk.Core.Services;
 using InvoiceDesk.Core.Storage;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
@@ -101,6 +102,14 @@ public partial class App : Application
         try
         {
             await _services.GetRequiredService<DatabaseInitializer>().InitializeAsync();
+            var profiles = _services.GetRequiredService<ProfileService>();
+            Format.UseCountry((await profiles.GetAsync()).Country);
+            // the pdf renderer and every page read the country through Format
+            profiles.Changed += async () =>
+            {
+                try { Format.UseCountry((await profiles.GetAsync()).Country); }
+                catch (Exception ex) { FileLog.Write(ex, "country change"); }
+            };
             await _services.GetRequiredService<RecurringRunner>().RunAtStartupAsync();
         }
         catch (Exception ex)

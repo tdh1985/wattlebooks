@@ -2,6 +2,7 @@
 
 using System.Net;
 using InvoiceDesk.App.Host;
+using InvoiceDesk.App.Ui;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,7 +33,7 @@ public sealed class DocumentPdfExporter(IServiceProvider services, PdfPrinter pr
         var css = string.Concat(cssFiles.Select(f => EmbeddedAssets.Instance.ReadText(f)));
         return $$"""
             <!DOCTYPE html>
-            <html lang="en-AU">
+            <html lang="{{Format.Country.HtmlLang}}">
             <head>
             <meta charset="utf-8">
             <title>{{WebUtility.HtmlEncode(title)}}</title>

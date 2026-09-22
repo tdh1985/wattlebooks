@@ -11,7 +11,6 @@ public sealed record EmailDraft(string To, string Subject, string Body);
 // ready-to-send wording, so emailing an invoice is one click and a quick read
 public static class EmailTemplates
 {
-    static readonly CultureInfo Au = CultureInfo.GetCultureInfo("en-AU");
     static readonly CultureInfo Months = CultureInfo.InvariantCulture;
 
     public static ReminderTone ToneFor(int remindersSent) => remindersSent switch
@@ -27,7 +26,7 @@ public static class EmailTemplates
         var kind = totals.IsTaxInvoice ? Countries.For(profile.Country).TaxedSubject : "Invoice";
         var body = new StringBuilder()
             .Append(Greeting(inv.Client)).Append("\n\n")
-            .Append($"Please find attached invoice {inv.Number} for {Money(totals.TotalCents)}, due on {Date(inv.DueDate)}.\n\n")
+            .Append($"Please find attached invoice {inv.Number} for {Money(totals.TotalCents, inv.Currency, profile)}, due on {Date(inv.DueDate, profile)}.\n\n")
             .Append(PaymentBlock(profile, inv.Number))
             .Append(SignOff(profile));
         return new EmailDraft(inv.Client?.Email ?? "", $"{kind} {inv.Number} from {BusinessName(profile)}", body.ToString());
@@ -38,7 +37,7 @@ public static class EmailTemplates
     {
         var body = new StringBuilder()
             .Append(Greeting(quote.Client)).Append("\n\n")
-            .Append($"Please find attached quote {quote.Number} for {Money(quote.Totals().TotalCents)}. It's valid until {Date(quote.DueDate)}.\n\n")
+            .Append($"Please find attached quote {quote.Number} for {Money(quote.Totals().TotalCents, quote.Currency, profile)}. It's valid until {Date(quote.DueDate, profile)}.\n\n")
             .Append("If you'd like to go ahead, just reply to this email. Happy to answer any questions too.\n\n")
             .Append(SignOff(profile));
         return new EmailDraft(quote.Client?.Email ?? "", $"Quote {quote.Number} from {BusinessName(profile)}", body.ToString());
@@ -49,21 +48,22 @@ public static class EmailTemplates
         var total = inv.Totals().TotalCents;
         var balance = total - inv.PaidCents;
         var partPaid = balance < total;
-        var due = Date(inv.DueDate);
+        var due = Date(inv.DueDate, profile);
         var late = today.DayNumber - inv.DueDate.DayNumber;
         var overdue = late == 1 ? "1 day overdue" : $"{late} days overdue";
+        var balanceText = Money(balance, inv.Currency, profile);
 
         // part paid invoices ask for what's left, so the sentence has to change shape
         var nowOverdue = partPaid
-            ? $"Invoice {inv.Number} still has {Money(balance)} owing and is now {overdue}. It was due on {due}."
-            : $"Invoice {inv.Number} for {Money(balance)} is now {overdue}. It was due on {due}.";
+            ? $"Invoice {inv.Number} still has {balanceText} owing and is now {overdue}. It was due on {due}."
+            : $"Invoice {inv.Number} for {balanceText} is now {overdue}. It was due on {due}.";
         var (subject, message) = tone switch
         {
             ReminderTone.Polite => (
                 $"Reminder: invoice {inv.Number}",
                 (partPaid
-                    ? $"Just a friendly reminder that invoice {inv.Number} still has {Money(balance)} owing. It was due on {due}. "
-                    : $"Just a friendly reminder that invoice {inv.Number} for {Money(balance)} was due on {due}. ") +
+                    ? $"Just a friendly reminder that invoice {inv.Number} still has {balanceText} owing. It was due on {due}. "
+                    : $"Just a friendly reminder that invoice {inv.Number} for {balanceText} was due on {due}. ") +
                 "If you've already paid, thank you, and please ignore this email. I've attached the invoice again in case it's handy."),
             ReminderTone.Firm => (
                 $"Overdue: invoice {inv.Number} is {overdue}",
@@ -83,10 +83,11 @@ public static class EmailTemplates
 
     public static EmailDraft Statement(Client client, BusinessProfile profile, long totalDueCents, DateOnly asOf)
     {
+        var homeCurrency = Countries.For(profile.Country).Currency;
         var body = new StringBuilder()
             .Append(Greeting(client)).Append("\n\n")
-            .Append($"I've attached a statement of your account as at {Date(asOf)}. ")
-            .Append(totalDueCents > 0 ? $"The total owing is {Money(totalDueCents)}.\n\n" : "Everything is paid, thank you.\n\n")
+            .Append($"I've attached a statement of your account as at {Date(asOf, profile)}. ")
+            .Append(totalDueCents > 0 ? $"The total owing is {Money(totalDueCents, homeCurrency, profile)}.\n\n" : "Everything is paid, thank you.\n\n")
             .Append(totalDueCents > 0 ? PaymentBlock(profile, "the invoice numbers") : "")
             .Append(SignOff(profile));
         return new EmailDraft(client.Email, $"Statement from {BusinessName(profile)}", body.ToString());
@@ -113,7 +114,9 @@ public static class EmailTemplates
 
     static string BusinessName(BusinessProfile profile) => profile.Name.Trim() is { Length: > 0 } name ? name : "us";
 
-    static string Money(long cents) => (cents / 100m).ToString("C2", Au);
+    static string Money(long cents, string currency, BusinessProfile profile) =>
+        Currencies.Format(cents, currency, Countries.For(profile.Country).Currency);
 
-    static string Date(DateOnly d) => d.ToString("d MMMM yyyy", Months);
+    static string Date(DateOnly d, BusinessProfile profile) =>
+        d.ToString(Countries.For(profile.Country).LongDate, Months);
 }

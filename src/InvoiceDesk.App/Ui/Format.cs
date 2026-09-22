@@ -9,38 +9,45 @@ namespace InvoiceDesk.App.Ui;
 
 public static class Format
 {
-    static readonly CultureInfo Au = CultureInfo.GetCultureInfo("en-AU");
-    static readonly CultureInfo Months = CultureInfo.InvariantCulture;
+    static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
 
-    public static string Money(long cents) => (cents / 100m).ToString("C2", Au);
+    // set from the business profile at startup and whenever it changes
+    public static CountryRules Country { get; private set; } = Australia.Rules;
 
-    public static string Amount(long cents) => (cents / 100m).ToString("N2", Au);
+    public static void UseCountry(string code) => Country = Countries.For(code);
 
-    public static string MoneyInput(long cents) => (cents / 100m).ToString("0.00", CultureInfo.InvariantCulture);
+    public static string Money(long cents) => Currencies.Format(cents, Country.Currency, Country.Currency);
+
+    public static string Money(long cents, string currency) => Currencies.Format(cents, currency, Country.Currency);
+
+    public static string Amount(long cents) => Currencies.Amount(cents);
+
+    public static string MoneyInput(long cents) => (cents / 100m).ToString("0.00", Invariant);
 
     public static long? ParseMoney(string? text)
     {
         if (string.IsNullOrWhiteSpace(text)) return null;
-        var cleaned = text.Replace("$", "").Replace(",", "").Replace(" ", "").Trim();
-        return decimal.TryParse(cleaned, NumberStyles.Number, CultureInfo.InvariantCulture, out var value)
+        // strips everything but digits, dot and minus so any currency mark parses
+        var cleaned = new string(text.Where(c => char.IsAsciiDigit(c) || c is '.' or '-').ToArray());
+        return decimal.TryParse(cleaned, NumberStyles.Number, Invariant, out var value)
             ? MoneyMath.Round(value * 100)
             : null;
     }
 
     public static decimal? ParseQuantity(string? text) =>
-        decimal.TryParse(text?.Replace(",", "").Trim(), NumberStyles.Number, CultureInfo.InvariantCulture, out var q) ? Math.Round(q, 2, MidpointRounding.AwayFromZero) : null;
+        decimal.TryParse(text?.Replace(",", "").Trim(), NumberStyles.Number, Invariant, out var q) ? Math.Round(q, 2, MidpointRounding.AwayFromZero) : null;
 
-    public static string Quantity(decimal q) => q.ToString("0.##", CultureInfo.InvariantCulture);
+    public static string Quantity(decimal q) => q.ToString("0.##", Invariant);
 
-    public static string Date(DateOnly d) => d.ToString("dd/MM/yyyy", Au);
+    public static string Date(DateOnly d) => d.ToString(Country.ShortDate, Invariant);
 
-    public static string DateLong(DateOnly d) => d.ToString("d MMMM yyyy", Months);
+    public static string DateLong(DateOnly d) => d.ToString(Country.LongDate, Invariant);
 
-    public static string DateShort(DateOnly d) => d.ToString("d MMM", Months);
+    public static string DateShort(DateOnly d) => d.ToString(Country.DayMonth, Invariant);
 
-    public static string MonthShort(DateOnly d) => d.ToString("MMM", Months);
+    public static string MonthShort(DateOnly d) => d.ToString("MMM", Invariant);
 
-    public static string Iso(DateOnly d) => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+    public static string Iso(DateOnly d) => d.ToString("yyyy-MM-dd", Invariant);
 
     public static DateOnly? ParseIso(string? value) =>
         DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d) ? d : null;

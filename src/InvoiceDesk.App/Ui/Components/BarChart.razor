@@ -133,7 +133,7 @@
         return Math.Max(100, (long)(nice * magnitude));
     }
 
-    static string TickLabel(long cents) => (cents / 100m).ToString("$#,0", CultureInfo.InvariantCulture);
+    static string TickLabel(long cents) => Currencies.Find(Format.Country.Currency)!.Symbol + (cents / 100m).ToString("#,0", CultureInfo.InvariantCulture);
 
     static string F(double v) => v.ToString("0.##", CultureInfo.InvariantCulture);
 }

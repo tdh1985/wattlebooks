@@ -43,9 +43,9 @@ Windows SmartScreen may say it protected your PC. Click **More info**, then
   the financial year, GST for the current BAS quarter and a 12-month chart.
 - Reports with a BAS worksheet (G1, 1A and 1B) and a profit and loss for any
   quarter or financial year, saved as PDF or CSV.
-- Your business details, logo, bank details, accent colour, invoice numbering
-  and payment terms, and a choice of three invoice layouts: classic, modern and
-  minimal.
+- Your business details, logo (JPG, PNG or WebP up to 5 MB), bank details,
+  accent colour, invoice numbering and payment terms, and a choice of three
+  invoice layouts: classic, modern and minimal.
 - Clients with their own notes, website and a note printed on every invoice.
 - Each client shows how late they usually pay, and the dashboard shows what's
   likely to come in over the next 30 days based on those habits.

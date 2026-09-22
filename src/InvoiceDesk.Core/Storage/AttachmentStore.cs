@@ -9,6 +9,9 @@ namespace InvoiceDesk.Core.Storage;
 public sealed class AttachmentStore(AppPaths paths, TimeProvider clock)
 {
     public const long MaxBytes = 25L * 1024 * 1024;
+
+    // the logo lands in every pdf, so a huge one would bloat each invoice
+    public const long MaxLogoBytes = 5L * 1024 * 1024;
     public const string AcceptList = ".pdf,.jpg,.jpeg,.png,.webp";
     public const string ImageAcceptList = ".jpg,.jpeg,.png,.webp";
 

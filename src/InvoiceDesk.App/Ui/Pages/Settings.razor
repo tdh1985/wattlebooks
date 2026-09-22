@@ -76,8 +76,8 @@
                                     }
                                 </div>
                                 <div class="col gap-8 grow">
-                                    <FileDropZone Compact Multiple="false" Accept="@AttachmentStore.ImageAcceptList" IconName="image"
-                                                  Title="Drop your logo here, or click to choose" Hint="JPG, PNG or WebP. A wide logo on a clear background prints best."
+                                    <FileDropZone Compact Multiple="false" Accept="@AttachmentStore.ImageAcceptList" IconName="image" MaxBytes="AttachmentStore.MaxLogoBytes"
+                                                  Title="Drop your logo here, or click to choose" Hint="JPG, PNG or WebP, up to 5 MB. A wide logo on a clear background prints best."
                                                   OnFiles="SetLogoAsync" />
                                     @if (_profile.LogoAttachment is not null)
                                     {

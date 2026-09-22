@@ -11,6 +11,8 @@ namespace InvoiceDesk.Core.Services;
 
 public sealed partial class ProfileService(IDbContextFactory<AppDbContext> factory, AttachmentStore store)
 {
+    const string LogoTooBig = "The logo must be 5 MB or smaller.";
+
     public event Action? Changed;
 
     public async Task<BusinessProfile> GetAsync()
@@ -38,6 +40,8 @@ public sealed partial class ProfileService(IDbContextFactory<AppDbContext> facto
     {
         if (file is not null && !file.IsImage)
             throw new ValidationException("The logo must be a JPG, PNG or WebP image.");
+        if (file is not null && new FileInfo(file.TempPath).Length > AttachmentStore.MaxLogoBytes)
+            throw new ValidationException(LogoTooBig);
 
         await using var db = await factory.CreateDbContextAsync();
         var profile = await db.Profiles.Include(p => p.LogoAttachment).SingleAsync();

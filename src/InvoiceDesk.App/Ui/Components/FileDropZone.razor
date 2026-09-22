@@ -19,6 +19,7 @@
     [Parameter] public string Title { get; set; } = "Drop receipts here, or click to choose";
     [Parameter] public string Hint { get; set; } = "PDF, JPG, PNG or WebP, up to 25 MB each";
     [Parameter] public string IconName { get; set; } = "upload";
+    [Parameter] public long MaxBytes { get; set; } = AttachmentStore.MaxBytes;
     [Parameter] public EventCallback<IReadOnlyList<StagedFile>> OnFiles { get; set; }
 
     const int MaxFiles = 20;
@@ -44,9 +45,15 @@
                 Toasts.Show(error, ToastKind.Error);
                 continue;
             }
+            // refused here so a big logo isn't copied just to be turned away
+            if (file.Size > MaxBytes)
+            {
+                Toasts.Show($"{file.Name} is larger than {MaxBytes / (1024 * 1024)} MB.", ToastKind.Error);
+                continue;
+            }
             try
             {
-                await using var stream = file.OpenReadStream(AttachmentStore.MaxBytes);
+                await using var stream = file.OpenReadStream(MaxBytes);
                 staged.Add(await Store.StageAsync(stream, file.Name, file.Size));
             }
             catch (Exception ex)

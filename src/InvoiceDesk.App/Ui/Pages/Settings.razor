@@ -375,6 +375,50 @@
                     <h2>About</h2>
                     <p class="soft">InvoiceDesk never goes online by itself. Checking for updates asks GitHub for the latest version, and only when you click the button.</p>
                     <div class="data-card">
+                        <div class="about-logo">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 330" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="InvoiceDesk">
+                                <title>InvoiceDesk</title>
+                                <!-- inline so currentColor can follow the theme, not an <img> -->
+                                <defs>
+                                    <mask id="idsk-behind-front" maskUnits="userSpaceOnUse" x="-100" y="-100" width="500" height="500">
+                                        <rect x="-100" y="-100" width="500" height="500" fill="#fff"/>
+                                        <rect x="77.5" y="7.5" width="121" height="160" fill="#000"/>
+                                    </mask>
+                                    <mask id="idsk-behind-both" maskUnits="userSpaceOnUse" x="-100" y="-100" width="500" height="500">
+                                        <rect x="-100" y="-100" width="500" height="500" fill="#fff"/>
+                                        <rect x="77.5" y="7.5" width="121" height="160" fill="#000"/>
+                                        <rect x="77.5" y="7.5" width="121" height="160" fill="#000" transform="rotate(-5.4 138 400)"/>
+                                    </mask>
+                                </defs>
+                                <g transform="translate(130 6.5)">
+                                    <!-- paper: two fanned pages behind, the front page with a folded corner -->
+                                    <g fill="none" stroke="currentColor" stroke-width="9" stroke-linejoin="miter">
+                                        <g mask="url(#idsk-behind-both)"><path d="M88 150V18H188V150" transform="rotate(-10.8 138 400)"/></g>
+                                        <g mask="url(#idsk-behind-front)"><path d="M88 150V18H188V150" transform="rotate(-5.4 138 400)"/></g>
+                                        <path d="M88 160V18H156L188 50V160"/>
+                                        <path d="M156 18V50H188" fill="#DE9F32"/>
+                                    </g>
+                                    <!-- neutral invoice: heading, three lines and a paid tick with a total -->
+                                    <g fill="#DE9F32">
+                                        <rect x="104" y="34" width="32" height="9"/>
+                                        <rect x="104" y="58" width="68" height="9"/>
+                                        <rect x="104" y="75" width="68" height="9"/>
+                                        <rect x="104" y="92" width="68" height="9"/>
+                                        <rect x="146" y="124.5" width="26" height="9"/>
+                                    </g>
+                                    <path d="M106 124.5L115 133.5L133 115.5" fill="none" stroke="#DE9F32" stroke-width="9" stroke-linejoin="miter"/>
+                                    <!-- desk: top, stretcher and two splayed legs -->
+                                    <g fill="currentColor">
+                                        <rect x="0" y="150" width="240" height="18"/>
+                                        <rect x="36" y="174" width="168" height="9"/>
+                                        <path d="M23.9 160H42.4L24.5 236H6Z"/>
+                                        <path d="M216.1 160H197.6L215.5 236H234Z"/>
+                                    </g>
+                                </g>
+                                <!-- wordmark -->
+                                <text x="25" y="310" fill="currentColor" font-family="Bahnschrift, 'Segoe UI', sans-serif" font-size="60" letter-spacing="5.4"><tspan font-weight="700">INVOICE</tspan><tspan font-weight="300"> DESK</tspan></text>
+                            </svg>
+                        </div>
                         <div class="row gap-12 wrap">
                             <span class="about-version">Version @UpdateChecker.CurrentVersion</span>
                             <button type="button" class="btn btn-sm" disabled="@_checking" @onclick="CheckForUpdatesAsync">

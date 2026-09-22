@@ -55,9 +55,9 @@
             <dt>Statement date</dt>
             <dd>@Format.DateLong(Statement.AsOf)</dd>
             <dt>Invoices unpaid</dt>
-            <dd>@Statement.Lines.Count</dd>
+            <dd>@Lines.Count</dd>
             <dt class="doc-due">Total owing</dt>
-            <dd class="doc-due">@Format.Money(Statement.TotalDueCents)</dd>
+            <dd class="doc-due">@Format.Money(TotalDueCents)</dd>
         </dl>
     </section>
 
@@ -83,7 +83,7 @@
             </tr>
         </thead>
         <tbody>
-            @foreach (var line in Statement.Lines)
+            @foreach (var line in Lines)
             {
                 var s = line.Invoice;
                 <tr>
@@ -101,7 +101,7 @@
                     <td class="n">@Format.Amount(s.BalanceCents)</td>
                 </tr>
             }
-            @if (Statement.Lines.Count == 0)
+            @if (Lines.Count == 0)
             {
                 <tr><td colspan="6" class="doc-placeholder">Nothing is owing. Thank you.</td></tr>
             }
@@ -111,13 +111,13 @@
     <div class="doc-summary">
         <div></div>
         <div class="doc-totals">
-            <div class="doc-row doc-total"><span>Total owing</span><span class="n">@Format.Money(Statement.TotalDueCents)</span></div>
+            <div class="doc-row doc-total"><span>Total owing</span><span class="n">@Format.Money(TotalDueCents)</span></div>
         </div>
     </div>
 
     <div class="doc-spacer"></div>
 
-    @if (hasBank && Statement.TotalDueCents > 0)
+    @if (hasBank && TotalDueCents > 0)
     {
         <section class="doc-remit">
             <div class="doc-remit-title">How to pay</div>
@@ -146,12 +146,22 @@
     [Parameter, EditorRequired] public BusinessProfile Profile { get; set; } = default!;
     [Parameter] public string? LogoUrl { get; set; }
 
+    // one page shows every section together until each currency gets its own
+    List<StatementLine> Lines => Statement.Sections.SelectMany(s => s.Lines).ToList();
+
+    AgedTotals Aged => new(
+        Statement.Sections.Sum(s => s.Aged.Current), Statement.Sections.Sum(s => s.Aged.Late1To30),
+        Statement.Sections.Sum(s => s.Aged.Late31To60), Statement.Sections.Sum(s => s.Aged.Late61To90),
+        Statement.Sections.Sum(s => s.Aged.LateOver90));
+
+    long TotalDueCents => Aged.Total;
+
     IEnumerable<(string Label, long Cents)> Buckets =>
     [
-        ("Not yet due", Statement.Aged.Current),
-        ("1–30 days", Statement.Aged.Late1To30),
-        ("31–60 days", Statement.Aged.Late31To60),
-        ("61–90 days", Statement.Aged.Late61To90),
-        ("Over 90 days", Statement.Aged.LateOver90),
+        ("Not yet due", Aged.Current),
+        ("1–30 days", Aged.Late1To30),
+        ("31–60 days", Aged.Late31To60),
+        ("61–90 days", Aged.Late61To90),
+        ("Over 90 days", Aged.LateOver90),
     ];
 }

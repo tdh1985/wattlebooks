@@ -36,7 +36,7 @@ public sealed class SearchService(IDbContextFactory<AppDbContext> factory, TimeP
             .Where(i => i.Kind == kind)
             .Take(PerKind)
             .Select(i => InvoiceSummary.From(i, today))
-            .Select(s => new SearchResult(shownAs, s.Id, s.Number, s.ClientName, s.TotalCents, s.IssueDate, s.Status, s.BalanceCents));
+            .Select(s => new SearchResult(shownAs, s.Id, s.Number, s.ClientName, s.TotalCents, s.IssueDate, s.Status, s.BalanceCents, s.Currency));
 
         var txs = (await db.Transactions.AsNoTracking().ToListAsync())
             .Where(t => Text.Has(t.Party, term) || Text.Has(t.Description, term))

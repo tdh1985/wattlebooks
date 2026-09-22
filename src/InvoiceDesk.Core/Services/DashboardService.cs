@@ -26,6 +26,8 @@ public sealed class DashboardService(IDbContextFactory<AppDbContext> factory, Ti
 
         var profile = await profiles.GetAsync();
         var country = Countries.For(profile.Country);
+        var home = country.Currency;
+        var homeOpen = open.Where(s => s.Currency == home).ToList();
         var month = FinancialPeriods.Month(today);
         var year = FinancialPeriods.TaxYear(today, country);
         var period = FinancialPeriods.ReturnPeriod(today, profile.TaxPeriodMonths, profile.TaxPeriodEndMonth);
@@ -37,11 +39,17 @@ public sealed class DashboardService(IDbContextFactory<AppDbContext> factory, Ti
             .Select(r => new MonthBar(r.Start, Sum(Direction.In, r, t => t.AmountCents), Sum(Direction.Out, r, t => t.AmountCents)))
             .ToList();
 
+        var other = open.Where(s => s.Currency != home)
+            .GroupBy(s => s.Currency)
+            .Select(g => new CurrencyAmount(g.Key, g.Sum(s => s.BalanceCents)))
+            .OrderBy(c => c.Currency, StringComparer.Ordinal)
+            .ToList();
+
         return new DashboardData(
-            OutstandingCents: open.Sum(s => s.BalanceCents),
-            OutstandingCount: open.Count,
-            OverdueCents: overdue.Sum(s => s.BalanceCents),
-            OverdueCount: overdue.Count,
+            OutstandingCents: homeOpen.Sum(s => s.BalanceCents),
+            OutstandingCount: homeOpen.Count,
+            OverdueCents: overdue.Where(s => s.Currency == home).Sum(s => s.BalanceCents),
+            OverdueCount: overdue.Count(s => s.Currency == home),
             ReceivedMonthCents: Sum(Direction.In, month, t => t.AmountCents),
             SpentMonthCents: Sum(Direction.Out, month, t => t.AmountCents),
             ProfitYearCents: Sum(Direction.In, year, t => t.ExTaxCents) - Sum(Direction.Out, year, t => t.ExTaxCents),
@@ -51,7 +59,8 @@ public sealed class DashboardService(IDbContextFactory<AppDbContext> factory, Ti
             PeriodLabel: FinancialPeriods.ReturnPeriodLabel(period, country),
             Months: months,
             Overdue: overdue,
-            Recent: Recent(invoices, txs));
+            Recent: Recent(invoices, txs),
+            OtherOutstanding: other);
     }
 
     static List<ActivityItem> Recent(List<Invoice> invoices, List<Transaction> txs)
@@ -63,9 +72,9 @@ public sealed class DashboardService(IDbContextFactory<AppDbContext> factory, Ti
             var total = inv.Totals().TotalCents;
             // a draft in a series was made by the app, not typed, so it says so
             var made = inv is { RecurringScheduleId: not null, Status: InvoiceStatus.Draft } ? "drafted to repeat" : "created";
-            items.Add(new ActivityItem(inv.CreatedAt, ActivityKind.InvoiceCreated, inv.Id, $"{inv.Number} {made}", client, total));
+            items.Add(new ActivityItem(inv.CreatedAt, ActivityKind.InvoiceCreated, inv.Id, $"{inv.Number} {made}", client, total, inv.Currency));
             if (inv.SentAt is { } sent)
-                items.Add(new ActivityItem(sent, ActivityKind.InvoiceSent, inv.Id, $"{inv.Number} sent", client, total));
+                items.Add(new ActivityItem(sent, ActivityKind.InvoiceSent, inv.Id, $"{inv.Number} sent", client, total, inv.Currency));
         }
 
         foreach (var t in txs)

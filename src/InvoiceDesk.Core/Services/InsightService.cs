@@ -9,9 +9,9 @@ namespace InvoiceDesk.Core.Services;
 
 public sealed record ExpectedPayment(InvoiceSummary Invoice, DateOnly ExpectedDate);
 
-public sealed record CashForecast(long TotalCents, int Days, IReadOnlyList<ExpectedPayment> Items);
+public sealed record CashForecast(long TotalCents, int Days, IReadOnlyList<ExpectedPayment> Items, IReadOnlyList<CurrencyAmount> Other);
 
-public sealed class InsightService(IDbContextFactory<AppDbContext> factory, TimeProvider clock)
+public sealed class InsightService(IDbContextFactory<AppDbContext> factory, TimeProvider clock, ProfileService profiles)
 {
     public async Task<PaymentHabit?> GetClientHabitAsync(int clientId)
     {
@@ -22,6 +22,7 @@ public sealed class InsightService(IDbContextFactory<AppDbContext> factory, Time
     public async Task<CashForecast> GetForecastAsync(int days = 30)
     {
         var today = clock.Today();
+        var home = Countries.For((await profiles.GetAsync()).Country).Currency;
         var invoices = await LoadSentAsync(clientId: null);
         var habits = invoices.GroupBy(i => i.ClientId).ToDictionary(g => g.Key, g => Habit(g));
 
@@ -32,7 +33,13 @@ public sealed class InsightService(IDbContextFactory<AppDbContext> factory, Time
             .Where(e => e.ExpectedDate <= today.AddDays(days))
             .OrderBy(e => e.ExpectedDate).ThenBy(e => e.Invoice.Number)
             .ToList();
-        return new CashForecast(items.Sum(e => e.Invoice.BalanceCents), days, items);
+        var other = items.Where(e => e.Invoice.Currency != home)
+            .GroupBy(e => e.Invoice.Currency)
+            .Select(g => new CurrencyAmount(g.Key, g.Sum(e => e.Invoice.BalanceCents)))
+            .OrderBy(c => c.Currency, StringComparer.Ordinal)
+            .ToList();
+        var total = items.Where(e => e.Invoice.Currency == home).Sum(e => e.Invoice.BalanceCents);
+        return new CashForecast(total, days, items, other);
     }
 
     async Task<List<Invoice>> LoadSentAsync(int? clientId)
@@ -48,7 +55,7 @@ public sealed class InsightService(IDbContextFactory<AppDbContext> factory, Time
     static PaymentHabit? Habit(IEnumerable<Invoice> invoices) =>
         PaymentHabits.From(invoices
             .Select(i => (i.DueDate, Paid: PaymentHabits.PaidDate(i.Totals().TotalCents,
-                i.Payments.Where(p => p.Direction == Direction.In).Select(p => (p.Date, p.AmountCents)))))
+                i.Payments.Where(p => p.Direction == Direction.In).Select(p => (p.Date, p.InvoiceAmountCents)))))
             .Where(x => x.Paid is not null)
             .Select(x => (x.DueDate, x.Paid!.Value)));
 }

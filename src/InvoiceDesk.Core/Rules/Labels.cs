@@ -21,4 +21,15 @@ public static class Labels
     };
 
     public static string Direction(Direction d) => d == Domain.Direction.In ? "Money in" : "Money out";
+
+    public static string JoinAnd(IEnumerable<string> items)
+    {
+        var list = items.ToList();
+        return list.Count switch
+        {
+            0 => "",
+            1 => list[0],
+            _ => $"{string.Join(", ", list[..^1])} and {list[^1]}",
+        };
+    }
 }

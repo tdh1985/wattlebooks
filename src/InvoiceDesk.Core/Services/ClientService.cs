@@ -24,9 +24,10 @@ public sealed class ClientService(IDbContextFactory<AppDbContext> factory, TimeP
         if (term.Length > 0)
             clients = clients.Where(c => Text.Has(c.Name, term) || Text.Has(c.ContactName, term) || Text.Has(c.Email, term)).ToList();
 
+        var home = Countries.For((await profiles.GetAsync()).Country).Currency;
         return clients
             .OrderBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase)
-            .Select(Summarise)
+            .Select(c => Summarise(c, home))
             .ToList();
     }
 
@@ -105,12 +106,14 @@ public sealed class ClientService(IDbContextFactory<AppDbContext> factory, TimeP
         Changed?.Invoke();
     }
 
-    static ClientSummary Summarise(Client c)
+    static ClientSummary Summarise(Client c, string home)
     {
-        var invoices = c.Invoices.Where(i => i.Kind == InvoiceKind.Invoice).ToList();
+        var currency = c.Currency.Length > 0 ? c.Currency : home;
+        var invoices = c.Invoices.Where(i => i.Kind == InvoiceKind.Invoice && i.Currency == currency).ToList();
         var issued = invoices.Where(i => i.Status == InvoiceStatus.Sent).ToList();
         var billed = issued.Sum(i => i.Totals().TotalCents);
         var outstanding = issued.Sum(i => Math.Max(0, i.Totals().TotalCents - i.PaidCents));
-        return new ClientSummary(c, invoices.Count, billed, outstanding, c.Invoices.Count - invoices.Count);
+        var quotes = c.Invoices.Count(i => i.Kind == InvoiceKind.Quote);
+        return new ClientSummary(c, invoices.Count, billed, outstanding, quotes, currency);
     }
 }

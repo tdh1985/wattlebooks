@@ -3,6 +3,7 @@
 using System.Globalization;
 using System.Text;
 using InvoiceDesk.Core.Domain;
+using InvoiceDesk.Core.Services;
 
 namespace InvoiceDesk.Core.Rules;
 
@@ -81,14 +82,16 @@ public static class EmailTemplates
         return new EmailDraft(inv.Client?.Email ?? "", subject, body.ToString());
     }
 
-    public static EmailDraft Statement(Client client, BusinessProfile profile, long totalDueCents, DateOnly asOf)
+    public static EmailDraft Statement(Client client, BusinessProfile profile, IReadOnlyList<CurrencyAmount> owing, DateOnly asOf)
     {
-        var homeCurrency = Countries.For(profile.Country).Currency;
+        var owesSomething = owing.Any(o => o.Cents != 0);
         var body = new StringBuilder()
             .Append(Greeting(client)).Append("\n\n")
             .Append($"I've attached a statement of your account as at {Date(asOf, profile)}. ")
-            .Append(totalDueCents > 0 ? $"The total owing is {Money(totalDueCents, homeCurrency, profile)}.\n\n" : "Everything is paid, thank you.\n\n")
-            .Append(totalDueCents > 0 ? PaymentBlock(profile, "the invoice numbers") : "")
+            .Append(owesSomething
+                ? $"The total owing is {Labels.JoinAnd(owing.Select(o => Money(o.Cents, o.Currency, profile)))}.\n\n"
+                : "Everything is paid, thank you.\n\n")
+            .Append(owesSomething ? PaymentBlock(profile, "the invoice numbers") : "")
             .Append(SignOff(profile));
         return new EmailDraft(client.Email, $"Statement from {BusinessName(profile)}", body.ToString());
     }

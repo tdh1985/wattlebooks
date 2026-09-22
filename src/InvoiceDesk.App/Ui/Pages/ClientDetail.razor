@@ -299,7 +299,8 @@
             var (path, statement) = await Statements.ExportAsync(Id);
             if (email)
             {
-                var draft = EmailTemplates.Statement(statement.Client, await Profiles.GetAsync(), statement.TotalDueCents, statement.AsOf);
+                var owing = statement.Sections.Select(s => new CurrencyAmount(s.Currency, s.Aged.Total)).ToList();
+                var draft = EmailTemplates.Statement(statement.Client, await Profiles.GetAsync(), owing, statement.AsOf);
                 await Email.ComposeAsync(draft, path);
             }
             else

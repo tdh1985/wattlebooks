@@ -9,13 +9,12 @@ namespace InvoiceDesk.Core.Services;
 
 public sealed record StatementLine(InvoiceSummary Invoice, int DaysOverdue);
 
-public sealed record Statement(Client Client, DateOnly AsOf, IReadOnlyList<StatementLine> Lines, AgedTotals Aged)
-{
-    public long TotalDueCents => Aged.Total;
-}
+public sealed record StatementSection(string Currency, IReadOnlyList<StatementLine> Lines, AgedTotals Aged);
+
+public sealed record Statement(Client Client, DateOnly AsOf, IReadOnlyList<StatementSection> Sections);
 
 // everything a client still owes on one page, for chasing several invoices at once
-public sealed class StatementService(IDbContextFactory<AppDbContext> factory, TimeProvider clock)
+public sealed class StatementService(IDbContextFactory<AppDbContext> factory, TimeProvider clock, ProfileService profiles)
 {
     public async Task<Statement> BuildAsync(int clientId)
     {
@@ -23,6 +22,7 @@ public sealed class StatementService(IDbContextFactory<AppDbContext> factory, Ti
         await using var db = await factory.CreateDbContextAsync();
         var client = await db.Clients.AsNoTracking().SingleOrDefaultAsync(c => c.Id == clientId)
                      ?? throw new ValidationException("This client no longer exists.");
+        var home = Countries.For((await profiles.GetAsync()).Country).Currency;
         var invoices = await db.Invoices.AsNoTracking().AsSplitQuery()
             .Include(i => i.Lines).Include(i => i.Payments)
             .Where(i => i.ClientId == clientId && i.Kind == InvoiceKind.Invoice && i.Status == InvoiceStatus.Sent)
@@ -34,7 +34,12 @@ public sealed class StatementService(IDbContextFactory<AppDbContext> factory, Ti
             .OrderBy(s => s.DueDate).ThenBy(s => s.Number)
             .Select(s => new StatementLine(s with { ClientName = client.Name }, Math.Max(0, asOf.DayNumber - s.DueDate.DayNumber)))
             .ToList();
-        var aged = Aging.Totals(lines.Select(l => (l.Invoice.DueDate, l.Invoice.BalanceCents)), asOf);
-        return new Statement(client, asOf, lines, aged);
+        var sections = lines
+            .GroupBy(l => l.Invoice.Currency)
+            .OrderBy(g => g.Key == home ? 0 : 1)
+            .Select(g => new StatementSection(g.Key, g.ToList(),
+                Aging.Totals(g.Select(l => (l.Invoice.DueDate, l.Invoice.BalanceCents)), asOf)))
+            .ToList();
+        return new Statement(client, asOf, sections);
     }
 }

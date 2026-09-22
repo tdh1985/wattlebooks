@@ -330,6 +330,13 @@ public sealed class InvoiceService(
                 ? "Mark the invoice as sent before recording a payment."
                 : "Void invoices can't take payments.");
 
+        var home = Countries.For((await db.Profiles.AsNoTracking().SingleAsync()).Country).Currency;
+        var foreign = !string.Equals(inv.Currency, home, StringComparison.OrdinalIgnoreCase);
+        if (foreign && input.HomeAmountCents is not > 0)
+            throw new ValidationException($"Enter the amount that reached your bank in {home}.");
+        // the bank amount counts for tax and profit, the other settles the invoice
+        var bankCents = foreign ? input.HomeAmountCents!.Value : input.AmountCents;
+
         var totals = inv.Totals();
         var sales = await categories.GetSalesAsync();
         var note = Text.Clean(input.Note);
@@ -337,14 +344,16 @@ public sealed class InvoiceService(
         {
             Direction = Direction.In,
             Date = input.Date,
-            AmountCents = input.AmountCents,
-            TaxCents = totals.IsTaxInvoice ? MoneyMath.ProportionalTax(input.AmountCents, totals.TaxCents, totals.TotalCents) : 0,
+            AmountCents = bankCents,
+            TaxCents = totals.IsTaxInvoice ? MoneyMath.ProportionalTax(bankCents, totals.TaxCents, totals.TotalCents) : 0,
             CategoryId = sales.Id,
             Party = inv.Client!.Name,
             Description = note.Length == 0 ? $"Payment for {inv.Number}" : $"Payment for {inv.Number} – {note}",
             InvoiceId = inv.Id,
             Method = input.Method,
             CreatedAt = clock.Now(),
+            ForeignAmountCents = foreign ? input.AmountCents : null,
+            ForeignCurrency = foreign ? inv.Currency : "",
         };
 
         var files = store.ImportAll(receipts, AttachmentKind.Receipt);

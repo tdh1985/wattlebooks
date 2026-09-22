@@ -31,10 +31,10 @@
             <p class="doc-small">@Format.DateLong(bas.Period.Start) to @Format.DateLong(bas.Period.End), cash basis</p>
             <table class="doc-lines">
                 <tbody>
-                    <tr><td><span class="doc-code">G1</span>Total sales, including GST</td><td class="n">@Format.Money(bas.TotalSalesCents)</td></tr>
-                    <tr><td><span class="doc-code">1A</span>GST on sales</td><td class="n">@Format.Money(bas.GstOnSalesCents)</td></tr>
-                    <tr><td><span class="doc-code">1B</span>GST on purchases</td><td class="n">@Format.Money(bas.GstOnPurchasesCents)</td></tr>
-                    <tr class="doc-sum"><td>@(bas.NetGstCents >= 0 ? "GST to pay (1A less 1B)" : "GST refund (1B less 1A)")</td><td class="n">@Format.Money(Math.Abs(bas.NetGstCents))</td></tr>
+                    <tr><td><span class="doc-code">G1</span>Total sales, including GST</td><td class="n">@Format.Money(bas.Box("G1"))</td></tr>
+                    <tr><td><span class="doc-code">1A</span>GST on sales</td><td class="n">@Format.Money(bas.Box("1A"))</td></tr>
+                    <tr><td><span class="doc-code">1B</span>GST on purchases</td><td class="n">@Format.Money(bas.Box("1B"))</td></tr>
+                    <tr class="doc-sum"><td>@bas.Boxes[^1].Label</td><td class="n">@Format.Money(Math.Abs(bas.NetCents))</td></tr>
                 </tbody>
             </table>
         </section>
@@ -109,7 +109,7 @@
 </article>
 
 @code {
-    [Parameter] public BasSummary? Bas { get; set; }
+    [Parameter] public TaxReturn? Bas { get; set; }
     [Parameter] public ProfitAndLoss? Pl { get; set; }
     [Parameter, EditorRequired] public BusinessProfile Profile { get; set; } = default!;
     [Parameter] public string? LogoUrl { get; set; }

@@ -12,13 +12,6 @@ public sealed record CategoryTotal(string Category, long AmountCents, long TaxCe
     public long ExTaxCents => AmountCents - TaxCents;
 }
 
-// labels match the simpler bas: G1 total sales, 1A gst on sales, 1B gst on purchases
-public sealed record BasSummary(DateRange Period, long TotalSalesCents, long GstOnSalesCents, long GstOnPurchasesCents,
-    IReadOnlyList<CategoryTotal> SalesByCategory)
-{
-    public long NetGstCents => GstOnSalesCents - GstOnPurchasesCents;
-}
-
 public sealed record ProfitAndLoss(DateRange Period, IReadOnlyList<CategoryTotal> Income, IReadOnlyList<CategoryTotal> Expenses)
 {
     public long IncomeCents => Income.Sum(c => c.ExTaxCents);
@@ -27,18 +20,15 @@ public sealed record ProfitAndLoss(DateRange Period, IReadOnlyList<CategoryTotal
 }
 
 // cash basis, the same way the dashboard counts it
-public sealed class ReportService(IDbContextFactory<AppDbContext> factory)
+public sealed class ReportService(IDbContextFactory<AppDbContext> factory, ProfileService profiles)
 {
     public const string Uncategorised = "No category";
 
-    public async Task<BasSummary> BasAsync(DateRange period)
+    public async Task<TaxReturn> TaxReturnAsync(DateRange period)
     {
         var txs = await LoadAsync(period);
-        return new BasSummary(period,
-            CashTotals.Sum(txs, Direction.In, period, t => t.AmountCents),
-            CashTotals.TaxCollected(txs, period),
-            CashTotals.TaxPaid(txs, period),
-            ByCategory(txs, Direction.In));
+        var country = Countries.For((await profiles.GetAsync()).Country);
+        return TaxReturns.Build(country, period, txs, ByCategory(txs, Direction.In));
     }
 
     public async Task<ProfitAndLoss> ProfitAndLossAsync(DateRange period)

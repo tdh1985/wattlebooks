@@ -53,10 +53,10 @@
                     <div class="money-rows">
                         @if (_kind == "bas" && _bas is { } bas)
                         {
-                            <div class="row"><span class="soft">G1 total sales</span><span class="num">@Format.Money(bas.TotalSalesCents)</span></div>
-                            <div class="row"><span class="soft">1A GST on sales</span><span class="num">@Format.Money(bas.GstOnSalesCents)</span></div>
-                            <div class="row"><span class="soft">1B GST on purchases</span><span class="num">@Format.Money(bas.GstOnPurchasesCents)</span></div>
-                            <div class="row"><span>@(bas.NetGstCents >= 0 ? "GST to pay" : "GST refund")</span><span class="big">@Format.Money(Math.Abs(bas.NetGstCents))</span></div>
+                            <div class="row"><span class="soft">G1 total sales</span><span class="num">@Format.Money(bas.Box("G1"))</span></div>
+                            <div class="row"><span class="soft">1A GST on sales</span><span class="num">@Format.Money(bas.Box("1A"))</span></div>
+                            <div class="row"><span class="soft">1B GST on purchases</span><span class="num">@Format.Money(bas.Box("1B"))</span></div>
+                            <div class="row"><span>@bas.NetLabel</span><span class="big">@Format.Money(Math.Abs(bas.NetCents))</span></div>
                         }
                         else if (_pl is { } pl)
                         {
@@ -83,7 +83,7 @@
     sealed record PeriodChoice(string Key, string Label, string Hint, DateRange Range);
 
     BusinessProfile? _profile;
-    BasSummary? _bas;
+    TaxReturn? _bas;
     ProfitAndLoss? _pl;
     DateOnly _today;
     string _kind = "bas";
@@ -128,7 +128,7 @@
         _today = Clock.Today();
         _profile = await Profiles.GetAsync();
         var range = Period.Range;
-        _bas = await ReportStore.BasAsync(range);
+        _bas = await ReportStore.TaxReturnAsync(range);
         _pl = await ReportStore.ProfitAndLossAsync(range);
     }
 
@@ -191,7 +191,7 @@
         {
             await using (var file = System.IO.File.Create(target))
             {
-                if (_kind == "bas") await ExportService.WriteBasCsvAsync(_bas!, file);
+                if (_kind == "bas") await ExportService.WriteTaxReturnCsvAsync(_bas!, file);
                 else await ExportService.WriteProfitAndLossCsvAsync(_pl!, Countries.For(_profile!.Country), file);
             }
             Saved(target);

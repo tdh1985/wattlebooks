@@ -55,14 +55,19 @@ public sealed class ExportService(IDbContextFactory<AppDbContext> factory, TimeP
             }));
     }
 
-    public static Task WriteBasCsvAsync(BasSummary bas, Stream output) =>
+    // a result row uses the short label, like the bas csv always has
+    public static Task WriteTaxReturnCsvAsync(TaxReturn r, Stream output) =>
         WriteAsync(output, Csv.Line("Label", "What it is", "Amount"),
-        [
-            Csv.Line("G1", "Total sales including GST", Csv.Money(bas.TotalSalesCents)),
-            Csv.Line("1A", "GST on sales", Csv.Money(bas.GstOnSalesCents)),
-            Csv.Line("1B", "GST on purchases", Csv.Money(bas.GstOnPurchasesCents)),
-            Csv.Line("", bas.NetGstCents >= 0 ? "GST to pay" : "GST refund", Csv.Money(Math.Abs(bas.NetGstCents))),
-        ]);
+            r.Boxes.Select(b => Csv.Line(
+                b.Code,
+                b.Line == ReturnLine.Result ? r.NetLabel : b.Label.Replace(",", ""),
+                ReturnAmount(b))));
+
+    static string ReturnAmount(ReturnBox b)
+    {
+        var cents = b.Line == ReturnLine.Result ? Math.Abs(b.Cents) : b.Cents;
+        return b.WholeUnits ? (cents / 100).ToString(System.Globalization.CultureInfo.InvariantCulture) : Csv.Money(cents);
+    }
 
     public static Task WriteProfitAndLossCsvAsync(ProfitAndLoss pl, CountryRules country, Stream output) =>
         WriteAsync(output, Csv.Line("Section", "Category", $"Amount ex {country.TaxWord}"),

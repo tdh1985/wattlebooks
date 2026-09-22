@@ -61,7 +61,7 @@
         </dl>
     </section>
 
-    @foreach (var section in Statement.Sections)
+    @foreach (var section in DisplaySections)
     {
         <section class="@(Statement.Sections.Count > 1 ? "doc-section" : null)">
             @if (Statement.Sections.Count > 1)
@@ -108,6 +108,10 @@
                             <td class="n">@Format.Amount(s.BalanceCents)</td>
                         </tr>
                     }
+                    @if (section.Lines.Count == 0)
+                    {
+                        <tr><td colspan="6" class="doc-placeholder">Nothing is owing. Thank you.</td></tr>
+                    }
                 </tbody>
             </table>
 
@@ -118,10 +122,6 @@
                 </div>
             </div>
         </section>
-    }
-    @if (Statement.Sections.Count == 0)
-    {
-        <p class="doc-placeholder">Nothing is owing. Thank you.</p>
     }
 
     <div class="doc-spacer"></div>
@@ -156,6 +156,11 @@
     [Parameter] public string? LogoUrl { get; set; }
 
     int InvoiceCount => Statement.Sections.Sum(s => s.Lines.Count);
+
+    // nothing owing still shows the empty grid and table, as it always has
+    IReadOnlyList<StatementSection> DisplaySections => Statement.Sections.Count == 0
+        ? [new StatementSection(Format.Country.Currency, [], new AgedTotals(0, 0, 0, 0, 0))]
+        : Statement.Sections;
 
     // several currencies need each one named, not summed into one wrong total
     string TotalOwingText => Statement.Sections.Count == 0

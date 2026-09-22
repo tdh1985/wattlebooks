@@ -14,7 +14,8 @@
 @if (_summary is not null)
 {
     var c = _summary.Client;
-    var overdue = _invoices.Where(s => s.Status == DisplayStatus.Overdue).ToList();
+    // matches the summary's own currency, so this agrees with the tile above it
+    var overdue = _invoices.Where(s => s.Status == DisplayStatus.Overdue && s.Currency == _summary.Currency).ToList();
     <div class="page">
         <PageHeader Title="@c.Name" Back="clients" BackLabel="Clients">
             <Subtitle>

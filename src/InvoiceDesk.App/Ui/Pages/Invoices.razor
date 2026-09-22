@@ -187,7 +187,7 @@
                 <tfoot>
                     <tr>
                         <td colspan="5" class="soft">@(_filter == InvoiceFilter.Overdue ? "Overdue" : "Waiting on")</td>
-                        <td class="num">@Format.Money(Rows.Sum(s => s.BalanceCents))</td>
+                        <td class="num">@FooterBalanceText</td>
                         <td></td>
                     </tr>
                 </tfoot>
@@ -307,6 +307,23 @@
         .Where(s => _search.Trim().Length == 0
                     || s.Number.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase)
                     || s.ClientName.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    // the footer only sums matching currencies, so it never mixes them
+    string FooterBalanceText
+    {
+        get
+        {
+            var rows = Rows.ToList();
+            var home = Format.Country.Currency;
+            var homeCents = rows.Where(s => s.Currency == home).Sum(s => s.BalanceCents);
+            var others = rows.Where(s => s.Currency != home)
+                .GroupBy(s => s.Currency)
+                .OrderBy(g => g.Key, StringComparer.Ordinal)
+                .Select(g => new CurrencyAmount(g.Key, g.Sum(s => s.BalanceCents)))
+                .ToList();
+            return others.Count == 0 ? Format.Money(homeCents) : $"{Format.Money(homeCents)} plus {Format.MoneyList(others)}";
+        }
+    }
 
     string Summary
     {

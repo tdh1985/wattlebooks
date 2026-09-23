@@ -14,8 +14,6 @@ namespace InvoiceDesk.App.Pdf;
 // prints through a hidden webview so pdfs match the on-screen preview exactly
 public sealed class PdfPrinter(AppPaths paths, HostWindow host) : IDisposable
 {
-    const double A4WidthInches = 8.27;
-    const double A4HeightInches = 11.69;
     const double CssPixelsPerInch = 96;
 
     // printing can land a touch taller than the script measured, so leave slack
@@ -49,8 +47,10 @@ public sealed class PdfPrinter(AppPaths paths, HostWindow host) : IDisposable
                 core.NavigationCompleted -= OnCompleted;
             }
 
+            var paper = Format.Country.Paper;
+
             // scrollHeight is a whole px, so round up to avoid a false "just over" from that
-            var pagePx = Math.Ceiling(A4HeightInches * CssPixelsPerInch);
+            var pagePx = Math.Ceiling(paper.HeightInches * CssPixelsPerInch);
             var contentPx = await MeasureHeightAsync(core);
             var scale = PageFit.ScaleFor(contentPx, pagePx);
             if (scale < 1)
@@ -68,8 +68,8 @@ public sealed class PdfPrinter(AppPaths paths, HostWindow host) : IDisposable
 
             var settings = _env!.CreatePrintSettings();
             settings.Orientation = CoreWebView2PrintOrientation.Portrait;
-            settings.PageWidth = A4WidthInches;
-            settings.PageHeight = A4HeightInches;
+            settings.PageWidth = paper.WidthInches;
+            settings.PageHeight = paper.HeightInches;
             settings.MarginTop = 0;
             settings.MarginBottom = 0;
             settings.MarginLeft = 0;

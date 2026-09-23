@@ -82,6 +82,7 @@ public static partial class Canada
         ReceiptTaxCapPpm = 150_000,
         Provinces = Provinces,
         DefaultRegion = "ON",
+        Paper = PaperSize.Letter,
     };
 
     [GeneratedRegex(@"^\d{5}-\d{3}$")]

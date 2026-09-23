@@ -96,12 +96,15 @@ window.invoicedesk = {
         if (typeof el.select === 'function' && el.tagName === 'INPUT') el.select();
     },
 
-    // the a4 page shrinks to fit narrow panes instead of overflowing them
+    // the page shrinks to fit narrow panes instead of overflowing them
     fitPreview(el) {
         if (!el || el._fit) return;
         const fit = () => {
+            const doc = el.querySelector('.doc');
+            const mm = parseFloat(getComputedStyle(doc).getPropertyValue('--doc-w')) || 210;
+            const pageWidth = mm * 96 / 25.4;
             const width = el.clientWidth - 48;
-            el.style.setProperty('--scale', Math.max(0.3, Math.min(1, width / 794)).toFixed(4));
+            el.style.setProperty('--scale', Math.max(0.3, Math.min(1, width / pageWidth)).toFixed(4));
         };
         el._fit = new ResizeObserver(fit);
         el._fit.observe(el);

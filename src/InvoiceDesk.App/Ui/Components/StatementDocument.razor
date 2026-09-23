@@ -5,7 +5,7 @@
     var client = Statement.Client;
     var hasBank = Profile.AccountNumber.Length > 0 || Profile.BankCode.Length > 0;
 }
-<article class="doc doc-statement" style="--doc-accent: @Profile.AccentColour">
+<article class="doc doc-statement" style="--doc-accent: @Profile.AccentColour; --doc-w: @rules.Paper.WidthCss; --doc-h: @rules.Paper.HeightCss">
     <header class="doc-head">
         <div class="doc-from">
             @if (LogoUrl is not null)

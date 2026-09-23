@@ -62,5 +62,6 @@ public static class UnitedStates
         TaxOffice = "the IRS or your state",
         OverseasNote = "No sales tax charged.",
         ReceiptTaxCapPpm = 120_000,
+        Paper = PaperSize.Letter,
     };
 }

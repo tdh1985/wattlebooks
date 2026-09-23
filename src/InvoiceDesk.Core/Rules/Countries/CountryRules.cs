@@ -39,6 +39,12 @@ public sealed record Province(string Code, string Name, int RatePpm, string TaxN
 
 public sealed record ReceiptRules(bool MonthFirst, int TaxCapPpm);
 
+public sealed record PaperSize(string CssSize, double WidthInches, double HeightInches, string WidthCss, string HeightCss)
+{
+    public static readonly PaperSize A4 = new("A4", 8.27, 11.69, "210mm", "297mm");
+    public static readonly PaperSize Letter = new("letter", 8.5, 11, "215.9mm", "279.4mm");
+}
+
 public sealed record CountryRules
 {
     public required string Code { get; init; }
@@ -83,6 +89,7 @@ public sealed record CountryRules
     public required int ReceiptTaxCapPpm { get; init; }
     public IReadOnlyList<Province> Provinces { get; init; } = [];
     public string DefaultRegion { get; init; } = "";
+    public PaperSize Paper { get; init; } = PaperSize.A4;
 
     public bool HasReducedRate => ReducedRatePpm > 0;
 

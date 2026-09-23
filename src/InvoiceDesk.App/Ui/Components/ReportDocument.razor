@@ -5,7 +5,7 @@
     // only the BAS worksheet actually has a box called G1
     var salesFigure = rules.Return == ReturnKind.Bas ? "G1" : "your sales figure";
 }
-<article class="doc doc-report" style="--doc-accent: @Profile.AccentColour">
+<article class="doc doc-report" style="--doc-accent: @Profile.AccentColour; --doc-w: @rules.Paper.WidthCss; --doc-h: @rules.Paper.HeightCss">
     <header class="doc-head">
         <div class="doc-from">
             @if (LogoUrl is not null)

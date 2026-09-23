@@ -17,7 +17,7 @@
     var foreign = Invoice.Currency != rules.Currency;
     var totalLabel = (totals.IsTaxInvoice ? $"Total inc. {rules.TaxWord}" : "Total") + (foreign ? $" ({Invoice.Currency})" : "");
 }
-<article class="doc doc-@InvoiceTemplates.Normalise(Template ?? Profile.InvoiceTemplate)" style="--doc-accent: @Profile.AccentColour">
+<article class="doc doc-@InvoiceTemplates.Normalise(Template ?? Profile.InvoiceTemplate)" style="--doc-accent: @Profile.AccentColour; --doc-w: @rules.Paper.WidthCss; --doc-h: @rules.Paper.HeightCss">
     <header class="doc-head">
         <div class="doc-from">
             @if (LogoUrl is not null)

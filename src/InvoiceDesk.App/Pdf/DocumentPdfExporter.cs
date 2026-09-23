@@ -31,13 +31,15 @@ public sealed class DocumentPdfExporter(IServiceProvider services, PdfPrinter pr
         });
 
         var css = string.Concat(cssFiles.Select(f => EmbeddedAssets.Instance.ReadText(f)));
+        // @page can't read a css variable, so the country's size is inlined here
+        var paperSize = Format.Country.Paper.CssSize;
         return $$"""
             <!DOCTYPE html>
             <html lang="{{Format.Country.HtmlLang}}">
             <head>
             <meta charset="utf-8">
             <title>{{WebUtility.HtmlEncode(title)}}</title>
-            <style>html, body { margin: 0; background: #fff; }{{css}}</style>
+            <style>html, body { margin: 0; background: #fff; }{{css}}@page { size: {{paperSize}}; }@page long-doc { size: {{paperSize}}; }</style>
             </head>
             <body>{{body}}</body>
             </html>

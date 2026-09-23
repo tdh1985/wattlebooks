@@ -13,4 +13,11 @@ public static class PageFit
         var scale = pagePx / contentPx;
         return scale >= MinScale ? scale : 1;
     }
+
+    // the reflow after zooming can still overflow, so shrink once more if needed
+    public static double Refit(double firstScale, double reflowedPx, double pagePx, double slackPx)
+    {
+        var extra = ScaleFor(reflowedPx, pagePx - slackPx);
+        return extra < 1 ? Math.Max(firstScale * extra, MinScale) : firstScale;
+    }
 }

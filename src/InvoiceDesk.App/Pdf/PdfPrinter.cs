@@ -58,10 +58,10 @@ public sealed class PdfPrinter(AppPaths paths, HostWindow host) : IDisposable
                 // a fresh document loads next time, so this can't leak into the next print
                 await ZoomAsync(core, scale);
                 var reflowedPx = await MeasureHeightAsync(core);
-                var extra = PageFit.ScaleFor(reflowedPx, pagePx - ReflowSlackPx);
-                if (extra < 1)
+                var refit = PageFit.Refit(scale, reflowedPx, pagePx, ReflowSlackPx);
+                if (refit != scale)
                 {
-                    scale = Math.Max(scale * extra, PageFit.MinScale);
+                    scale = refit;
                     await ZoomAsync(core, scale);
                 }
             }

@@ -1,8 +1,16 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.png">
+    <img src="docs/logo.png" alt="InvoiceDesk" width="320">
+  </picture>
+</p>
+
 # InvoiceDesk
 
 A Windows desktop app for sending invoices to clients and keeping track of
-money in and out. Made for Australian sole traders and small businesses, so
-it follows GST rules. It runs as one exe and keeps your data on your own PC.
+money in and out. Made for sole traders and small businesses in Australia,
+New Zealand, the UK, Canada and the US, so it follows your country's GST, VAT
+or sales tax rules. It runs as one exe and keeps your data on your own PC.
 
 ![The dashboard, showing what clients owe, money in and out, and recent activity](docs/screenshots/dashboard.png)
 
@@ -17,9 +25,11 @@ Windows SmartScreen may say it protected your PC. Click **More info**, then
 
 ## Features
 
-- Invoices with GST turned on or off per invoice. The heading switches between
-  **TAX INVOICE** and **INVOICE** to match, and GST-free lines are marked.
-- A live A4 preview next to the editor. Exported PDFs match the preview.
+- Invoices with tax turned on or off per invoice, and a heading that matches
+  your country, like **TAX INVOICE** or **VAT INVOICE**. Lines that carry no
+  tax are marked.
+- A live preview next to the editor, on A4 or US Letter to match your country.
+  Exported PDFs match the preview.
 - Drafts save as you type. Invoices go from draft to sent, then part-paid,
   paid or overdue. You can void a sent invoice but not delete it.
 - Email an invoice in one click. With classic Outlook the PDF is attached for
@@ -37,12 +47,12 @@ Windows SmartScreen may say it protected your PC. Click **More info**, then
 - Record payments against invoices, plus other income and expenses, with
   receipts attached (PDF, JPG, PNG or WebP, up to 25 MB each).
 - Drop a receipt photo or PDF onto the Money page and it fills in the amount,
-  GST, date and supplier for you. It uses the text reader built into Windows,
+  tax, date and supplier for you. It uses the text reader built into Windows,
   so nothing leaves your PC, and it only fills fields you haven't typed in.
 - Dashboard with outstanding and overdue totals, money in and out, profit for
-  the financial year, GST for the current BAS quarter and a 12-month chart.
-- Reports with a BAS worksheet (G1, 1A and 1B) and a profit and loss for any
-  quarter or financial year, saved as PDF or CSV.
+  the tax year, tax for the current return period and a 12-month chart.
+- Reports with your country's tax return worksheet and a profit and loss for
+  any period or tax year, saved as PDF or CSV.
 - Your business details, logo (JPG, PNG or WebP up to 5 MB), bank details,
   accent colour, invoice numbering and payment terms, and a choice of three
   invoice layouts: classic, modern and minimal.
@@ -63,6 +73,35 @@ Windows SmartScreen may say it protected your PC. Click **More info**, then
   income. The icon shows how many invoices are overdue.
 - Your data can live in a OneDrive, Dropbox or Google Drive folder so you can
   use it on another PC, one PC at a time.
+
+## Countries
+
+Pick your country in **Settings → Business**. It sets your tax, currency, tax
+number, bank details, tax year and tax return.
+
+| Country | Tax | Tax number | Bank details | Tax year starts | Report |
+|---|---|---|---|---|---|
+| Australia | GST 10% | ABN | BSB and account | 1 July | BAS worksheet (G1, 1A and 1B) |
+| New Zealand | GST 15% | GST number | Bank account | 1 April | GST return (boxes 5 to 15) |
+| United Kingdom | VAT at 20%, 5%, 0% or exempt | VAT number | Sort code and account | 6 April | VAT return (boxes 1 to 9) |
+| Canada | GST or HST at your client's province's rate | GST/HST number | Transit, institution and account | 1 January | GST/HST return |
+| United States | Sales tax at your rate | EIN | Routing and account | 1 January | Sales tax summary |
+
+- Tax numbers are checked as you type, so a mistyped digit is caught before it
+  reaches an invoice.
+- Clients can be anywhere. An invoice to a client overseas starts with no tax
+  and a note you can edit, and shows their country.
+- Bill a client in their own currency: AUD, NZD, GBP, CAD, USD, EUR, SGD, HKD,
+  CHF, SEK, NOK, DKK or ZAR. When they pay, you enter what they paid and what
+  reached your bank, and your reports use what reached your bank. There's no
+  exchange rate lookup, so nothing goes online.
+- Choose how often you send your return, like every two months in New Zealand
+  or your VAT quarter in the UK.
+- Your country locks once you've sent an invoice or recorded money, so past
+  amounts never change currency. For a business in another country, start a
+  new data folder in **Settings → Your data**.
+- Quebec QST and the provincial sales taxes in BC, Saskatchewan and Manitoba
+  aren't covered yet.
 
 ## Screenshots
 
@@ -151,12 +190,13 @@ click it.
 
 | Project | What's in it |
 |---|---|
-| `src/InvoiceDesk.Core` | Data model, GST and money maths, numbering, EF Core with SQLite, services and file storage. No UI code. |
+| `src/InvoiceDesk.Core` | Data model, tax rules for each country, money maths, numbering, EF Core with SQLite, services and file storage. No UI code. |
 | `src/InvoiceDesk.App` | The WPF window hosting Blazor (`BlazorWebView`), Razor pages and components, CSS and PDF export. |
 
-Money is stored as whole cents (`long`) and GST rates as basis points
-(10% = 1000). Totals are rounded half away from zero, and GST is worked out
-once per invoice rather than per line.
+Money is stored as whole cents (`long`) and tax rates as parts per million
+(10% = 100,000), so rates like 8.875% fit. Totals are rounded half away from
+zero, and tax is worked out once per rate on each invoice rather than per line.
+Each country's rules live in one file under `InvoiceDesk.Core/Rules/Countries`.
 
 To change the database schema, edit the entities in `InvoiceDesk.Core/Domain`
 and add a migration:
@@ -170,8 +210,9 @@ Migrations are applied automatically on startup.
 
 ## Disclaimer
 
-InvoiceDesk helps you keep records. It isn't tax advice, so check your GST and
-BAS figures with the ATO or your accountant.
+InvoiceDesk helps you keep records. It isn't tax advice, so check your figures
+with your accountant or your tax office: the ATO, IRD, HMRC, CRA, or the IRS
+and your state.
 
 ## License
 

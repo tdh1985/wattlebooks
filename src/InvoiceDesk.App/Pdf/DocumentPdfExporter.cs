@@ -33,6 +33,7 @@ public sealed class DocumentPdfExporter(IServiceProvider services, PdfPrinter pr
         var css = string.Concat(cssFiles.Select(f => EmbeddedAssets.Instance.ReadText(f)));
         // @page can't read a css variable, so the country's size is inlined here
         var paperSize = Format.Country.Paper.CssSize;
+        // keep the margin reset, a4 only fits its viewport with body margins gone
         return $$"""
             <!DOCTYPE html>
             <html lang="{{Format.Country.HtmlLang}}">

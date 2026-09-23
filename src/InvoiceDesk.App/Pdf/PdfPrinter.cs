@@ -16,7 +16,7 @@ public sealed class PdfPrinter(AppPaths paths, HostWindow host) : IDisposable
 {
     const double CssPixelsPerInch = 96;
 
-    // printing can land a touch taller than the script measured, so leave slack
+    // the remeasure is floored at the page height so this only shrinks a bit more
     const double ReflowSlackPx = 16;
 
     readonly SemaphoreSlim _gate = new(1, 1);
@@ -115,7 +115,8 @@ public sealed class PdfPrinter(AppPaths paths, HostWindow host) : IDisposable
     static async Task<double> MeasureHeightAsync(CoreWebView2 core)
     {
         var json = await core.ExecuteScriptAsync("document.documentElement.scrollHeight");
-        return JsonSerializer.Deserialize<double>(json);
+        // a failed script returns null so zero fits at scale 1 instead of throwing
+        return JsonSerializer.Deserialize<double?>(json) ?? 0;
     }
 
     static Task ZoomAsync(CoreWebView2 core, double scale)

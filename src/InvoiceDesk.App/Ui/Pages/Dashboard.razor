@@ -141,13 +141,13 @@
                             <span class="soft">Next @forecast.Days days</span>
                         </div>
                         @{
-                            var overdueCents = forecast.Items.Where(e => e.Invoice.Status == DisplayStatus.Overdue).Sum(e => e.Invoice.BalanceCents);
+                            var overdueCents = forecast.HomeOverdueCents;
                             var upcoming = forecast.Items.Where(e => e.Invoice.Status != DisplayStatus.Overdue).ToList();
                         }
                         <div class="forecast">
                             <span class="forecast-figure num">@Format.Money(forecast.TotalCents)</span>
                             <span class="small muted">
-                                expected from @forecast.Items.Count invoice@(forecast.Items.Count == 1 ? "" : "s"), allowing for how late each client usually pays@(overdueCents > 0 ? $". {Format.Money(overdueCents)} of it is already overdue." : ".")
+                                expected from @forecast.HomeCount invoice@(forecast.HomeCount == 1 ? "" : "s"), allowing for how late each client usually pays@(overdueCents > 0 ? $". {Format.Money(overdueCents)} of it is already overdue." : ".")
                             </span>
                         </div>
                         @if (forecast.Other.Count > 0)

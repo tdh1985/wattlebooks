@@ -37,7 +37,18 @@
                 {
                     <div class="banner">
                         <Icon Name="invoice" Size="16" />
-                        <div>This is a payment for <a href="invoices/@invoiceId" @onclick="OnClose">@(_tx.Invoice?.Number ?? "an invoice")</a>. Changing the amount here changes what the invoice shows as paid.</div>
+                        @if (_tx.ForeignAmountCents is { } billed)
+                        {
+                            <div>
+                                This is a payment of @Format.Money(billed, _tx.ForeignCurrency) for
+                                <a href="invoices/@invoiceId" @onclick="OnClose">@(_tx.Invoice?.Number ?? "an invoice")</a>.
+                                The amount here is what reached your bank.
+                            </div>
+                        }
+                        else
+                        {
+                            <div>This is a payment for <a href="invoices/@invoiceId" @onclick="OnClose">@(_tx.Invoice?.Number ?? "an invoice")</a>. Changing the amount here changes what the invoice shows as paid.</div>
+                        }
                     </div>
                 }
                 else if (_tx.Id == 0)
@@ -65,7 +76,7 @@
                             <MoneyInput Id="tx-gst" Cents="_tx.TaxCents" CentsChanged="SetGst" />
                             <label class="check small soft">
                                 <input type="checkbox" checked="@_autoGst" @onchange="ToggleAutoGst" />
-                                Work it out for me (@Format.Percent(_profile?.TaxRatePpm ?? 100_000) @rules.TaxName)
+                                Work it out for me (@Format.Percent(_profile?.TaxRatePpm ?? 100_000) @rules.TaxWord)
                             </label>
                         </div>
                     }

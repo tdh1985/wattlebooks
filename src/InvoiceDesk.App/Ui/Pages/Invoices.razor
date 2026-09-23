@@ -157,7 +157,7 @@
                             <span class="primary num">@s.Number</span>
                             @if (!_quotes)
                             {
-                                <span class="secondary">@(s.IsTaxInvoice ? "Tax invoice" : "Invoice")</span>
+                                <span class="secondary">@(s.IsTaxInvoice ? Format.Country.TaxedSubject : "Invoice")</span>
                             }
                         </td>
                         <td class="truncate" style="max-width:260px">@s.ClientName</td>
@@ -308,22 +308,21 @@
                     || s.Number.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase)
                     || s.ClientName.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase));
 
-    // the footer only sums matching currencies, so it never mixes them
-    string FooterBalanceText
+    // one total per currency, so two kinds of money are never added together
+    static string BalanceText(IEnumerable<InvoiceSummary> invoices, Func<InvoiceSummary, long> pick)
     {
-        get
-        {
-            var rows = Rows.ToList();
-            var home = Format.Country.Currency;
-            var homeCents = rows.Where(s => s.Currency == home).Sum(s => s.BalanceCents);
-            var others = rows.Where(s => s.Currency != home)
-                .GroupBy(s => s.Currency)
-                .OrderBy(g => g.Key, StringComparer.Ordinal)
-                .Select(g => new CurrencyAmount(g.Key, g.Sum(s => s.BalanceCents)))
-                .ToList();
-            return others.Count == 0 ? Format.Money(homeCents) : $"{Format.Money(homeCents)} plus {Format.MoneyList(others)}";
-        }
+        var rows = invoices.ToList();
+        var home = Format.Country.Currency;
+        var homeCents = rows.Where(s => s.Currency == home).Sum(pick);
+        var others = rows.Where(s => s.Currency != home)
+            .GroupBy(s => s.Currency)
+            .OrderBy(g => g.Key, StringComparer.Ordinal)
+            .Select(g => new CurrencyAmount(g.Key, g.Sum(pick)))
+            .ToList();
+        return others.Count == 0 ? Format.Money(homeCents) : $"{Format.Money(homeCents)} plus {Format.MoneyList(others)}";
     }
+
+    string FooterBalanceText => BalanceText(Rows, s => s.BalanceCents);
 
     string Summary
     {
@@ -334,7 +333,7 @@
             var open = _all.Where(s => s.IsAwaitingPayment).ToList();
             return open.Count == 0
                 ? "Everything you've sent has been paid."
-                : $"{Format.Money(open.Sum(s => s.BalanceCents))} still to come in, across {open.Count} invoice{(open.Count == 1 ? "" : "s")}.";
+                : $"{BalanceText(open, s => s.BalanceCents)} still to come in, across {open.Count} invoice{(open.Count == 1 ? "" : "s")}.";
         }
     }
 
@@ -345,7 +344,7 @@
             var waiting = (_all ?? []).Where(s => s.Status == DisplayStatus.Sent).ToList();
             return waiting.Count == 0
                 ? "Prices you've offered clients, and whether they said yes."
-                : $"{waiting.Count} quote{(waiting.Count == 1 ? "" : "s")} waiting on an answer, worth {Format.Money(waiting.Sum(s => s.TotalCents))}.";
+                : $"{waiting.Count} quote{(waiting.Count == 1 ? "" : "s")} waiting on an answer, worth {BalanceText(waiting, s => s.TotalCents)}.";
         }
     }
 

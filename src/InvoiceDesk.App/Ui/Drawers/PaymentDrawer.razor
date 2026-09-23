@@ -19,7 +19,7 @@
                 {
                     <div class="field">
                         <label for="payment-amount">Amount paid (@Invoice!.Currency)</label>
-                        <MoneyInput Id="payment-amount" @bind-Cents="_amount" />
+                        <MoneyInput Id="payment-amount" Currency="@Invoice.Currency" @bind-Cents="_amount" />
                     </div>
                     <div class="field">
                         <label for="payment-home">Amount that reached your bank (@Format.Country.Currency)</label>

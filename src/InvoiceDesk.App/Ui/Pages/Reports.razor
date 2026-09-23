@@ -135,6 +135,8 @@
     {
         _today = Clock.Today();
         _profile = await Profiles.GetAsync();
+        // a yearly filer has no "last quarter", so start on the first choice offered
+        if (Periods().All(p => p.Key != _period)) _period = Periods().First().Key;
         var range = Period.Range;
         _return = await ReportStore.TaxReturnAsync(range);
         _pl = await ReportStore.ProfitAndLossAsync(range);

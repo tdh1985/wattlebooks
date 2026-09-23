@@ -23,6 +23,8 @@ public static class Format
 
     public static string Amount(long cents) => Currencies.Amount(cents);
 
+    public static string Mark(string? currency) => Currencies.Mark(currency ?? Country.Currency, Country.Currency);
+
     public static string MoneyList(IEnumerable<CurrencyAmount> amounts) =>
         Labels.JoinAnd(amounts.Select(a => Money(a.Cents, a.Currency)));
 

@@ -33,14 +33,14 @@ public static class Currencies
 
     public static string Label(string code) => Find(code) is { } c ? $"{c.Code} – {c.Name}" : code;
 
-    public static string Format(long cents, string currency, string homeCurrency)
-    {
-        var info = Find(currency);
-        var mark = info is null
+    // what goes in front of an amount, so a money field can show it too
+    public static string Mark(string currency, string homeCurrency) =>
+        Find(currency) is not { } info
             ? currency.ToUpperInvariant() + " "
             : string.Equals(currency, homeCurrency, StringComparison.OrdinalIgnoreCase) ? info.Symbol : info.Prefix;
-        return (cents < 0 ? "-" : "") + mark + Amount(Math.Abs(cents));
-    }
+
+    public static string Format(long cents, string currency, string homeCurrency) =>
+        (cents < 0 ? "-" : "") + Mark(currency, homeCurrency) + Amount(Math.Abs(cents));
 
     public static string Amount(long cents) => (cents / 100m).ToString("#,0.00", CultureInfo.InvariantCulture);
 }

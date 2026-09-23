@@ -31,7 +31,7 @@
             }
         </div>
         <div class="seg" role="group" aria-label="Period">
-            @foreach (var period in Periods)
+            @foreach (var period in VisiblePeriods)
             {
                 <button type="button" class="@(_period == period ? "on" : null)" aria-pressed="@(_period == period)" @onclick="() => SetPeriodAsync(period)">@PeriodLabel(period)</button>
             }
@@ -69,7 +69,16 @@
                 <div class="ledger-cell">
                     <div class="ledger-label">Money out</div>
                     <div class="ledger-value">@Format.Money(outCents)</div>
-                    <div class="ledger-note">@Format.Country.TaxName paid @Format.Money(rows.Where(t => t.Direction == Direction.Out).Sum(t => t.TaxCents))</div>
+                    <div class="ledger-note">
+                        @if (Format.Country.ExpensesCarryTax)
+                        {
+                            @($"{Format.Country.TaxName} paid {Format.Money(rows.Where(t => t.Direction == Direction.Out).Sum(t => t.TaxCents))}")
+                        }
+                        else
+                        {
+                            @($"{Format.Country.TaxName} on purchases isn't claimed back")
+                        }
+                    </div>
                 </div>
             }
             @if (_tab == "all")
@@ -192,6 +201,16 @@
     DotNetObjectReference<Money>? _ref;
 
     Direction? TabDirection => _tab switch { "in" => Direction.In, "out" => Direction.Out, _ => null };
+
+    // a yearly filer's period is the whole year, so both chips would match
+    IEnumerable<string> VisiblePeriods
+    {
+        get
+        {
+            var today = Clock.Today();
+            return Periods.Where(p => p != "quarter" || Range("quarter", today) != Range("fy", today));
+        }
+    }
 
     IEnumerable<Transaction> Visible => (_rows ?? [])
         .Where(t => !Toasts.IsPending($"tx:{t.Id}"))

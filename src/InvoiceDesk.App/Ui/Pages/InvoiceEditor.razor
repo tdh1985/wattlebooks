@@ -166,7 +166,7 @@
                     <div class="gst-row">
                         <label class="switch">
                             <input type="checkbox" checked="@_invoice.TaxEnabled" @onchange="OnGstChanged" />
-                            <span>Charge @rules.TaxName@(rules.HasReducedRate ? "" : $" ({Format.Percent(_invoice.TaxRatePpm)})")</span>
+                            <span>Charge @rules.TaxWord@(rules.HasReducedRate ? "" : $" ({Format.Percent(_invoice.TaxRatePpm)})")</span>
                         </label>
                         <span class="heading-preview">The heading will read <strong>@_invoice.Heading(rules)</strong></span>
                     </div>
@@ -228,7 +228,7 @@
                                 <input class="input num" inputmode="decimal" aria-label="Quantity" value="@Format.Quantity(line.Quantity)"
                                        @onchange="e => SetQuantity(line, e)" @onkeydown="e => OnLineKey(e, index)" />
                                 <MoneyInput Id="@($"price-{index}")" Cents="line.UnitPriceCents" CentsChanged="c => SetPrice(line, c)"
-                                            AriaLabel="Unit price" OnKeyDown="e => OnLineKey(e, index)" />
+                                            Currency="@_invoice.Currency" AriaLabel="Unit price" OnKeyDown="e => OnLineKey(e, index)" />
                                 @if (_invoice.TaxEnabled)
                                 {
                                     @if (rules.HasReducedRate)

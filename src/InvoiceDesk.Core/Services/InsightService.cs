@@ -9,7 +9,10 @@ namespace InvoiceDesk.Core.Services;
 
 public sealed record ExpectedPayment(InvoiceSummary Invoice, DateOnly ExpectedDate);
 
-public sealed record CashForecast(long TotalCents, int Days, IReadOnlyList<ExpectedPayment> Items, IReadOnlyList<CurrencyAmount> Other);
+// the home figures leave out foreign invoices, which Other lists on their own
+public sealed record CashForecast(
+    long TotalCents, int Days, IReadOnlyList<ExpectedPayment> Items, IReadOnlyList<CurrencyAmount> Other,
+    int HomeCount, long HomeOverdueCents);
 
 public sealed class InsightService(IDbContextFactory<AppDbContext> factory, TimeProvider clock, ProfileService profiles)
 {
@@ -38,8 +41,9 @@ public sealed class InsightService(IDbContextFactory<AppDbContext> factory, Time
             .Select(g => new CurrencyAmount(g.Key, g.Sum(e => e.Invoice.BalanceCents)))
             .OrderBy(c => c.Currency, StringComparer.Ordinal)
             .ToList();
-        var total = items.Where(e => e.Invoice.Currency == home).Sum(e => e.Invoice.BalanceCents);
-        return new CashForecast(total, days, items, other);
+        var atHome = items.Where(e => e.Invoice.Currency == home).ToList();
+        var overdue = atHome.Where(e => e.Invoice.Status == DisplayStatus.Overdue).Sum(e => e.Invoice.BalanceCents);
+        return new CashForecast(atHome.Sum(e => e.Invoice.BalanceCents), days, items, other, atHome.Count, overdue);
     }
 
     async Task<List<Invoice>> LoadSentAsync(int? clientId)

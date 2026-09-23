@@ -1,6 +1,6 @@
 @* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
 <div class="affix">
-    <span class="affix-text">$</span>
+    <span class="affix-text">@Format.Mark(Currency)</span>
     <input id="@Id" class="input num" inputmode="decimal" placeholder="0.00" autocomplete="off"
            aria-label="@AriaLabel" value="@_text"
            @oninput="OnInputAsync" @onchange="OnChangeAsync" @onkeydown="OnKeyDown" />
@@ -10,6 +10,8 @@
     [Parameter] public long Cents { get; set; }
     [Parameter] public EventCallback<long> CentsChanged { get; set; }
     [Parameter] public string? Id { get; set; }
+    // leave it unset for home money, which is what most fields hold
+    [Parameter] public string? Currency { get; set; }
     [Parameter] public string? AriaLabel { get; set; }
     [Parameter] public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
 

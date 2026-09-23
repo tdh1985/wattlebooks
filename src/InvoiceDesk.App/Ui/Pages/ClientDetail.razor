@@ -78,7 +78,7 @@
             </div>
             <div class="ledger-cell">
                 <div class="ledger-label">Invoices</div>
-                <div class="ledger-value">@_summary.InvoiceCount</div>
+                <div class="ledger-value">@_invoices.Count</div>
                 <div class="ledger-note">@_invoices.Count(s => s.Status == DisplayStatus.Draft) drafts</div>
             </div>
             <div class="ledger-cell">

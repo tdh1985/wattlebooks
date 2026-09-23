@@ -199,6 +199,7 @@
     List<string> _parties = [];
     Request? _loaded;
     bool _scanning;
+    int _session;
     bool _dateTouched;
     string? _scanNote;
     readonly HashSet<string> _filled = [];
@@ -277,6 +278,7 @@
 
     async Task LoadAsync()
     {
+        _session++;
         _errors = null;
         _newFiles = [];
         _removed = [];
@@ -372,6 +374,7 @@
     // reads the receipt with windows ocr and fills only what's still empty
     async Task ScanAsync(StagedFile file)
     {
+        var session = _session;
         _scanning = true;
         await InvokeAsync(StateHasChanged);
         try
@@ -379,18 +382,18 @@
             var text = await Reader.ReadTextAsync(file.TempPath);
             var guess = string.IsNullOrWhiteSpace(text) ? null
                 : ReceiptParser.Parse(text, Clock.Today(), await Suggestions.PartiesAsync(Direction.Out, take: 500), Countries.For(_profile!.Country).Receipts);
+            // a scan that ends after the drawer reloaded belongs to the old entry
+            if (session != _session) return;
             await ApplyAsync(guess);
         }
         catch (Exception ex)
         {
+            if (session != _session) return;
             FileLog.Write(ex, "receipt scan");
             _scanNote = "Couldn't read that receipt, so fill in the details yourself.";
         }
-        finally
-        {
-            _scanning = false;
-            await InvokeAsync(StateHasChanged);
-        }
+        _scanning = false;
+        await InvokeAsync(StateHasChanged);
     }
 
     async Task ApplyAsync(ReceiptGuess? guess)
@@ -405,14 +408,16 @@
         _beforeScan = new Before(_tx.AmountCents, _tx.TaxCents, _tx.Date, _tx.Party, _tx.CategoryId, _autoGst, _categoryGuessed,
             _tx.ForeignCurrency, _tx.ForeignAmountCents);
         var abroad = guess.Currency is { } cur && cur != Home && Currencies.IsSupported(cur);
-        if (abroad && _tx.AmountCents == 0 && _tx.ForeignAmountCents is null or 0 && guess.TotalCents is { } charged)
+        // a bare $ on a foreign expense is most likely the amount charged
+        var bareAbroad = PaidAbroad && guess.Currency is null;
+        if ((abroad || bareAbroad) && _tx.AmountCents == 0 && _tx.ForeignAmountCents is null or 0 && guess.TotalCents is { } charged)
         {
             // no rate lookup, so the bank box waits for the statement
-            SetPaidIn(guess.Currency!);
+            if (abroad) SetPaidIn(guess.Currency!);
             _tx.ForeignAmountCents = charged;
             _filled.Add("charged");
         }
-        else if (!abroad && _tx.AmountCents == 0 && guess.TotalCents is { } total)
+        else if (!abroad && !bareAbroad && _tx.AmountCents == 0 && guess.TotalCents is { } total)
         {
             SetAmount(total);
             _filled.Add("amount");

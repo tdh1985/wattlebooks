@@ -128,11 +128,12 @@
     readonly HashSet<string> _filled = [];
     bool _scanning;
     bool _scanned;
+    int _session;
     string? _scanNote;
     Before? _beforeScan;
 
     // what the fields held before a scan, so undo puts them back exactly
-    sealed record Before(long Amount, long Home, long Sent, DateOnly Date, string PaidIn);
+    sealed record Before(long Amount, long Home, long Sent, DateOnly Date, string PaidIn, bool InFull);
 
     bool Foreign => Invoice is not null && Invoice.Currency != Format.Country.Currency;
 
@@ -150,7 +151,14 @@
         _filled.Remove(field);
     }
 
-    void SetAmount(long cents) { _amount = cents; Touch("amount"); }
+    void SetAmount(long cents) { _amount = cents; Touch("amount"); ClearInFullWhenHidden(); }
+
+    // a hidden tick box must not come back already ticked
+    void ClearInFullWhenHidden()
+    {
+        if (ShortBy <= 0 || _amount <= 0) _inFull = false;
+    }
+
     void SetHome(long cents) { _homeAmount = cents; Touch("home"); }
     void SetSent(long cents) { _sent = cents; Touch("sent"); }
 
@@ -166,6 +174,7 @@
     {
         if (Open && !_wasOpen)
         {
+            _session++;
             _amount = Math.Max(0, BalanceCents);
             _homeAmount = 0;
             _date = Clock.Today();
@@ -203,25 +212,26 @@
     // reads the remittance with windows ocr and fills only untouched fields
     async Task ScanAsync(StagedFile file)
     {
+        var session = _session;
         _scanned = true;
         _scanning = true;
         await InvokeAsync(StateHasChanged);
         try
         {
             var text = await Reader.ReadTextAsync(file.TempPath);
+            // a scan that ends after the drawer reopened belongs to the old payment
+            if (session != _session) return;
             var guess = string.IsNullOrWhiteSpace(text) ? null : ReceiptParser.Parse(text, Clock.Today(), [], Format.Country.Receipts);
             Apply(guess);
         }
         catch (Exception ex)
         {
+            if (session != _session) return;
             FileLog.Write(ex, "payment scan");
             _scanNote = "Couldn't read that file, so fill in the details yourself.";
         }
-        finally
-        {
-            _scanning = false;
-            await InvokeAsync(StateHasChanged);
-        }
+        _scanning = false;
+        await InvokeAsync(StateHasChanged);
     }
 
     void Apply(ReceiptGuess? guess)
@@ -231,7 +241,7 @@
             _scanNote = "Couldn't find an amount or date in that file, so fill them in yourself.";
             return;
         }
-        _beforeScan = new Before(_amount, _homeAmount, _sent, _date, _paidIn);
+        _beforeScan = new Before(_amount, _homeAmount, _sent, _date, _paidIn, _inFull);
 
         if (!_touched.Contains("date") && guess.Date is { } date && date != _date)
         {
@@ -248,6 +258,7 @@
                 default: _amount = total; break;
             }
             _filled.Add(box);
+            ClearInFullWhenHidden();
         }
 
         var parts = new List<string>();
@@ -262,7 +273,9 @@
     {
         if (Foreign)
             return currency == Home ? "home" : currency is null || currency == Invoice!.Currency ? "amount" : null;
-        if (currency is null || currency == Home) return "amount";
+        // a bare $ could be either currency, so only the date is safe to fill
+        if (currency is null) return PaidElsewhere ? null : "amount";
+        if (currency == Home) return "amount";
         if (!Currencies.IsSupported(currency)) return null;
         if (PaidElsewhere && currency != _paidIn) return null;
         // switching currency only happens while the user hasn't picked one
@@ -272,7 +285,7 @@
     void UndoScan()
     {
         if (_beforeScan is not { } b) return;
-        (_amount, _homeAmount, _sent, _date, _paidIn) = (b.Amount, b.Home, b.Sent, b.Date, b.PaidIn);
+        (_amount, _homeAmount, _sent, _date, _paidIn, _inFull) = (b.Amount, b.Home, b.Sent, b.Date, b.PaidIn, b.InFull);
         _filled.Clear();
         _scanNote = null;
         _beforeScan = null;

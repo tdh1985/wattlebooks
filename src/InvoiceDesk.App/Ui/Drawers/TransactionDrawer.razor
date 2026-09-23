@@ -25,7 +25,20 @@
                         <Icon Name="invoice" Size="16" />
                         @if (_tx.Direction == Direction.Out)
                         {
-                            <div>This is a bank fee on <a href="invoices/@invoiceId" @onclick="OnClose">@(_tx.Invoice?.Number ?? "an invoice")</a>. Deleting it puts the invoice back to part-paid.</div>
+                            <div>
+                                This is the bank fee taken from a payment for
+                                <a href="invoices/@invoiceId" @onclick="OnClose">@(_tx.Invoice?.Number ?? "an invoice")</a>.
+                                The payment counts the full amount, so deleting this leaves the invoice paid.
+                            </div>
+                        }
+                        else if (_tx.ForeignAmountCents is { } sent && _tx.Invoice is { } paidInvoice
+                                 && !string.Equals(_tx.ForeignCurrency, paidInvoice.Currency, StringComparison.OrdinalIgnoreCase))
+                        {
+                            <div>
+                                This is a payment of @Format.Money(sent, _tx.ForeignCurrency) for
+                                <a href="invoices/@invoiceId" @onclick="OnClose">@paidInvoice.Number</a>.
+                                Changing the amount here changes what the invoice shows as paid.
+                            </div>
                         }
                         else if (_tx.ForeignAmountCents is { } billed)
                         {

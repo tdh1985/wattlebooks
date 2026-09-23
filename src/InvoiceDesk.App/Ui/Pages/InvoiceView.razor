@@ -179,6 +179,10 @@
                                         ? $"reached your bank as {Format.Money(payment.AmountCents)}"
                                         : $"sent as {Format.Money(other, payment.ForeignCurrency)}")
                                 </div>
+                                @if (payment.Direction == Direction.In && FeeOn(payment) is > 0 and var fee)
+                                {
+                                    <div class="small muted">reached your bank as @Format.Money(payment.AmountCents - fee)</div>
+                                }
                             }
                             @if (payment.Attachments.Count > 0)
                             {
@@ -305,6 +309,11 @@
             await JS.InvokeVoidAsync("invoicedesk.fitPreview", _stage);
         }
     }
+
+    // paid in full counts the balance, so a same-day fee shows what landed
+    long FeeOn(Transaction payment) =>
+        payment.ForeignCurrency.Equals(_invoice!.Currency, StringComparison.OrdinalIgnoreCase) ? 0
+            : _invoice.Payments.Where(p => p.Direction == Direction.Out && p.Date == payment.Date).Sum(p => p.AmountCents);
 
     static string PaymentDetail(Transaction payment)
     {

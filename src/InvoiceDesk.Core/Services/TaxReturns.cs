@@ -51,15 +51,15 @@ public static class TaxReturns
         ], net, net >= 0 ? "GST to pay" : "GST refund");
     }
 
-    // the ird works gst out from totals, not by adding up each receipt
+    // gst charged is the authority so a part zero-rated sale can't inflate box 8
     static (List<ReturnBox>, long, string) NewZealand(CountryRules c, List<Transaction> sales, List<Transaction> costs)
     {
         var b5 = sales.Sum(t => t.AmountCents);
-        var b6 = sales.Where(t => t.TaxCents == 0).Sum(t => t.AmountCents);
-        var b7 = b5 - b6;
-        var b8 = MoneyMath.TaxFromInclusive(b7, c.StandardRatePpm);
-        var b11 = costs.Where(t => t.TaxCents > 0).Sum(t => t.AmountCents);
-        var b12 = MoneyMath.TaxFromInclusive(b11, c.StandardRatePpm);
+        var b8 = sales.Sum(t => t.TaxCents);
+        var b7 = MoneyMath.InclusiveFromTax(b8, c.StandardRatePpm);
+        var b6 = b5 - b7;
+        var b12 = costs.Sum(t => t.TaxCents);
+        var b11 = MoneyMath.InclusiveFromTax(b12, c.StandardRatePpm);
         var b15 = b8 - b12;
         var label = b15 >= 0 ? "GST to pay" : "GST refund";
         return ([

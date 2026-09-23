@@ -15,6 +15,10 @@ public static class MoneyMath
     public static long TaxFromInclusive(long amountCents, int ratePpm) =>
         Round(amountCents * (decimal)ratePpm / (PpmPerWhole + ratePpm));
 
+    // the inclusive total that carries this much tax, the inverse of the above
+    public static long InclusiveFromTax(long taxCents, int ratePpm) =>
+        ratePpm == 0 ? 0 : Round(taxCents * (PpmPerWhole + ratePpm) / ratePpm);
+
     // tax on a part payment, so return figures follow cash received
     public static long ProportionalTax(long paymentCents, long invoiceTaxCents, long invoiceTotalCents) =>
         invoiceTotalCents == 0 ? 0 : Round((decimal)paymentCents * invoiceTaxCents / invoiceTotalCents);

@@ -5,7 +5,8 @@ using System.Text.RegularExpressions;
 
 namespace InvoiceDesk.Core.Rules;
 
-public sealed record ReceiptGuess(string? Party, DateOnly? Date, long? TotalCents, long? TaxCents);
+// currency is null when nothing on the receipt pins it down, like a bare $
+public sealed record ReceiptGuess(string? Party, DateOnly? Date, long? TotalCents, long? TaxCents, string? Currency = null);
 
 // one word the ocr found and the box it sits in on the page
 public readonly record struct PageWord(string Text, double X, double Y, double Width, double Height);
@@ -18,15 +19,17 @@ public static partial class ReceiptParser
     public static ReceiptGuess Parse(string text, DateOnly today, IReadOnlyList<string> knownParties, ReceiptRules? rules = null)
     {
         rules ??= Australia.Rules.Receipts;
-        var lines = text.Split('\n').Select(l => FixDigits(l.Trim())).Where(l => l.Length > 0).ToList();
-        if (lines.Count == 0) return new ReceiptGuess(null, null, null, null);
+        var raw = text.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
+        if (raw.Count == 0) return new ReceiptGuess(null, null, null, null);
+        var lines = raw.Select(FixDigits).ToList();
 
         var total = FindTotal(lines);
         return new ReceiptGuess(
             FindParty(text, lines, knownParties, rules.MonthFirst),
             FindDate(lines, today, rules.MonthFirst),
             total,
-            FindTax(lines, total, rules.TaxCapPpm));
+            FindTax(lines, total, rules.TaxCapPpm),
+            FindCurrency(raw, lines));
     }
 
     // ocr reads columns one after another, so rows are rebuilt from where each word sits
@@ -91,16 +94,48 @@ public static partial class ReceiptParser
             .FirstOrDefault();
     }
 
+    // marks that name one currency, a bare $ could be any of them
+    static readonly (Regex Mark, string Code)[] CurrencyMarks =
+    [
+        .. Currencies.All.Select(c => (new Regex($"(?<![A-Za-z]){c.Code}(?![A-Za-z])"), c.Code)),
+        (new Regex(@"(?<![A-Za-z])US\$"), "USD"),
+        (new Regex(@"(?<![A-Za-z])NZ\$"), "NZD"),
+        (new Regex(@"(?<![A-Za-z])CA?\$"), "CAD"),
+        (new Regex(@"(?<![A-Za-z])HK\$"), "HKD"),
+        (new Regex(@"(?<![A-Za-z])S\$"), "SGD"),
+        (new Regex(@"(?<![A-Za-z])A\$"), "AUD"),
+        (new Regex("€"), "EUR"),
+        (new Regex("£"), "GBP"),
+    ];
+
+    static string? FindCurrency(List<string> raw, List<string> lines)
+    {
+        var marked = Enumerable.Range(0, lines.Count)
+            .Select(i => (Code: CurrencyOn(raw[i], lines[i]), IsTotal: IsTotalLine(lines[i])))
+            .Where(x => x.Code is not null)
+            .ToList();
+        var onTotals = marked.Where(x => x.IsTotal).Select(x => x.Code).Distinct().ToList();
+        if (onTotals.Count == 1) return onTotals[0];
+
+        var counts = marked.GroupBy(x => x.Code).Select(g => (Code: g.Key, Count: g.Count())).OrderByDescending(x => x.Count).ToList();
+        if (counts.Count == 0) return null;
+        return counts.Count == 1 || counts[0].Count > counts[1].Count ? counts[0].Code : null;
+    }
+
+    // a mark only counts beside a figure, so "currency: usd" on its own is ignored
+    static string? CurrencyOn(string raw, string line)
+    {
+        if (LastAmount(line) is null) return null;
+        var codes = CurrencyMarks.Where(m => m.Mark.IsMatch(raw)).Select(m => m.Code).Distinct().ToList();
+        return codes.Count == 1 ? codes[0] : null;
+    }
+
     static DateOnly? FindDate(List<string> lines, DateOnly today, bool monthFirst)
     {
-        foreach (var line in lines)
-        {
-            foreach (var date in DatesIn(line, monthFirst))
-            {
-                if (date <= today && date >= today.AddYears(-2)) return date;
-            }
-        }
-        return null;
+        bool Recent(DateOnly d) => d <= today && d >= today.AddYears(-2);
+        // a remittance shows the invoice date too, so the paid date wins
+        return lines.Where(l => PaidDateLabel().IsMatch(l)).SelectMany(l => DatesIn(l, monthFirst)).Where(Recent).Cast<DateOnly?>().FirstOrDefault()
+               ?? lines.SelectMany(l => DatesIn(l, monthFirst)).Where(Recent).Cast<DateOnly?>().FirstOrDefault();
     }
 
     static IEnumerable<DateOnly> DatesIn(string line, bool monthFirst)
@@ -217,4 +252,7 @@ public static partial class ReceiptParser
 
     [GeneratedRegex(@"\b(NSW|VIC|QLD|TAS|SA|WA|NT|ACT)\b\s*\d{4}\b|\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b|\b[A-Z]\d[A-Z]\s?\d[A-Z]\d\b|\b[A-Z]{2}\s+\d{5}(?:-\d{4})?\b", RegexOptions.IgnoreCase)]
     private static partial Regex Postcode();
+
+    [GeneratedRegex(@"\b(payment\s+date|date\s+paid|paid\s+on)\b|\bpaid\s*:", RegexOptions.IgnoreCase)]
+    private static partial Regex PaidDateLabel();
 }

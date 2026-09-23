@@ -17,21 +17,19 @@ public sealed class ReceiptReader(ILogger<ReceiptReader> log)
     // wide enough for small receipt print, small enough to read quickly
     const uint PdfRenderWidth = 2000;
 
+    // a stuck pdf render or ocr call would leave the drawer scanning forever
+    static readonly TimeSpan ReadLimit = TimeSpan.FromSeconds(20);
+
     public async Task<string?> ReadTextAsync(string path)
     {
         try
         {
-            var engine = OcrEngine.TryCreateFromUserProfileLanguages();
-            if (engine is null)
-            {
-                log.LogWarning("No Windows OCR language is installed, so receipts can't be read");
-                return null;
-            }
-            using var bitmap = await LoadAsync(path);
-            if (bitmap is null) return null;
-            var result = await engine.RecognizeAsync(bitmap);
-            return ReceiptParser.JoinRows(result.Lines.SelectMany(l => l.Words)
-                .Select(w => new PageWord(w.Text, w.BoundingRect.X, w.BoundingRect.Y, w.BoundingRect.Width, w.BoundingRect.Height)));
+            return await ReadAsync(path).WaitAsync(ReadLimit);
+        }
+        catch (TimeoutException)
+        {
+            log.LogWarning("Gave up reading {File} after {Seconds} seconds", Path.GetFileName(path), ReadLimit.TotalSeconds);
+            return null;
         }
         catch (Exception ex)
         {
@@ -39,6 +37,21 @@ public sealed class ReceiptReader(ILogger<ReceiptReader> log)
             log.LogWarning(ex, "Couldn't read text from {File}", Path.GetFileName(path));
             return null;
         }
+    }
+
+    async Task<string?> ReadAsync(string path)
+    {
+        var engine = OcrEngine.TryCreateFromUserProfileLanguages();
+        if (engine is null)
+        {
+            log.LogWarning("No Windows OCR language is installed, so receipts can't be read");
+            return null;
+        }
+        using var bitmap = await LoadAsync(path);
+        if (bitmap is null) return null;
+        var result = await engine.RecognizeAsync(bitmap);
+        return ReceiptParser.JoinRows(result.Lines.SelectMany(l => l.Words)
+            .Select(w => new PageWord(w.Text, w.BoundingRect.X, w.BoundingRect.Y, w.BoundingRect.Width, w.BoundingRect.Height)));
     }
 
     static async Task<SoftwareBitmap?> LoadAsync(string path)

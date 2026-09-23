@@ -28,5 +28,12 @@ public class Invoice
     public List<Attachment> Attachments { get; set; } = [];
     public List<Reminder> Reminders { get; set; } = [];
 
-    public long PaidCents => Payments.Where(p => p.Direction == Direction.In).Sum(p => p.InvoiceAmountCents);
+    // fee rows are money out that was written off against this invoice
+    public long PaidCents => Payments.Sum(p => p.Direction == Direction.In ? SettledBy(p) : p.AmountCents);
+
+    // an aud invoice paid in usd is settled by the aud that landed
+    public long SettledBy(Transaction payment) =>
+        payment.ForeignAmountCents is { } foreign && string.Equals(payment.ForeignCurrency, Currency, StringComparison.OrdinalIgnoreCase)
+            ? foreign
+            : payment.AmountCents;
 }

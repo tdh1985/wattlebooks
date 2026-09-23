@@ -162,7 +162,7 @@
                         <div class="payment" @key="payment.Id">
                             <div class="row between">
                                 <span class="primary">@Format.Date(payment.Date)</span>
-                                <span class="num amount-in">@Format.Money(payment.InvoiceAmountCents, _invoice.Currency)</span>
+                                <span class="num amount-in">@Format.Money(_invoice.SettledBy(payment), _invoice.Currency)</span>
                             </div>
                             <div class="small muted">@PaymentDetail(payment)</div>
                             @if (payment.ForeignAmountCents is not null)
@@ -309,7 +309,7 @@
         if (_invoice.SentAt is { } sent) items.Add((sent, "send", "Marked as sent"));
         if (_invoice.AnsweredAt is { } answered)
             items.Add(_invoice.Status == InvoiceStatus.Declined ? (answered, "x", "Declined") : (answered, "check", "Accepted"));
-        items.AddRange(_invoice.Payments.Select(p => (p.CreatedAt, "check", $"Payment of {Format.Money(p.InvoiceAmountCents, _invoice.Currency)} recorded")));
+        items.AddRange(_invoice.Payments.Select(p => (p.CreatedAt, "check", $"Payment of {Format.Money(_invoice.SettledBy(p), _invoice.Currency)} recorded")));
         items.AddRange(_invoice.Reminders.Select(r => (r.CreatedAt, "bell", r.Tone switch
         {
             ReminderTone.Polite => "Friendly reminder emailed",

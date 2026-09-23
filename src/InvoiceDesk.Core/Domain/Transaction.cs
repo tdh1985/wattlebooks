@@ -20,11 +20,9 @@ public class Transaction
     public DateTime CreatedAt { get; set; }
     public List<Attachment> Attachments { get; set; } = [];
 
-    // what the client paid in the invoice's own currency, when that isn't ours
+    // the other currency's side, either the invoice's currency or what was charged
     public long? ForeignAmountCents { get; set; }
     public string ForeignCurrency { get; set; } = "";
-
-    public long InvoiceAmountCents => ForeignAmountCents ?? AmountCents;
 
     public long ExTaxCents => AmountCents - TaxCents;
 }

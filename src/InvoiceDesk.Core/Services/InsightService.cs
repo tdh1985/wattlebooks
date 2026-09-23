@@ -59,7 +59,7 @@ public sealed class InsightService(IDbContextFactory<AppDbContext> factory, Time
     static PaymentHabit? Habit(IEnumerable<Invoice> invoices) =>
         PaymentHabits.From(invoices
             .Select(i => (i.DueDate, Paid: PaymentHabits.PaidDate(i.Totals().TotalCents,
-                i.Payments.Where(p => p.Direction == Direction.In).Select(p => (p.Date, p.InvoiceAmountCents)))))
+                i.Payments.Where(p => p.Direction == Direction.In).Select(p => (p.Date, i.SettledBy(p))))))
             .Where(x => x.Paid is not null)
             .Select(x => (x.DueDate, x.Paid!.Value)));
 }

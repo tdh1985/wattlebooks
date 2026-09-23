@@ -13,7 +13,7 @@
     --rule-strong: #C4CBD5;
     --ink: #18213A;
     --ink-2: #4B5570;
-    --ink-3: #7B859C;
+    --ink-3: #626A7D;
     --accent: #2E6B57;
     --accent-ink: #FFFFFF;
     --accent-soft: color-mix(in oklab, var(--accent) 11%, var(--paper));
@@ -48,7 +48,7 @@
     --rule-strong: #3A4259;
     --ink: #E6E9F1;
     --ink-2: #A9B0C3;
-    --ink-3: #7A839A;
+    --ink-3: #8D94A8;
     --accent-soft: color-mix(in oklab, var(--accent) 24%, var(--paper));
     --accent-text: color-mix(in oklab, var(--accent) 55%, white);
     --canary: #3B3514;

@@ -44,8 +44,25 @@ public sealed class TransactionService(
         var rules = Countries.For((await profiles.GetAsync()).Country);
         if (t.Direction == Direction.Out && !rules.ExpensesCarryTax) t.TaxCents = 0;
 
+        // home money never carries a foreign side, so stray values are dropped
+        var foreign = !string.IsNullOrWhiteSpace(t.ForeignCurrency) && !string.Equals(t.ForeignCurrency.Trim(), rules.Currency, StringComparison.OrdinalIgnoreCase);
+        if (!foreign)
+        {
+            t.ForeignCurrency = "";
+            t.ForeignAmountCents = null;
+        }
+
         var errors = new List<string>();
-        if (t.AmountCents <= 0) errors.Add("Amount must be more than zero.");
+        if (t.AmountCents <= 0)
+            errors.Add(!foreign ? "Amount must be more than zero."
+                : t.Direction == Direction.Out ? $"Enter the amount that left your bank in {rules.Currency}."
+                : $"Enter the amount that reached your bank in {rules.Currency}.");
+        if (foreign)
+        {
+            if (Currencies.Find(t.ForeignCurrency.Trim()) is { } known) t.ForeignCurrency = known.Code;
+            else errors.Add("Choose a currency from the list.");
+            if (t.ForeignAmountCents is not > 0) errors.Add($"Enter the amount charged in {t.ForeignCurrency.Trim().ToUpperInvariant()}.");
+        }
         if (t.TaxCents < 0 || t.TaxCents > t.AmountCents) errors.Add($"{rules.TaxName} must be between zero and the amount.");
         if (t.Date == default) errors.Add("Choose a date.");
         ValidationException.ThrowIfAny(errors);
@@ -73,6 +90,8 @@ public sealed class TransactionService(
         entity.Notes = Text.Clean(t.Notes);
         entity.Method = t.Method;
         entity.InvoiceId = t.InvoiceId;
+        entity.ForeignAmountCents = t.ForeignAmountCents;
+        entity.ForeignCurrency = t.ForeignCurrency;
 
         var removed = entity.Attachments.Where(a => removedAttachmentIds.Contains(a.Id)).ToList();
         foreach (var a in removed)

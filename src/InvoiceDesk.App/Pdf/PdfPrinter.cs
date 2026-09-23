@@ -4,7 +4,8 @@ using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using InvoiceDesk.App.Host;
-using InvoiceDesk.App.Ui;
+using InvoiceDesk.Ui;
+using InvoiceDesk.Ui.Platform;
 using InvoiceDesk.Core.Rules;
 using InvoiceDesk.Core.Storage;
 using Microsoft.Web.WebView2.Core;
@@ -12,8 +13,10 @@ using Microsoft.Web.WebView2.Core;
 namespace InvoiceDesk.App.Pdf;
 
 // prints through a hidden webview so pdfs match the on-screen preview exactly
-public sealed class PdfPrinter(AppPaths paths, HostWindow host) : IDisposable
+public sealed class PdfPrinter(AppPaths paths, HostWindow host) : IPdfPrinter, IDisposable
 {
+    public bool CanPrint => true;
+
     const double CssPixelsPerInch = 96;
 
     // the remeasure is floored at the page height so this only shrinks a bit more
@@ -108,7 +111,7 @@ public sealed class PdfPrinter(AppPaths paths, HostWindow host) : IDisposable
         // otherwise a host monitor dpi change silently overrides the pinned scale
         _controller.ShouldDetectMonitorScaleChanges = false;
         // real bounds are set per print in PrintAsync, once the paper is known
-        FilesUrl.MapHosts(_controller.CoreWebView2, paths);
+        VirtualHosts.Map(_controller.CoreWebView2, paths);
         return _controller.CoreWebView2;
     }
 

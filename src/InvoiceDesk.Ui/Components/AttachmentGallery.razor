@@ -1,0 +1,102 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@inject AppPaths Paths
+@inject IDesktop Desktop
+
+@if (Items.Count > 0 || Staged.Count > 0)
+{
+    <div class="gallery">
+        @foreach (var item in Items)
+        {
+            <div class="tile" role="button" tabindex="0" title="@item.OriginalFileName" @key="item.Id"
+                 @onclick="() => Show(item)" @onkeydown="e => OnKey(e, () => Show(item))">
+                <div class="tile-thumb">
+                    @if (item.IsImage)
+                    {
+                        <img src="@FilesUrl.For(item.StoredPath)" alt="" loading="lazy" />
+                    }
+                    else
+                    {
+                        <span class="pdf-mark">PDF</span>
+                    }
+                </div>
+                <div class="tile-name">@item.OriginalFileName</div>
+                <div class="tile-meta">@Format.Bytes(item.SizeBytes)</div>
+                @if (OnRemove.HasDelegate)
+                {
+                    <button type="button" class="tile-remove" aria-label="Remove @item.OriginalFileName"
+                            @onclick="() => OnRemove.InvokeAsync(item)" @onclick:stopPropagation="true"><Icon Name="x" Size="14" /></button>
+                }
+            </div>
+        }
+        @foreach (var file in Staged)
+        {
+            <div class="tile pending" role="button" tabindex="0" title="@file.OriginalFileName" @key="file.TempPath"
+                 @onclick="() => Show(file)" @onkeydown="e => OnKey(e, () => Show(file))">
+                <div class="tile-thumb">
+                    @if (file.IsImage)
+                    {
+                        <img src="@FilesUrl.ForLocal(file.RelativePath)" alt="" />
+                    }
+                    else
+                    {
+                        <span class="pdf-mark">PDF</span>
+                    }
+                </div>
+                <div class="tile-name">@file.OriginalFileName</div>
+                <div class="tile-meta">Not saved yet</div>
+                @if (OnRemoveStaged.HasDelegate)
+                {
+                    <button type="button" class="tile-remove" aria-label="Remove @file.OriginalFileName"
+                            @onclick="() => OnRemoveStaged.InvokeAsync(file)" @onclick:stopPropagation="true"><Icon Name="x" Size="14" /></button>
+                }
+            </div>
+        }
+    </div>
+}
+
+<Modal Open="_preview is not null" Title="@_preview?.Name" Class="preview" OnClose="() => _preview = null">
+    <HeadExtra>
+        @if (_preview is { } p)
+        {
+            <button type="button" class="btn btn-sm" @onclick="() => Desktop.OpenFile(p.FullPath)"><Icon Name="external" Size="14" /> Open</button>
+            <button type="button" class="btn btn-sm" @onclick="() => Desktop.ShowInFolder(p.FullPath)"><Icon Name="folder" Size="14" /> Show in folder</button>
+        }
+    </HeadExtra>
+    <ChildContent>
+        @if (_preview is { } p)
+        {
+            <div class="preview-frame">
+                @if (p.IsImage)
+                {
+                    <img src="@p.Url" alt="@p.Name" />
+                }
+                else
+                {
+                    <iframe src="@p.Url" title="@p.Name"></iframe>
+                }
+            </div>
+        }
+    </ChildContent>
+</Modal>
+
+@code {
+    sealed record Preview(string Name, string Url, string FullPath, bool IsImage);
+
+    [Parameter] public IReadOnlyList<Attachment> Items { get; set; } = [];
+    [Parameter] public IReadOnlyList<StagedFile> Staged { get; set; } = [];
+    [Parameter] public EventCallback<Attachment> OnRemove { get; set; }
+    [Parameter] public EventCallback<StagedFile> OnRemoveStaged { get; set; }
+
+    Preview? _preview;
+
+    void Show(Attachment a) =>
+        _preview = new Preview(a.OriginalFileName, FilesUrl.For(a.StoredPath), Paths.FullPath(a.StoredPath), a.IsImage);
+
+    void Show(StagedFile f) =>
+        _preview = new Preview(f.OriginalFileName, FilesUrl.ForLocal(f.RelativePath), f.TempPath, f.IsImage);
+
+    static void OnKey(KeyboardEventArgs e, Action open)
+    {
+        if (e.Key is "Enter" or " ") open();
+    }
+}

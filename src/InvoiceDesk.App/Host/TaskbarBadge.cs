@@ -7,6 +7,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using InvoiceDesk.Core.Services;
 
+using InvoiceDesk.Ui.Host;
+
 namespace InvoiceDesk.App.Host;
 
 // the overdue count on the taskbar icon, so late invoices are noticed without opening the app

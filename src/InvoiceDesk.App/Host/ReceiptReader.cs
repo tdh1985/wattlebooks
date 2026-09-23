@@ -2,6 +2,7 @@
 
 using System.IO;
 using InvoiceDesk.Core.Rules;
+using InvoiceDesk.Ui.Platform;
 using Microsoft.Extensions.Logging;
 using Windows.Data.Pdf;
 using Windows.Graphics.Imaging;
@@ -12,8 +13,10 @@ using Windows.Storage.Streams;
 namespace InvoiceDesk.App.Host;
 
 // the text reader built into windows, so receipts are read on this pc for free
-public sealed class ReceiptReader(ILogger<ReceiptReader> log)
+public sealed class ReceiptReader(ILogger<ReceiptReader> log) : IReceiptReader
 {
+    public bool IsAvailable => true;
+
     // wide enough for small receipt print, small enough to read quickly
     const uint PdfRenderWidth = 2000;
 

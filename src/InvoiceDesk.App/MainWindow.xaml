@@ -4,7 +4,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:blazor="clr-namespace:Microsoft.AspNetCore.Components.WebView.Wpf;assembly=Microsoft.AspNetCore.Components.WebView.Wpf"
         xmlns:host="clr-namespace:InvoiceDesk.App.Host"
-        xmlns:ui="clr-namespace:InvoiceDesk.App.Ui"
+        xmlns:ui="clr-namespace:InvoiceDesk.Ui;assembly=InvoiceDesk.Ui"
         Title="InvoiceDesk"
         Width="1360" Height="860" MinWidth="1024" MinHeight="660"
         WindowStartupLocation="CenterScreen">

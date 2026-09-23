@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>InvoiceDesk.Ui</RootNamespace>
+    <!-- wwwroot is embedded below, so the sdk must not publish it as loose files too -->
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\InvoiceDesk.Core\InvoiceDesk.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- referenced directly only to get a path to its blazor.webview.js -->
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView" Version="10.0.0" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <!-- web assets live inside the assembly so each host ships as a single file -->
+  <ItemGroup>
+    <Content Remove="wwwroot\**" />
+    <None Remove="wwwroot\**" />
+    <EmbeddedResource Include="wwwroot\**" LogicalName="wwwroot/%(RecursiveDir)%(Filename)%(Extension)" />
+    <EmbeddedResource Include="$(PkgMicrosoft_AspNetCore_Components_WebView)\staticwebassets\blazor.webview.js"
+                      LogicalName="wwwroot/_framework/blazor.webview.js" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,29 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@inject IDesktop Desktop
+
+<div class="page">
+    <div class="empty">
+        <Icon Name="alert" Size="28" Class="empty-icon" />
+        <h2>This screen hit a problem</h2>
+        <p>@Exception.Message</p>
+        <p class="muted">Nothing was lost. The details were saved to the log folder.</p>
+        <div class="row gap-8 center">
+            <button type="button" class="btn btn-primary" @onclick="OnReload"><Icon Name="refresh" Size="16" /> Reload screen</button>
+            <button type="button" class="btn" @onclick="() => Desktop.OpenFolder(FileLog.Folder)"><Icon Name="folder" Size="16" /> Open log folder</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Exception Exception { get; set; } = default!;
+    [Parameter] public EventCallback OnReload { get; set; }
+
+    Exception? _logged;
+
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(_logged, Exception)) return;
+        _logged = Exception;
+        FileLog.Write(Exception, "screen");
+    }
+}

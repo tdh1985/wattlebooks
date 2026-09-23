@@ -1,0 +1,394 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@page "/money"
+@implements IDisposable
+@inject TransactionService Ledger
+@inject InvoiceService InvoiceStore
+@inject CategoryService Categories
+@inject ToastService Toasts
+@inject NavigationManager Nav
+@inject TimeProvider Clock
+@inject ExportService Exports
+@inject IDesktop Desktop
+@inject AppPaths Paths
+@inject IJSRuntime JS
+@inject ProfileService Profiles
+
+<div class="page">
+    <PageHeader Title="Money in &amp; out">
+        <Subtitle>Client payments, other income and what you've spent, each with its receipts.</Subtitle>
+        <Actions>
+            <button type="button" class="btn btn-ghost" title="Every entry in @PeriodLabel(_period), for your accountant or Excel" @onclick="ExportCsvAsync"><Icon Name="download" Size="16" /> Export CSV</button>
+            <button type="button" class="btn" @onclick="() => StartNew(Direction.In)"><Icon Name="in" Size="16" /> Add income</button>
+            <button type="button" class="btn btn-primary" @onclick="() => StartNew(Direction.Out)"><Icon Name="out" Size="16" /> Add expense</button>
+        </Actions>
+    </PageHeader>
+
+    <div class="toolbar">
+        <div class="seg" role="group" aria-label="Direction">
+            @foreach (var (tab, label) in Tabs)
+            {
+                <button type="button" class="@(_tab == tab ? "on" : null)" aria-pressed="@(_tab == tab)" @onclick="() => SetTabAsync(tab)">@label</button>
+            }
+        </div>
+        <div class="seg" role="group" aria-label="Period">
+            @foreach (var period in VisiblePeriods)
+            {
+                <button type="button" class="@(_period == period ? "on" : null)" aria-pressed="@(_period == period)" @onclick="() => SetPeriodAsync(period)">@PeriodLabel(period)</button>
+            }
+        </div>
+        <select class="select" style="width:auto; min-width:170px" aria-label="Category" value="@(_categoryId?.ToString() ?? "")" @onchange="SetCategoryAsync">
+            <option value="">All categories</option>
+            @foreach (var c in _categories.Where(c => _tab == "all" || c.Direction == TabDirection))
+            {
+                <option value="@c.Id">@c.Name@(c.Direction == Direction.In && _tab == "all" ? " (in)" : "")</option>
+            }
+        </select>
+        <div class="grow"></div>
+        <div class="search">
+            <Icon Name="search" Size="16" />
+            <input class="input" type="search" placeholder="Who, what or invoice number" aria-label="Search money" @bind="_search" @bind:event="oninput" />
+        </div>
+    </div>
+
+    @if (_rows is not null)
+    {
+        var rows = Visible.ToList();
+        var inCents = rows.Where(t => t.Direction == Direction.In).Sum(t => t.AmountCents);
+        var outCents = rows.Where(t => t.Direction == Direction.Out).Sum(t => t.AmountCents);
+        <div class="ledger-strip mt-8" style="margin-bottom:22px">
+            @if (_tab != "out")
+            {
+                <div class="ledger-cell">
+                    <div class="ledger-label">Money in</div>
+                    <div class="ledger-value">@Format.Money(inCents)</div>
+                    <div class="ledger-note">@Format.Country.TaxName collected @Format.Money(rows.Where(t => t.Direction == Direction.In).Sum(t => t.TaxCents))</div>
+                </div>
+            }
+            @if (_tab != "in")
+            {
+                <div class="ledger-cell">
+                    <div class="ledger-label">Money out</div>
+                    <div class="ledger-value">@Format.Money(outCents)</div>
+                    <div class="ledger-note">
+                        @if (Format.Country.ExpensesCarryTax)
+                        {
+                            @($"{Format.Country.TaxName} paid {Format.Money(rows.Where(t => t.Direction == Direction.Out).Sum(t => t.TaxCents))}")
+                        }
+                        else
+                        {
+                            @($"{Format.Country.TaxName} on purchases isn't claimed back")
+                        }
+                    </div>
+                </div>
+            }
+            @if (_tab == "all")
+            {
+                <div class="ledger-cell">
+                    <div class="ledger-label">Difference</div>
+                    <div class="ledger-value">@Format.Money(inCents - outCents)</div>
+                    <div class="ledger-note">Money in less money out</div>
+                </div>
+            }
+            <div class="ledger-cell">
+                <div class="ledger-label">Receipts attached</div>
+                <div class="ledger-value">@rows.Count(t => t.Attachments.Count > 0) of @rows.Count</div>
+                <div class="ledger-note">@(rows.Any(t => t.Direction == Direction.Out && t.Attachments.Count == 0) ? "Some expenses have no receipt" : "Nothing missing")</div>
+            </div>
+        </div>
+
+        @if (rows.Count == 0)
+        {
+            @if (!_hasAny)
+            {
+                <EmptyState Title="Nothing recorded yet" IconName="receipt"
+                            Text="Add an expense with its receipt, or income that isn't from an invoice. Invoice payments appear here on their own.">
+                    <button type="button" class="btn btn-primary" @onclick="() => StartNew(Direction.Out)"><Icon Name="out" Size="16" /> Add expense</button>
+                </EmptyState>
+            }
+            else
+            {
+                <EmptyState Compact Title="Nothing in this view" IconName="search" Text="Try a longer period or clear the filters." />
+            }
+        }
+        else
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Who and what</th>
+                        <th>Category</th>
+                        <th class="num" aria-label="Receipts"><Icon Name="paperclip" Size="14" /></th>
+                        <th class="num">@Format.Country.TaxName</th>
+                        <th class="num">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in rows)
+                    {
+                        <tr class="link" tabindex="0" @key="t.Id" @onclick="() => OpenEntry(t.Id)" @onkeydown="e => OnRowKey(e, t.Id)">
+                            <td class="nowrap">@Format.Date(t.Date)</td>
+                            <td>
+                                <span class="primary">@(t.Party.Length > 0 ? t.Party : t.Description.Length > 0 ? t.Description : "Untitled")</span>
+                                @if (t.Party.Length > 0 && t.Description.Length > 0)
+                                {
+                                    <span class="secondary">@t.Description</span>
+                                }
+                            </td>
+                            <td>
+                                @if (t.Category is { } category)
+                                {
+                                    <span class="pill pill-plain">@category.Name</span>
+                                }
+                            </td>
+                            <td class="num soft">
+                                @if (t.Attachments.Count > 0)
+                                {
+                                    <span title="@t.Attachments.Count receipt(s)"><Icon Name="paperclip" Size="14" /> @t.Attachments.Count</span>
+                                }
+                                else if (t.Direction == Direction.Out)
+                                {
+                                    <span class="muted" title="No receipt attached">–</span>
+                                }
+                            </td>
+                            <td class="num soft">@(t.TaxCents > 0 ? Format.Amount(t.TaxCents) : "–")</td>
+                            <td class="num @(t.Direction == Direction.In ? "amount-in" : "amount-out")">
+                                @(t.Direction == Direction.In ? "+" : "−")@Format.Money(t.AmountCents)
+                                @if (t.ForeignAmountCents is not null)
+                                {
+                                    <div class="small muted">@Format.Money(t.ForeignAmountCents.Value, t.ForeignCurrency)</div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+</div>
+
+@if (_pageDrop)
+{
+    <div class="page-drop" @onclick="HidePageDrop">
+        <FileDropZone Multiple="false" IconName="receipt" Title="Drop a receipt to add it as an expense"
+                      Hint="InvoiceDesk reads the amount, date and supplier from it for you" OnFiles="OnPageDropAsync" />
+    </div>
+}
+
+<TransactionDrawer Open="_drawerOpen" Direction="_newDirection" TransactionId="_openId" InitialFiles="_droppedFiles"
+                   OnSaved="OnDrawerDoneAsync" OnDeleted="OnDrawerDoneAsync" OnClose="CloseDrawer" />
+
+@code {
+    static readonly (string Tab, string Label)[] Tabs = [("all", "All"), ("in", "Money in"), ("out", "Money out")];
+    static readonly string[] Periods = ["month", "quarter", "fy", "all"];
+
+    [SupplyParameterFromQuery(Name = "new")] public string? NewQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "open")] public int? OpenQuery { get; set; }
+
+    List<Transaction>? _rows;
+    bool _hasAny;
+    BusinessProfile? _profile;
+    List<Category> _categories = [];
+    string _tab = "all";
+    string _period = "fy";
+    int? _categoryId;
+    string _search = "";
+    bool _drawerOpen;
+    Direction _newDirection = Direction.Out;
+    int? _openId;
+    bool _pageDrop;
+    IReadOnlyList<StagedFile>? _droppedFiles;
+    DotNetObjectReference<Money>? _ref;
+
+    Direction? TabDirection => _tab switch { "in" => Direction.In, "out" => Direction.Out, _ => null };
+
+    // a yearly filer's period is the whole year, so both chips would match
+    IEnumerable<string> VisiblePeriods
+    {
+        get
+        {
+            var today = Clock.Today();
+            return Periods.Where(p => p != "quarter" || Range("quarter", today) != Range("fy", today));
+        }
+    }
+
+    IEnumerable<Transaction> Visible => (_rows ?? [])
+        .Where(t => !Toasts.IsPending($"tx:{t.Id}"))
+        .Where(t => _search.Trim().Length == 0
+                    || t.Party.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase)
+                    || t.Description.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase)
+                    || t.Notes.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase)
+                    || (t.Invoice?.Number.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase) ?? false));
+
+    protected override async Task OnInitializedAsync()
+    {
+        Ledger.Changed += OnChanged;
+        InvoiceStore.Changed += OnChanged;
+        Toasts.Changed += OnToastsChanged;
+        _categories = await Categories.ListAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (NewQuery is "in" or "out") StartNew(NewQuery == "in" ? Direction.In : Direction.Out);
+        if (OpenQuery is { } id)
+        {
+            _period = "all";
+            OpenEntry(id);
+        }
+        await LoadAsync();
+    }
+
+    DateRange? Range(string period, DateOnly today) => period switch
+    {
+        "month" => FinancialPeriods.Month(today),
+        "quarter" => FinancialPeriods.ReturnPeriod(today, _profile?.TaxPeriodMonths ?? 3, _profile?.TaxPeriodEndMonth ?? 3),
+        "fy" => FinancialPeriods.TaxYear(today, Countries.For(_profile?.Country)),
+        _ => null,
+    };
+
+    async Task LoadAsync()
+    {
+        _profile = await Profiles.GetAsync();
+        var range = Range(_period, Clock.Today());
+        _rows = await Ledger.ListAsync(new TransactionFilter(TabDirection, range, _categoryId));
+        // first-run help only makes sense when nothing has ever been recorded
+        _hasAny = _rows.Count > 0 || (await Ledger.ListAsync(new TransactionFilter())).Count > 0;
+    }
+
+    string PeriodLabel(string period)
+    {
+        var today = Clock.Today();
+        var country = Countries.For(_profile?.Country);
+        return period switch
+        {
+            "month" => "This month",
+            "quarter" => FinancialPeriods.ReturnPeriodLabel(Range(period, today)!.Value, country),
+            "fy" => FinancialPeriods.TaxYearLabel(today, country),
+            _ => "All time",
+        };
+    }
+
+    async Task SetTabAsync(string tab)
+    {
+        _tab = tab;
+        if (_categoryId is { } id && _categories.FirstOrDefault(c => c.Id == id) is { } c && TabDirection is { } d && c.Direction != d)
+            _categoryId = null;
+        await LoadAsync();
+    }
+
+    async Task SetPeriodAsync(string period)
+    {
+        _period = period;
+        await LoadAsync();
+    }
+
+    async Task SetCategoryAsync(ChangeEventArgs e)
+    {
+        _categoryId = int.TryParse(e.Value?.ToString(), out var id) ? id : null;
+        await LoadAsync();
+    }
+
+    // the whole period, whatever the tabs show, since that's what an accountant wants
+    async Task ExportCsvAsync()
+    {
+        var range = Range(_period, Clock.Today()) ?? new DateRange(DateOnly.MinValue, DateOnly.MaxValue);
+        var target = Desktop.SaveCsvAs(Format.SafeFileName($"Money in and out, {PeriodLabel(_period)}.csv"), Paths.Exports);
+        if (target is null) return;
+        try
+        {
+            await using (var file = System.IO.File.Create(target)) await Exports.WriteTransactionsCsvAsync(range, file);
+            Toasts.Show($"Saved {System.IO.Path.GetFileName(target)}", ToastKind.Success,
+                new ToastAction("Open", () => { Desktop.OpenFile(target); return Task.CompletedTask; }),
+                new ToastAction("Show in folder", () => { Desktop.ShowInFolder(target); return Task.CompletedTask; }));
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _ref = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("invoicedesk.watchFileDrag", _ref);
+    }
+
+    [JSInvokable]
+    public Task ShowPageDrop() => InvokeAsync(() =>
+    {
+        if (_drawerOpen || _pageDrop) return;
+        _pageDrop = true;
+        StateHasChanged();
+    });
+
+    [JSInvokable]
+    public Task HidePageDrop() => InvokeAsync(() =>
+    {
+        if (!_pageDrop) return;
+        _pageDrop = false;
+        StateHasChanged();
+    });
+
+    Task OnPageDropAsync(IReadOnlyList<StagedFile> files)
+    {
+        _pageDrop = false;
+        _openId = null;
+        _newDirection = Direction.Out;
+        _droppedFiles = files;
+        _drawerOpen = true;
+        return Task.CompletedTask;
+    }
+
+    void StartNew(Direction direction)
+    {
+        _droppedFiles = null;
+        _openId = null;
+        _newDirection = direction;
+        _drawerOpen = true;
+    }
+
+    void OpenEntry(int id)
+    {
+        _openId = id;
+        _drawerOpen = true;
+    }
+
+    void CloseDrawer()
+    {
+        _drawerOpen = false;
+        _openId = null;
+        _droppedFiles = null;
+        // an unchanged url wouldn't open the drawer again from search
+        if (NewQuery is not null || OpenQuery is not null) Nav.NavigateTo("money", replace: true);
+    }
+
+    async Task OnDrawerDoneAsync()
+    {
+        CloseDrawer();
+        await LoadAsync();
+    }
+
+    void OnRowKey(KeyboardEventArgs e, int id)
+    {
+        if (e.Key == "Enter") OpenEntry(id);
+    }
+
+    void OnChanged() => InvokeAsync(async () =>
+    {
+        await LoadAsync();
+        StateHasChanged();
+    });
+
+    void OnToastsChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        _ = JS.InvokeVoidAsync("invoicedesk.unwatchFileDrag").AsTask().ContinueWith(_ => { }, TaskScheduler.Default);
+        _ref?.Dispose();
+        Ledger.Changed -= OnChanged;
+        InvoiceStore.Changed -= OnChanged;
+        Toasts.Changed -= OnToastsChanged;
+    }
+}

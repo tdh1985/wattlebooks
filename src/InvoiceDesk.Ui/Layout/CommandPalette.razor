@@ -1,0 +1,226 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@implements IDisposable
+@inject SearchService Search
+@inject InvoiceService InvoiceStore
+@inject NavigationManager Nav
+@inject ShortcutService Shortcuts
+@inject ThemeService Theme
+@inject ToastService Toasts
+@inject IDesktop Desktop
+@inject UpdateChecker Updates
+@inject AppPaths Paths
+@inject IJSRuntime JS
+
+@if (_open)
+{
+    <div class="scrim" @onclick="Close"></div>
+    <div class="palette" role="dialog" aria-modal="true" aria-label="Search and go">
+        <div class="palette-input">
+            <Icon Name="search" Size="18" />
+            <input id="palette-query" type="text" placeholder="Search invoices, quotes, clients and receipts, or type a command"
+                   autocomplete="off" spellcheck="false"
+                   value="@_query" @oninput="OnInput" @onkeydown="OnKeyDown" />
+            <kbd>Esc</kbd>
+        </div>
+        <ul class="palette-list" role="listbox">
+            @if (_items.Count == 0)
+            {
+                <li class="palette-empty">Nothing matches "@_query". Try a client name or an invoice number.</li>
+            }
+            @for (var i = 0; i < _items.Count; i++)
+            {
+                var index = i;
+                var item = _items[i];
+                if (i == 0 || _items[i - 1].Group != item.Group)
+                {
+                    <li class="palette-group" role="presentation">@item.Group</li>
+                }
+                <li role="option" aria-selected="@(index == _active)" class="palette-item @(index == _active ? "active" : null)"
+                    @onmouseenter="() => _active = index" @onclick="() => Go(item)">
+                    <Icon Name="@item.Icon" Size="16" />
+                    <span class="palette-title">@item.Title</span>
+                    <span class="palette-sub">@item.Subtitle</span>
+                </li>
+            }
+        </ul>
+    </div>
+}
+
+@code {
+    // an item either goes somewhere or runs something
+    sealed record Item(string Group, string Icon, string Title, string Subtitle, string? Href, Func<Task>? Run = null);
+
+    [Parameter] public EventCallback OnShowShortcuts { get; set; }
+
+    List<Item> Actions() =>
+    [
+        new("Actions", "plus", "New invoice", "Ctrl N", "invoices/new"),
+        new("Actions", "plus", "New quote", "A price to send before the work starts", "invoices/new?kind=quote"),
+        new("Actions", "out", "Add an expense", "Money out with a receipt", "money?new=out"),
+        new("Actions", "in", "Add income", "Money in that isn't an invoice payment", "money?new=in"),
+        new("Actions", "users", "Add a client", "", "clients?new=1"),
+        new("Actions", "copy", "Duplicate last invoice", "Start a new draft from your latest invoice", null, DuplicateLastAsync),
+        new("Actions", "invoice", "Invoices", "", "invoices"),
+        new("Actions", "invoice", "Quotes", "", "invoices?kind=quote"),
+        new("Actions", "wallet", "Money in and out", "", "money"),
+        new("Actions", "chart", "Reports", $"{Format.Country.ReturnTitle}, profit and loss", "reports"),
+        new("Actions", "sliders", "Settings", $"Business details, {Format.Country.TaxWord}, numbering", "settings"),
+        Theme.IsDark
+            ? new("Actions", "sun", "Switch to light theme", "", null, () => SetTheme("light"))
+            : new("Actions", "moon", "Switch to dark theme", "", null, () => SetTheme("dark")),
+        new("Actions", "hash", "Keyboard shortcuts", "?", null, () => OnShowShortcuts.InvokeAsync()),
+        new("Actions", "folder", "Open data folder", "Where your database, receipts and backups live", null, OpenDataFolder),
+        new("Actions", "refresh", "Check for updates", $"You have version {UpdateChecker.CurrentVersion}", null, CheckForUpdatesAsync),
+    ];
+
+    bool _open;
+    string _query = "";
+    int _active;
+    List<Item> _items = [];
+    CancellationTokenSource? _debounce;
+    IDisposable? _overlay;
+
+    public void Open() => InvokeAsync(async () =>
+    {
+        SetOpen(true);
+        _query = "";
+        _active = 0;
+        _items = Actions();
+        StateHasChanged();
+        await Task.Yield();
+        await JS.InvokeVoidAsync("invoicedesk.focus", "#palette-query");
+    });
+
+    void Close() => SetOpen(false);
+
+    void SetOpen(bool open)
+    {
+        _open = open;
+        if (open)
+        {
+            _overlay ??= Shortcuts.AddOverlay(() => _ = InvokeAsync(() =>
+            {
+                Close();
+                StateHasChanged();
+            }));
+        }
+        else
+        {
+            _overlay?.Dispose();
+            _overlay = null;
+        }
+    }
+
+    async Task OnInput(ChangeEventArgs e)
+    {
+        _query = e.Value?.ToString() ?? "";
+        _debounce?.Cancel();
+        _debounce = new CancellationTokenSource();
+        var token = _debounce.Token;
+        try { await Task.Delay(120, token); }
+        catch (TaskCanceledException) { return; }
+        await RefreshAsync();
+    }
+
+    async Task RefreshAsync()
+    {
+        var term = _query.Trim();
+        var actions = Actions().Where(a => term.Length == 0 || a.Title.Contains(term, StringComparison.OrdinalIgnoreCase));
+        var results = term.Length == 0 ? [] : await Search.SearchAsync(term);
+        var found = new List<Item>();
+        var offeredPayment = false;
+        foreach (var r in results)
+        {
+            found.Add(ToItem(r));
+            // the likeliest reason to look up an unpaid invoice is to record its payment
+            if (!offeredPayment && r is { Kind: SearchKind.Invoice, Status: DisplayStatus.Sent or DisplayStatus.PartPaid or DisplayStatus.Overdue })
+            {
+                offeredPayment = true;
+                found.Add(new("Invoices", "check", $"Record payment for {r.Title}", $"{Format.Money(r.BalanceCents ?? 0, r.Currency ?? Format.Country.Currency)} to come in", $"invoices/{r.Id}?pay=1"));
+            }
+        }
+        _items = found.Concat(actions).ToList();
+        _active = 0;
+        StateHasChanged();
+    }
+
+    static Item ToItem(SearchResult r) => r.Kind switch
+    {
+        SearchKind.Client => new("Clients", "users", r.Title, r.Subtitle, $"clients/{r.Id}"),
+        SearchKind.Invoice => new("Invoices", "invoice", r.Title, $"{r.Subtitle}  {Format.Money(r.AmountCents ?? 0, r.Currency ?? Format.Country.Currency)}", $"invoices/{r.Id}"),
+        SearchKind.Quote => new("Quotes", "invoice", r.Title, $"{r.Subtitle}  {Format.Money(r.AmountCents ?? 0, r.Currency ?? Format.Country.Currency)}", $"invoices/{r.Id}"),
+        _ => new("Money", "receipt", r.Title, $"{r.Subtitle}  {Format.Money(r.AmountCents ?? 0, r.Currency ?? Format.Country.Currency)}  {(r.Date is { } d ? Format.Date(d) : "")}", $"money?open={r.Id}"),
+    };
+
+    async Task DuplicateLastAsync()
+    {
+        var last = (await InvoiceStore.ListAsync()).FirstOrDefault(i => i.Status != DisplayStatus.Void);
+        if (last is null)
+        {
+            Toasts.Show("There's no invoice to copy yet.", ToastKind.Info);
+            return;
+        }
+        Nav.NavigateTo($"invoices/new?duplicate={last.Id}");
+    }
+
+    Task SetTheme(string theme)
+    {
+        Theme.Set(theme);
+        return Task.CompletedTask;
+    }
+
+    Task OpenDataFolder()
+    {
+        Desktop.OpenFolder(Paths.DataRoot);
+        return Task.CompletedTask;
+    }
+
+    async Task CheckForUpdatesAsync()
+    {
+        Toasts.Show("Checking GitHub for a newer version…", ToastKind.Info);
+        var result = await Updates.CheckAsync();
+        if (!result.Reached)
+            Toasts.Show("Couldn't reach GitHub. Check your internet connection and try again.", ToastKind.Error);
+        else if (result.IsNewer && result.Url is { } url)
+            Toasts.Show($"Version {result.Latest} is out. You have {UpdateChecker.CurrentVersion}.", ToastKind.Info,
+                new ToastAction("Download", () => { Desktop.OpenUrl(url); return Task.CompletedTask; }));
+        else
+            Toasts.Show($"You're up to date with version {UpdateChecker.CurrentVersion}.");
+    }
+
+    async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "ArrowDown":
+                _active = Math.Min(_items.Count - 1, _active + 1);
+                break;
+            case "ArrowUp":
+                _active = Math.Max(0, _active - 1);
+                break;
+            case "Enter" when _items.Count > 0:
+                await Go(_items[_active]);
+                break;
+        }
+    }
+
+    async Task Go(Item item)
+    {
+        Close();
+        if (item.Run is not null)
+        {
+            try { await item.Run(); }
+            catch (Exception ex) { Toasts.Error(ex); }
+        }
+        else if (item.Href is not null)
+        {
+            Nav.NavigateTo(item.Href);
+        }
+    }
+
+    public void Dispose()
+    {
+        _overlay?.Dispose();
+        _debounce?.Cancel();
+    }
+}

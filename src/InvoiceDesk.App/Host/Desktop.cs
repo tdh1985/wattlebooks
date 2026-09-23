@@ -3,12 +3,13 @@
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using InvoiceDesk.Ui.Platform;
 using Microsoft.Win32;
 
 namespace InvoiceDesk.App.Host;
 
 // shell and dialog calls the webview can't make on its own
-public sealed class Desktop
+public sealed class Desktop : IDesktop
 {
     public void OpenFile(string path) => Start(path);
 
@@ -26,6 +27,11 @@ public sealed class Desktop
     {
         if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp))
             Start(uri.AbsoluteUri);
+    }
+
+    public void OpenMail(string mailtoUrl)
+    {
+        if (mailtoUrl.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase)) Start(mailtoUrl);
     }
 
     public string? SaveFileAs(string defaultName, string initialFolder) =>

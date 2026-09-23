@@ -1,0 +1,482 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@page "/invoices/{Id:int}"
+@inject InvoiceService InvoiceStore
+@inject ProfileService Profiles
+@inject InvoicePdfExporter Pdf
+@inject ToastService Toasts
+@inject NavigationManager Nav
+@inject TimeProvider Clock
+@inject IDesktop Desktop
+@inject AppPaths Paths
+@inject EmailActions Email
+@inject RecurringService Recurring
+@inject IJSRuntime JS
+
+@if (_invoice is not null && _profile is not null)
+{
+    var rules = Countries.For(_profile.Country);
+    var totals = _invoice.Totals();
+    var paid = _invoice.PaidCents;
+    var balance = totals.TotalCents - paid;
+    var awaiting = !IsQuote && _status is DisplayStatus.Sent or DisplayStatus.PartPaid or DisplayStatus.Overdue;
+    var open = IsQuote && _invoice.Status == InvoiceStatus.Sent;
+    <div class="page">
+        <PageHeader Title="@_invoice.Number" Back="@(IsQuote ? "invoices?kind=quote" : "invoices")" BackLabel="@(IsQuote ? "Quotes" : "Invoices")">
+            <Subtitle>
+                <span class="row gap-12 wrap">
+                    <StatusPill Status="_status" />
+                    <a href="clients/@_invoice.ClientId">@_invoice.Client?.Name</a>
+                    @if (awaiting)
+                    {
+                        <span class="@(_status == DisplayStatus.Overdue ? "danger-text" : "muted")">@Format.Due(_invoice.DueDate, _today)</span>
+                    }
+                    else if (open)
+                    {
+                        <span class="muted">@Format.ValidUntil(_invoice.DueDate, _today)</span>
+                    }
+                    @if (_fromQuote is { } from)
+                    {
+                        <a class="pill pill-plain" href="invoices/@from.Id" title="The quote this invoice was made from">From quote @from.Number</a>
+                    }
+                    @if (_madeInvoice is { } made)
+                    {
+                        <a class="pill pill-plain" href="invoices/@made.Id" title="The invoice made from this quote">Became @made.Number</a>
+                    }
+                    @if (_repeat is { } repeat)
+                    {
+                        <RepeatPill Info="repeat" />
+                    }
+                </span>
+            </Subtitle>
+            <Actions>
+                @if (CanEdit)
+                {
+                    <a class="btn" href="invoices/@Id/edit"><Icon Name="edit" Size="16" /> Edit</a>
+                }
+                <button type="button" class="btn" disabled="@_busy" @onclick="() => ExportAsync(false)"><Icon Name="download" Size="16" /> Export PDF</button>
+                @if (_status == DisplayStatus.Overdue)
+                {
+                    <button type="button" class="btn" @onclick="() => _reminding = true"><Icon Name="bell" Size="16" /> Send reminder</button>
+                }
+                else if (_invoice.Status == InvoiceStatus.Sent)
+                {
+                    <button type="button" class="btn" disabled="@_busy" @onclick="EmailAsync"><Icon Name="mail" Size="16" /> Email</button>
+                }
+                @if (_invoice.Status == InvoiceStatus.Draft)
+                {
+                    <a class="btn btn-primary" href="invoices/@Id/edit"><Icon Name="send" Size="16" /> Finish and send</a>
+                }
+                else if (IsQuote && _madeInvoice is { } madeInto)
+                {
+                    <a class="btn btn-primary" href="invoices/@madeInto.Id"><Icon Name="invoice" Size="16" /> Open @madeInto.Number</a>
+                }
+                else if (open || _invoice.Status == InvoiceStatus.Accepted)
+                {
+                    <button type="button" class="btn btn-primary" disabled="@_busy" @onclick="TurnIntoInvoiceAsync"><Icon Name="invoice" Size="16" /> Turn into invoice</button>
+                }
+                else if (awaiting)
+                {
+                    <button type="button" class="btn btn-primary" @onclick="() => _paying = true"><Icon Name="plus" Size="16" /> Record payment</button>
+                }
+                <div class="menu">
+                    <button type="button" class="btn btn-icon" aria-label="More actions" aria-expanded="@_menu" @onclick="() => _menu = !_menu"><Icon Name="more" /></button>
+                    @if (_menu)
+                    {
+                        <div class="picker-scrim" @onclick="() => _menu = false"></div>
+                        <div class="menu-list">
+                            <button type="button" @onclick="() => ExportAsync(true)"><Icon Name="download" Size="16" /> Save PDF as…</button>
+                            @if (_status == DisplayStatus.Overdue)
+                            {
+                                <button type="button" @onclick="EmailAsync"><Icon Name="mail" Size="16" /> Email the invoice again</button>
+                            }
+                            <button type="button" @onclick="Duplicate"><Icon Name="copy" Size="16" /> Duplicate</button>
+                            @if (open)
+                            {
+                                <hr />
+                                <button type="button" @onclick="AcceptAsync"><Icon Name="check" Size="16" /> Mark accepted</button>
+                                <button type="button" @onclick="DeclineAsync"><Icon Name="x" Size="16" /> Mark declined</button>
+                            }
+                            else if (IsQuote && _madeInvoice is null && _invoice.Status is InvoiceStatus.Accepted or InvoiceStatus.Declined)
+                            {
+                                <hr />
+                                <button type="button" @onclick="ReopenAsync"><Icon Name="undo" Size="16" /> Reopen quote</button>
+                            }
+                            @if (_repeat is null && !IsQuote && _invoice.Status != InvoiceStatus.Void)
+                            {
+                                <button type="button" @onclick="() => { _menu = false; _repeating = true; }"><Icon Name="refresh" Size="16" /> Repeat this invoice…</button>
+                            }
+                            @if (_invoice.Status == InvoiceStatus.Sent && !IsQuote)
+                            {
+                                <hr />
+                                <button type="button" class="danger" @onclick="() => { _menu = false; _confirmVoid = true; }"><Icon Name="ban" Size="16" /> Void invoice</button>
+                            }
+                        </div>
+                    }
+                </div>
+            </Actions>
+        </PageHeader>
+
+        <div class="detail">
+            <div class="detail-preview">
+                <div class="doc-stage" @ref="_stage">
+                    <div class="doc-frame">
+                        <InvoiceDocument Invoice="_invoice" Profile="_profile" LogoUrl="@LogoUrl" Today="_today" AnimateStamp="_animateStamp" />
+                    </div>
+                </div>
+            </div>
+
+            <aside class="side">
+                <section class="panel panel-pad">
+                    <div class="money-rows">
+                        <div class="row"><span class="soft">@(totals.IsTaxInvoice ? $"Total inc. {rules.TaxWord}" : "Total")</span><span class="num">@Format.Money(totals.TotalCents, _invoice.Currency)</span></div>
+                        @if (totals.IsTaxInvoice)
+                        {
+                            <div class="row"><span class="soft">@rules.TaxName included</span><span class="num">@Format.Money(totals.TaxCents, _invoice.Currency)</span></div>
+                        }
+                        @if (IsQuote)
+                        {
+                            <div class="row"><span class="soft">Valid until</span><span>@Format.DateLong(_invoice.DueDate)</span></div>
+                        }
+                        else
+                        {
+                            <div class="row"><span class="soft">Paid</span><span class="num">@Format.Money(paid, _invoice.Currency)</span></div>
+                            <div class="row"><span>Balance due</span><span class="big">@Format.Money(Math.Max(0, balance), _invoice.Currency)</span></div>
+                        }
+                    </div>
+                    @if (awaiting)
+                    {
+                        <button type="button" class="btn btn-primary mt-16 full" @onclick="() => _paying = true"><Icon Name="plus" Size="16" /> Record payment</button>
+                    }
+                </section>
+
+                @if (!IsQuote)
+                {
+                <section>
+                    <h3>Payments</h3>
+                    @if (_invoice.Payments.Count == 0)
+                    {
+                        <p class="soft small">No payments yet. When your client pays, record it here and attach the remittance.</p>
+                    }
+                    @foreach (var payment in _invoice.Payments.OrderBy(p => p.Date).ThenBy(p => p.Direction))
+                    {
+                        <div class="payment" @key="payment.Id">
+                            <div class="row between">
+                                <span class="primary">@Format.Date(payment.Date)</span>
+                                @if (payment.Direction == Direction.Out)
+                                {
+                                    <span class="num muted">@Format.Money(payment.AmountCents)</span>
+                                }
+                                else
+                                {
+                                    <span class="num amount-in">@Format.Money(_invoice.SettledBy(payment), _invoice.Currency)</span>
+                                }
+                            </div>
+                            <div class="small muted">@(payment.Direction == Direction.Out ? "Bank fee" : PaymentDetail(payment))</div>
+                            @if (payment.ForeignAmountCents is { } other)
+                            {
+                                <div class="small muted">
+                                    @(payment.ForeignCurrency.Equals(_invoice.Currency, StringComparison.OrdinalIgnoreCase)
+                                        ? $"reached your bank as {Format.Money(payment.AmountCents)}"
+                                        : $"sent as {Format.Money(other, payment.ForeignCurrency)}")
+                                </div>
+                                @if (payment.Direction == Direction.In && FeeOn(payment) is > 0 and var fee)
+                                {
+                                    <div class="small muted">reached your bank as @Format.Money(payment.AmountCents - fee)</div>
+                                }
+                            }
+                            @if (payment.Attachments.Count > 0)
+                            {
+                                <div class="mt-8"><AttachmentGallery Items="payment.Attachments" /></div>
+                            }
+                        </div>
+                    }
+                </section>
+                }
+
+                <section>
+                    <h3>Files</h3>
+                    @if (_invoice.Attachments.Count == 0)
+                    {
+                        <p class="soft small">A copy of the PDF is kept here when you mark the @(IsQuote ? "quote" : "invoice") as sent.</p>
+                    }
+                    else
+                    {
+                        <AttachmentGallery Items="_invoice.Attachments" />
+                    }
+                </section>
+
+                <section>
+                    <h3>History</h3>
+                    <ul class="timeline">
+                        @foreach (var (when, icon, text) in History())
+                        {
+                            <li><Icon Name="@icon" Size="15" /><span><strong>@text</strong><br /><span class="muted">@when.ToString("d MMM yyyy, h:mm tt", CultureInfo.InvariantCulture)</span></span></li>
+                        }
+                    </ul>
+                </section>
+            </aside>
+        </div>
+    </div>
+}
+
+<PaymentDrawer Open="_paying" Invoice="_invoice" BalanceCents="@(_invoice is null ? 0 : _invoice.Totals().TotalCents - _invoice.PaidCents)"
+               OnSaved="OnPaidAsync" OnClose="() => _paying = false" />
+
+<ReminderModal Open="_reminding" InvoiceId="Id" OnClose="() => _reminding = false" OnSent="OnRemindedAsync" />
+
+<RepeatModal Open="_repeating" InvoiceId="Id" IssueDate="@(_invoice?.IssueDate ?? _today)" OnClose="() => _repeating = false" OnDone="OnRepeatSetAsync" />
+
+<Modal Open="_confirmVoid" Title="Void this invoice?" OnClose="() => _confirmVoid = false">
+    <ChildContent>
+        <p>@_invoice?.Number stays in your records marked as void, and it stops counting as money owed. This can't be undone.</p>
+    </ChildContent>
+    <Footer>
+        <button type="button" class="btn btn-ghost" @onclick="() => _confirmVoid = false">Keep it</button>
+        <button type="button" class="btn btn-danger" @onclick="VoidAsync"><Icon Name="ban" Size="16" /> Void invoice</button>
+    </Footer>
+</Modal>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    [SupplyParameterFromQuery(Name = "pay")] public int? PayQuery { get; set; }
+
+    Invoice? _invoice;
+    BusinessProfile? _profile;
+    DisplayStatus _status;
+    DateOnly _today;
+    ElementReference _stage;
+    bool _fitted;
+    bool _busy;
+    bool _menu;
+    bool _paying;
+    bool _confirmVoid;
+    bool _animateStamp;
+    bool _reminding;
+    bool _repeating;
+    RepeatInfo? _repeat;
+    InvoiceLink? _fromQuote;
+    InvoiceLink? _madeInvoice;
+
+    bool IsQuote => _invoice?.Kind == InvoiceKind.Quote;
+
+    bool CanEdit => _invoice is { Status: not (InvoiceStatus.Void or InvoiceStatus.Accepted or InvoiceStatus.Declined) } && _invoice.Payments.Count == 0;
+
+    string? LogoUrl => FilesUrl.Logo(_profile);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _fitted = false;
+        _animateStamp = false;
+        await LoadAsync();
+        if (PayQuery == 1 && _invoice is not null)
+        {
+            _paying = !IsQuote && InvoiceStatusResolver.Resolve(_invoice, _today) is DisplayStatus.Sent or DisplayStatus.PartPaid or DisplayStatus.Overdue;
+            // an unchanged url wouldn't open the drawer again from search
+            Nav.NavigateTo($"invoices/{Id}", replace: true);
+        }
+    }
+
+    async Task LoadAsync()
+    {
+        _today = Clock.Today();
+        _profile = await Profiles.GetAsync();
+        _invoice = await InvoiceStore.GetAsync(Id);
+        if (_invoice is null)
+        {
+            Toasts.Show("That invoice no longer exists.", ToastKind.Error);
+            Nav.NavigateTo("invoices");
+            return;
+        }
+        _status = InvoiceStatusResolver.Resolve(_invoice, _today);
+        _repeat = await Recurring.GetForInvoiceAsync(Id);
+        _madeInvoice = IsQuote ? await InvoiceStore.FindInvoiceFromQuoteAsync(Id) : null;
+        _fromQuote = _invoice.ConvertedFromId is { } quoteId && await InvoiceStore.GetAsync(quoteId) is { } quote
+            ? new InvoiceLink(quote.Id, quote.Number)
+            : null;
+    }
+
+    async Task OnRepeatSetAsync()
+    {
+        _repeating = false;
+        await LoadAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_invoice is not null && !_fitted)
+        {
+            _fitted = true;
+            await JS.InvokeVoidAsync("invoicedesk.fitPreview", _stage);
+        }
+    }
+
+    // paid in full counts the balance, so a same-day fee shows what landed
+    long FeeOn(Transaction payment) =>
+        payment.ForeignCurrency.Equals(_invoice!.Currency, StringComparison.OrdinalIgnoreCase) ? 0
+            : _invoice.Payments.Where(p => p.Direction == Direction.Out && p.Date == payment.Date).Sum(p => p.AmountCents);
+
+    static string PaymentDetail(Transaction payment)
+    {
+        var parts = new List<string>();
+        if (Format.Method(payment.Method) is { Length: > 0 } method) parts.Add(method);
+        if (payment.TaxCents > 0) parts.Add($"includes {Format.Money(payment.TaxCents)} {Format.Country.TaxWord}");
+        return string.Join(", ", parts);
+    }
+
+    IEnumerable<(DateTime When, string Icon, string Text)> History()
+    {
+        var items = new List<(DateTime, string, string)> { (_invoice!.CreatedAt, "invoice", "Created") };
+        if (_invoice.SentAt is { } sent) items.Add((sent, "send", "Marked as sent"));
+        if (_invoice.AnsweredAt is { } answered)
+            items.Add(_invoice.Status == InvoiceStatus.Declined ? (answered, "x", "Declined") : (answered, "check", "Accepted"));
+        items.AddRange(_invoice.Payments.Select(p => (p.CreatedAt, "check", p.Direction == Direction.Out
+            ? $"Bank fee of {Format.Money(p.AmountCents)} written off"
+            : $"Payment of {Format.Money(_invoice.SettledBy(p), _invoice.Currency)} recorded")));
+        items.AddRange(_invoice.Reminders.Select(r => (r.CreatedAt, "bell", r.Tone switch
+        {
+            ReminderTone.Polite => "Friendly reminder emailed",
+            ReminderTone.Firm => "Firm reminder emailed",
+            _ => "Final reminder emailed",
+        })));
+        if (_invoice.VoidedAt is { } voided) items.Add((voided, "ban", "Voided"));
+        return items.OrderByDescending(i => i.Item1);
+    }
+
+    async Task OnPaidAsync()
+    {
+        _paying = false;
+        var before = _status;
+        await LoadAsync();
+        // the stamp only lands on the payment that finishes the job
+        _animateStamp = before != DisplayStatus.Paid && _status == DisplayStatus.Paid;
+    }
+
+    async Task ExportAsync(bool chooseLocation)
+    {
+        _menu = false;
+        string? target = null;
+        if (chooseLocation)
+        {
+            target = Desktop.SaveFileAs(InvoicePdfExporter.DefaultFileName(_invoice!), Paths.Exports);
+            if (target is null) return;
+        }
+        _busy = true;
+        try
+        {
+            var path = await Pdf.ExportAsync(Id, target);
+            Toasts.Show($"Saved {System.IO.Path.GetFileName(path)}", ToastKind.Success,
+                new ToastAction("Open", () => { Desktop.OpenFile(path); return Task.CompletedTask; }),
+                new ToastAction("Show in folder", () => { Desktop.ShowInFolder(path); return Task.CompletedTask; }));
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    async Task EmailAsync()
+    {
+        _menu = false;
+        _busy = true;
+        try { await Email.EmailInvoiceAsync(Id); }
+        catch (Exception ex) { Toasts.Error(ex); }
+        finally { _busy = false; }
+    }
+
+    async Task OnRemindedAsync()
+    {
+        _reminding = false;
+        await LoadAsync();
+    }
+
+    void Duplicate()
+    {
+        _menu = false;
+        Nav.NavigateTo($"invoices/new?duplicate={Id}");
+    }
+
+    async Task AcceptAsync()
+    {
+        _menu = false;
+        var number = _invoice!.Number;
+        try
+        {
+            await InvoiceStore.AcceptQuoteAsync(Id);
+            await LoadAsync();
+            Toasts.Show($"{number} marked as accepted.", ToastKind.Success,
+                new ToastAction("Turn into invoice", TurnIntoInvoiceAsync),
+                new ToastAction("Undo", ReopenAsync));
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+    }
+
+    async Task DeclineAsync()
+    {
+        _menu = false;
+        var number = _invoice!.Number;
+        try
+        {
+            await InvoiceStore.DeclineQuoteAsync(Id);
+            await LoadAsync();
+            Toasts.Show($"{number} marked as declined.", ToastKind.Success, new ToastAction("Undo", ReopenAsync));
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+    }
+
+    // a toast runs this outside a render, so it hops back on to redraw
+    async Task ReopenAsync()
+    {
+        _menu = false;
+        await InvoiceStore.ReopenQuoteAsync(Id);
+        await InvokeAsync(async () =>
+        {
+            await LoadAsync();
+            StateHasChanged();
+        });
+    }
+
+    // opens the editor since a new invoice wants a check before it goes
+    async Task TurnIntoInvoiceAsync()
+    {
+        _busy = true;
+        try
+        {
+            var invoice = await InvoiceStore.TurnIntoInvoiceAsync(Id);
+            Toasts.Show($"{invoice.Number} is ready to check and send.");
+            Nav.NavigateTo($"invoices/{invoice.Id}/edit");
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    async Task VoidAsync()
+    {
+        _confirmVoid = false;
+        try
+        {
+            await InvoiceStore.VoidAsync(Id);
+            Toasts.Show($"{_invoice!.Number} voided");
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+    }
+}

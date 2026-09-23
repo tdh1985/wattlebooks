@@ -1,0 +1,350 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@page "/clients/{Id:int}"
+@implements IDisposable
+@inject ClientService ClientStore
+@inject InvoiceService InvoiceStore
+@inject InsightService Insights
+@inject StatementPdfExporter Statements
+@inject ProfileService Profiles
+@inject EmailActions Email
+@inject IDesktop Desktop
+@inject ToastService Toasts
+@inject NavigationManager Nav
+
+@if (_summary is not null)
+{
+    var c = _summary.Client;
+    // matches the summary's own currency, so this agrees with the tile above it
+    var overdue = _invoices.Where(s => s.Status == DisplayStatus.Overdue && s.Currency == _summary.Currency).ToList();
+    <div class="page">
+        <PageHeader Title="@c.Name" Back="clients" BackLabel="Clients">
+            <Subtitle>
+                <span class="row gap-12 wrap">
+                    @if (c.IsArchived)
+                    {
+                        <span class="pill pill-void">Archived</span>
+                    }
+                    @if (c.ContactName.Length > 0)
+                    {
+                        <span>@c.ContactName</span>
+                    }
+                    @if (c.Email.Length > 0)
+                    {
+                        <a href="mailto:@c.Email">@c.Email</a>
+                    }
+                </span>
+            </Subtitle>
+            <Actions>
+                <a class="btn btn-primary" href="invoices/new/@c.Id"><Icon Name="plus" Size="16" /> New invoice</a>
+                <button type="button" class="btn" @onclick="() => _editing = true"><Icon Name="edit" Size="16" /> Edit</button>
+                <div class="menu">
+                    <button type="button" class="btn btn-icon" aria-label="More actions" aria-expanded="@_menu" @onclick="() => _menu = !_menu"><Icon Name="more" /></button>
+                    @if (_menu)
+                    {
+                        <div class="picker-scrim" @onclick="() => _menu = false"></div>
+                        <div class="menu-list">
+                            <button type="button" @onclick="@(() => Nav.NavigateTo($"invoices/new/{c.Id}?kind=quote"))"><Icon Name="plus" Size="16" /> New quote</button>
+                            <hr />
+                            @if (_summary.OutstandingCents > 0)
+                            {
+                                <button type="button" @onclick="() => StatementAsync(email: true)"><Icon Name="mail" Size="16" /> Email a statement</button>
+                                <button type="button" @onclick="() => StatementAsync(email: false)"><Icon Name="download" Size="16" /> Save statement PDF</button>
+                                <hr />
+                            }
+                            <button type="button" @onclick="ToggleArchiveAsync"><Icon Name="@(c.IsArchived ? "undo" : "archive")" Size="16" /> @(c.IsArchived ? "Restore client" : "Archive client")</button>
+                            @if (_summary.InvoiceCount == 0 && _summary.QuoteCount == 0)
+                            {
+                                <hr />
+                                <button type="button" class="danger" @onclick="Delete"><Icon Name="trash" Size="16" /> Delete client</button>
+                            }
+                        </div>
+                    }
+                </div>
+            </Actions>
+        </PageHeader>
+
+        <div class="ledger-strip" style="margin-bottom:32px">
+            <div class="ledger-cell">
+                <div class="ledger-label">Billed</div>
+                <div class="ledger-value">@Format.Money(_summary.BilledCents, _summary.Currency)</div>
+                <div class="ledger-note">Invoices you've sent</div>
+            </div>
+            <div class="ledger-cell">
+                <div class="ledger-label">Still owing</div>
+                <div class="ledger-value">@Format.Money(_summary.OutstandingCents, _summary.Currency)</div>
+                <div class="ledger-note @(overdue.Count > 0 ? "danger-text" : null)">
+                    @(overdue.Count > 0 ? $"{Format.Money(overdue.Sum(s => s.BalanceCents), _summary.Currency)} overdue" : "Nothing overdue")
+                </div>
+            </div>
+            <div class="ledger-cell">
+                <div class="ledger-label">Invoices</div>
+                <div class="ledger-value">@_invoices.Count</div>
+                <div class="ledger-note">@_invoices.Count(s => s.Status == DisplayStatus.Draft) drafts</div>
+            </div>
+            <div class="ledger-cell">
+                <div class="ledger-label">Client since</div>
+                <div class="ledger-value">@c.CreatedAt.ToString("MMM yyyy", CultureInfo.InvariantCulture)</div>
+                <div class="ledger-note">Added @c.CreatedAt.ToString("d MMM yyyy", CultureInfo.InvariantCulture)</div>
+            </div>
+        </div>
+
+        <div class="detail">
+            <section>
+                <div class="section-head"><h2>Invoices</h2></div>
+                @if (_invoices.Count == 0)
+                {
+                    <EmptyState Compact Title="No invoices yet" IconName="invoice" Text="@($"Nothing has been billed to {c.Name} so far.")">
+                        <a class="btn btn-primary" href="invoices/new/@c.Id"><Icon Name="plus" Size="16" /> New invoice</a>
+                    </EmptyState>
+                }
+                else
+                {
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Invoice</th>
+                                <th>Issued</th>
+                                <th>Due</th>
+                                <th class="num">Total</th>
+                                <th class="num">Balance</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var s in _invoices)
+                            {
+                                <tr class="link @(s.Status == DisplayStatus.Void ? "strike" : null)" tabindex="0" @key="s.Id"
+                                    @onclick="() => Open(s)" @onkeydown="e => OnRowKey(e, s)">
+                                    <td class="primary num">@s.Number</td>
+                                    <td class="nowrap">@Format.Date(s.IssueDate)</td>
+                                    <td class="nowrap">@Format.Date(s.DueDate)</td>
+                                    <td class="num">@Format.Money(s.TotalCents, s.Currency)</td>
+                                    <td class="num">@(s.IsAwaitingPayment ? Format.Money(s.BalanceCents, s.Currency) : "–")</td>
+                                    <td><StatusPill Status="s.Status" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+
+                @if (_quotes.Count > 0)
+                {
+                    <div class="section-head mt-24"><h2>Quotes</h2></div>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Quote</th>
+                                <th>Issued</th>
+                                <th>Valid until</th>
+                                <th class="num">Total</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var s in _quotes)
+                            {
+                                <tr class="link @(s.Status == DisplayStatus.Void ? "strike" : null)" tabindex="0" @key="s.Id"
+                                    @onclick="() => Open(s)" @onkeydown="e => OnRowKey(e, s)">
+                                    <td class="primary num">@s.Number</td>
+                                    <td class="nowrap">@Format.Date(s.IssueDate)</td>
+                                    <td class="nowrap">@Format.Date(s.DueDate)</td>
+                                    <td class="num">@Format.Money(s.TotalCents, s.Currency)</td>
+                                    <td><StatusPill Status="s.Status" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </section>
+
+            <aside class="side">
+                @if (_habit is { } habit)
+                {
+                    <section class="panel panel-pad habit">
+                        <h3>Payment habits</h3>
+                        <p class="habit-line @HabitTone(habit)">@HabitLine(habit)</p>
+                        <div class="meter" role="img" aria-label="@habit.OnTimeCount of @habit.Sample paid on time">
+                            <span style="width:@OnTimePercent(habit)%"></span>
+                        </div>
+                        <p class="small muted">@habit.OnTimeCount of @habit.Sample invoices paid by the due date</p>
+                    </section>
+                }
+                else if (_invoices.Any(s => s.Status is not DisplayStatus.Draft and not DisplayStatus.Void))
+                {
+                    <section class="panel panel-pad habit">
+                        <h3>Payment habits</h3>
+                        <p class="small soft">Once two of @c.Name's invoices are paid, you'll see how quickly they usually pay.</p>
+                    </section>
+                }
+                <section class="panel panel-pad">
+                    <h3>Details</h3>
+                    <dl class="facts">
+                        <div><dt>Email</dt><dd>@(c.Email.Length > 0 ? c.Email : "–")</dd></div>
+                        <div><dt>Phone</dt><dd>@(c.Phone.Length > 0 ? c.Phone : "–")</dd></div>
+                        <div>
+                            <dt>Website</dt>
+                            <dd>
+                                @if (c.Website.Length > 0)
+                                {
+                                    <a href="@WebAddress.Href(c.Website)">@WebAddress.Display(c.Website)</a>
+                                }
+                                else
+                                {
+                                    <text>–</text>
+                                }
+                            </dd>
+                        </div>
+                        @if (c.InvoiceNote.Length > 0)
+                        {
+                            <div><dt>On their invoices</dt><dd>@c.InvoiceNote</dd></div>
+                        }
+                        <div><dt>Address</dt><dd>@(c.Address.Length > 0 ? c.Address : "–")</dd></div>
+                        @if (c.Country.Length > 0)
+                        {
+                            <div><dt>Country</dt><dd>@WorldCountries.Name(c.Country)</dd></div>
+                        }
+                        @if (c.Currency.Length > 0)
+                        {
+                            <div><dt>Currency</dt><dd>@Currencies.Label(c.Currency)</dd></div>
+                        }
+                        <div><dt>@(ClientTaxRule(c)?.Label ?? "Tax number")</dt><dd class="num">@(c.TaxNumber.Length == 0 ? "–" : ClientTaxRule(c) is { } rule ? rule.Display(c.TaxNumber) : c.TaxNumber)</dd></div>
+                        @if (c.Notes.Length > 0)
+                        {
+                            <div><dt>Private notes</dt><dd>@c.Notes</dd></div>
+                        }
+                    </dl>
+                    <button type="button" class="btn btn-sm mt-16" @onclick="() => _editing = true"><Icon Name="edit" Size="14" /> Edit details</button>
+                </section>
+            </aside>
+        </div>
+    </div>
+}
+
+<ClientDrawer Open="_editing" Client="_summary?.Client" OnSaved="OnSavedAsync" OnClose="() => _editing = false" />
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    ClientSummary? _summary;
+    BusinessProfile? _profile;
+    List<InvoiceSummary> _invoices = [];
+    List<InvoiceSummary> _quotes = [];
+    PaymentHabit? _habit;
+    bool _editing;
+    bool _menu;
+
+    protected override void OnInitialized()
+    {
+        ClientStore.Changed += OnChanged;
+        InvoiceStore.Changed += OnChanged;
+    }
+
+    protected override Task OnParametersSetAsync() => LoadAsync();
+
+    async Task LoadAsync()
+    {
+        _summary = (await ClientStore.ListAsync(includeArchived: true)).FirstOrDefault(s => s.Client.Id == Id);
+        if (_summary is null)
+        {
+            if (!Toasts.IsPending($"client:{Id}")) Toasts.Show("That client no longer exists.", ToastKind.Error);
+            Nav.NavigateTo("clients");
+            return;
+        }
+        _profile = await Profiles.GetAsync();
+        _invoices = await InvoiceStore.ListAsync(clientId: Id);
+        _quotes = await InvoiceStore.ListAsync(clientId: Id, kind: InvoiceKind.Quote);
+        _habit = await Insights.GetClientHabitAsync(Id);
+    }
+
+    // null before the profile loads, or for a country we don't know
+    TaxNumberRule? ClientTaxRule(Client client) => _profile is null ? null : InvoiceDefaults.TaxNumberRuleFor(client, _profile);
+
+    static string HabitLine(PaymentHabit h) => h.AverageDaysLate switch
+    {
+        0 => "Usually pays on the due date",
+        1 => "Usually pays 1 day late",
+        > 1 => $"Usually pays {h.AverageDaysLate} days late",
+        -1 => "Usually pays 1 day early",
+        _ => $"Usually pays {-h.AverageDaysLate} days early",
+    };
+
+    // a few days late is normal, so only a week or more gets the warning colour
+    static string HabitTone(PaymentHabit h) => h.AverageDaysLate switch
+    {
+        <= 0 => "good",
+        <= 7 => "",
+        _ => "late",
+    };
+
+    static int OnTimePercent(PaymentHabit h) => h.Sample == 0 ? 0 : (int)Math.Round(100.0 * h.OnTimeCount / h.Sample);
+
+    void Open(InvoiceSummary s) => Nav.NavigateTo(s.Status == DisplayStatus.Draft ? $"invoices/{s.Id}/edit" : $"invoices/{s.Id}");
+
+    void OnRowKey(KeyboardEventArgs e, InvoiceSummary s)
+    {
+        if (e.Key == "Enter") Open(s);
+    }
+
+    async Task OnSavedAsync(Client client)
+    {
+        _editing = false;
+        await LoadAsync();
+    }
+
+    // everything they owe in one pdf, handy when several invoices are late
+    async Task StatementAsync(bool email)
+    {
+        _menu = false;
+        try
+        {
+            var (path, statement) = await Statements.ExportAsync(Id);
+            if (email)
+            {
+                var owing = statement.Sections.Select(s => new CurrencyAmount(s.Currency, s.Aged.Total)).ToList();
+                var draft = EmailTemplates.Statement(statement.Client, await Profiles.GetAsync(), owing, statement.AsOf);
+                await Email.ComposeAsync(draft, path);
+            }
+            else
+            {
+                Toasts.Show($"Saved {System.IO.Path.GetFileName(path)}", ToastKind.Success,
+                    new ToastAction("Open", () => { Desktop.OpenFile(path); return Task.CompletedTask; }),
+                    new ToastAction("Show in folder", () => { Desktop.ShowInFolder(path); return Task.CompletedTask; }));
+            }
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+    }
+
+    async Task ToggleArchiveAsync()
+    {
+        _menu = false;
+        var archived = !_summary!.Client.IsArchived;
+        await ClientStore.SetArchivedAsync(Id, archived);
+        Toasts.Show(archived ? "Client archived. They're hidden from lists but their invoices stay." : "Client restored");
+        await LoadAsync();
+    }
+
+    void Delete()
+    {
+        _menu = false;
+        var name = _summary!.Client.Name;
+        var id = Id;
+        Toasts.ShowUndo($"{name} deleted", $"client:{id}", () => ClientStore.DeleteAsync(id));
+        Nav.NavigateTo("clients");
+    }
+
+    void OnChanged() => InvokeAsync(async () =>
+    {
+        if (Toasts.IsPending($"client:{Id}")) return;
+        await LoadAsync();
+        StateHasChanged();
+    });
+
+    public void Dispose()
+    {
+        ClientStore.Changed -= OnChanged;
+        InvoiceStore.Changed -= OnChanged;
+    }
+}

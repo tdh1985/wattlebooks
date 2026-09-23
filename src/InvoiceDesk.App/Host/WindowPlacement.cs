@@ -2,6 +2,8 @@
 
 using System.Windows;
 
+using InvoiceDesk.Ui.Host;
+
 namespace InvoiceDesk.App.Host;
 
 public static class WindowPlacement

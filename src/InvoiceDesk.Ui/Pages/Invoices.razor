@@ -1,0 +1,428 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@page "/invoices"
+@implements IDisposable
+@inject InvoiceService InvoiceStore
+@inject ToastService Toasts
+@inject NavigationManager Nav
+@inject TimeProvider Clock
+@inject ExportService Exports
+@inject IDesktop Desktop
+@inject AppPaths Paths
+@inject RecurringService Recurring
+@inject ProfileService Profiles
+
+<div class="page">
+    <PageHeader Title="@(_quotes ? "Quotes" : "Invoices")">
+        <Subtitle>@Summary</Subtitle>
+        <Actions>
+            @if (_all is { Count: > 0 } && !_quotes)
+            {
+                <button type="button" class="btn btn-ghost" @onclick="() => _exporting = true"><Icon Name="download" Size="16" /> Export CSV</button>
+            }
+            <a class="btn btn-primary" href="@NewHref"><Icon Name="plus" Size="16" /> @(_quotes ? "New quote" : "New invoice")</a>
+        </Actions>
+    </PageHeader>
+
+    <div class="toolbar">
+        <div class="seg" role="group" aria-label="Invoices or quotes">
+            <button type="button" class="@(_quotes ? null : "on")" aria-pressed="@(!_quotes)" @onclick="@(() => Nav.NavigateTo("invoices"))">Invoices</button>
+            <button type="button" class="@(_quotes ? "on" : null)" aria-pressed="@_quotes" @onclick="@(() => Nav.NavigateTo("invoices?kind=quote"))">Quotes</button>
+        </div>
+        @if (_all is { Count: > 0 })
+        {
+            <div class="chips" role="group" aria-label="Show">
+                @foreach (var (filter, label) in _quotes ? QuoteFilters : Filters)
+                {
+                    <button type="button" class="chip @(_filter == filter && !_showRepeating ? "on" : null)" aria-pressed="@(_filter == filter && !_showRepeating)"
+                            @onclick="() => { _filter = filter; _showRepeating = false; }">
+                        @label <span class="chip-count">@_all.Count(s => s.Matches(filter))</span>
+                    </button>
+                }
+                @if (!_quotes && (_repeats.Count > 0 || _showRepeating))
+                {
+                    <button type="button" class="chip @(_showRepeating ? "on" : null)" aria-pressed="@_showRepeating" @onclick="() => _showRepeating = true">
+                        <Icon Name="refresh" Size="13" /> Repeating <span class="chip-count">@_repeats.Count</span>
+                    </button>
+                }
+            </div>
+            <div class="grow"></div>
+            <div class="search">
+                <Icon Name="search" Size="16" />
+                <input class="input" type="search" placeholder="Number or client" aria-label="@(_quotes ? "Search quotes" : "Search invoices")"
+                       @bind="_search" @bind:event="oninput" />
+            </div>
+        }
+    </div>
+
+    @if (_all is null)
+    {
+    }
+    else if (_all.Count == 0 && _quotes)
+    {
+        <EmptyState Title="No quotes yet" IconName="invoice"
+                    Text="Send a price before the work starts. When your client says yes, turn the quote into an invoice in one click.">
+            <a class="btn btn-primary" href="invoices/new?kind=quote"><Icon Name="plus" Size="16" /> New quote</a>
+        </EmptyState>
+    }
+    else if (_all.Count == 0)
+    {
+        <EmptyState Title="No invoices yet" IconName="invoice"
+                    Text="@($"Create your first invoice. Charging {Format.Country.TaxWord} makes it a tax invoice; leaving it off makes it a plain invoice.")">
+            <a class="btn btn-primary" href="invoices/new"><Icon Name="plus" Size="16" /> New invoice</a>
+        </EmptyState>
+    }
+    else
+    {
+        @if (_showRepeating && !_quotes)
+        {
+            @if (_repeats.Count == 0)
+            {
+                <EmptyState Compact Title="Nothing repeats yet" IconName="refresh" Text="Open an invoice and choose Repeat this invoice from its menu." />
+            }
+            else
+            {
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Client</th>
+                            <th>Repeats</th>
+                            <th>Next draft</th>
+                            <th>Latest</th>
+                            <th class="num">Amount</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in _repeats)
+                        {
+                            <tr @key="r.Id">
+                                <td class="primary">@r.ClientName</td>
+                                <td>@RepeatModal.Label(r.Every)@(r.EndDate is { } end ? $", until {Format.Date(end)}" : "")</td>
+                                <td class="nowrap">
+                                    @if (r.IsPaused)
+                                    {
+                                        <span class="pill pill-plain">Paused</span>
+                                    }
+                                    else if (r.NextDate is { } next)
+                                    {
+                                        @Format.Date(next)
+                                    }
+                                    else
+                                    {
+                                        <span class="muted">Finished</span>
+                                    }
+                                </td>
+                                <td><a href="invoices/@r.LatestInvoiceId" class="num">@r.LatestNumber</a></td>
+                                <td class="num">@Format.Money(r.LatestTotalCents, r.Currency)</td>
+                                <td class="nowrap" style="text-align:right">
+                                    @if (r.IsPaused)
+                                    {
+                                        <button type="button" class="btn btn-sm" @onclick="() => ResumeAsync(r.Id)">Resume</button>
+                                    }
+                                    else if (r.NextDate is not null)
+                                    {
+                                        <button type="button" class="btn btn-sm" @onclick="() => PauseAsync(r.Id)">Pause</button>
+                                    }
+                                    <button type="button" class="btn btn-ghost btn-sm" @onclick="() => _confirmStop = r">Stop</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        }
+        else
+        {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>@(_quotes ? "Quote" : "Invoice")</th>
+                    <th>Client</th>
+                    <th>Issued</th>
+                    <th>@(_quotes ? "Valid until" : "Due")</th>
+                    <th class="num">Total</th>
+                    @if (!_quotes)
+                    {
+                        <th class="num">Balance</th>
+                    }
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in Rows)
+                {
+                    <tr class="link @(s.Status == DisplayStatus.Void ? "strike" : null)" tabindex="0" @key="s.Id"
+                        @onclick="() => Open(s)" @onkeydown="e => OnRowKey(e, s)">
+                        <td>
+                            <span class="primary num">@s.Number</span>
+                            @if (!_quotes)
+                            {
+                                <span class="secondary">@(s.IsTaxInvoice ? Format.Country.TaxedSubject : "Invoice")</span>
+                            }
+                        </td>
+                        <td class="truncate" style="max-width:260px">@s.ClientName</td>
+                        <td class="nowrap">@Format.Date(s.IssueDate)</td>
+                        <td class="nowrap">
+                            @Format.Date(s.DueDate)
+                            @if (s.IsAwaitingPayment)
+                            {
+                                <span class="secondary @(s.Status == DisplayStatus.Overdue ? "danger-text" : null)">@Format.Due(s.DueDate, _today)</span>
+                            }
+                            else if (_quotes && s.Status == DisplayStatus.Sent)
+                            {
+                                <span class="secondary">@Format.ValidUntil(s.DueDate, _today)</span>
+                            }
+                        </td>
+                        <td class="num">@Format.Money(s.TotalCents, s.Currency)</td>
+                        @if (!_quotes)
+                        {
+                            <td class="num">@(s.IsAwaitingPayment ? Format.Money(s.BalanceCents, s.Currency) : "–")</td>
+                        }
+                        <td><StatusPill Status="s.Status" /></td>
+                    </tr>
+                }
+            </tbody>
+            @if (!_quotes && _filter is InvoiceFilter.Sent or InvoiceFilter.Overdue && Rows.Any())
+            {
+                <tfoot>
+                    <tr>
+                        <td colspan="5" class="soft">@(_filter == InvoiceFilter.Overdue ? "Overdue" : "Waiting on")</td>
+                        <td class="num">@FooterBalanceText</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            }
+        </table>
+        @if (!Rows.Any())
+        {
+            <EmptyState Compact Title="Nothing here" IconName="search" Text="@($"No {(_quotes ? "quotes" : "invoices")} match this filter.")" />
+        }
+        }
+    }
+</div>
+
+<Modal Open="_confirmStop is not null" Title="Stop repeating?" OnClose="() => _confirmStop = null">
+    <ChildContent>
+        <p>No more drafts will be made for @_confirmStop?.ClientName. The invoices already made stay as they are.</p>
+    </ChildContent>
+    <Footer>
+        <button type="button" class="btn btn-ghost" @onclick="() => _confirmStop = null">Keep repeating</button>
+        <button type="button" class="btn btn-danger" @onclick="StopAsync">Stop repeating</button>
+    </Footer>
+</Modal>
+
+<Modal Open="_exporting" Title="Export invoices" OnClose="() => _exporting = false">
+    <ChildContent>
+        <p>A CSV file your accountant or Excel can open, with every invoice issued in the period. Drafts aren't included.</p>
+        <div class="seg mt-16" role="group" aria-label="Period">
+            @foreach (var (key, label, _) in ExportPeriods())
+            {
+                <button type="button" class="@(_exportPeriod == key ? "on" : null)" aria-pressed="@(_exportPeriod == key)" @onclick="() => _exportPeriod = key">@label</button>
+            }
+        </div>
+    </ChildContent>
+    <Footer>
+        <button type="button" class="btn btn-ghost" @onclick="() => _exporting = false">Cancel</button>
+        <button type="button" class="btn btn-primary" @onclick="ExportCsvAsync"><Icon Name="download" Size="16" /> Export</button>
+    </Footer>
+</Modal>
+
+@code {
+    static readonly (InvoiceFilter Filter, string Label)[] Filters =
+    [
+        (InvoiceFilter.All, "All"),
+        (InvoiceFilter.Draft, "Drafts"),
+        (InvoiceFilter.Sent, "Unpaid"),
+        (InvoiceFilter.Overdue, "Overdue"),
+        (InvoiceFilter.Paid, "Paid"),
+        (InvoiceFilter.Void, "Void"),
+    ];
+
+    static readonly (InvoiceFilter Filter, string Label)[] QuoteFilters =
+    [
+        (InvoiceFilter.All, "All"),
+        (InvoiceFilter.Draft, "Drafts"),
+        (InvoiceFilter.Sent, "Sent"),
+        (InvoiceFilter.Accepted, "Accepted"),
+        (InvoiceFilter.Declined, "Declined"),
+        (InvoiceFilter.Expired, "Expired"),
+    ];
+
+    List<InvoiceSummary>? _all;
+    InvoiceFilter _filter = InvoiceFilter.All;
+    string _search = "";
+    DateOnly _today;
+    BusinessProfile? _profile;
+    bool _exporting;
+    string _exportPeriod = "fy";
+    bool _showRepeating;
+    List<RepeatSummary> _repeats = [];
+    RepeatSummary? _confirmStop;
+
+    [SupplyParameterFromQuery(Name = "show")] public string? Show { get; set; }
+    [SupplyParameterFromQuery(Name = "kind")] public string? KindQuery { get; set; }
+
+    bool _quotes;
+
+    string NewHref => _quotes ? "invoices/new?kind=quote" : "invoices/new";
+
+    // links from toasts and invoices land on the right view
+    protected override async Task OnParametersSetAsync()
+    {
+        var quotes = KindQuery == "quote";
+        if (quotes != _quotes)
+        {
+            _quotes = quotes;
+            _filter = InvoiceFilter.All;
+            _showRepeating = false;
+            _search = "";
+            await LoadAsync();
+        }
+        if (Show == "draft")
+        {
+            _filter = InvoiceFilter.Draft;
+            _showRepeating = false;
+        }
+        else if (Show == "repeating")
+        {
+            _showRepeating = true;
+        }
+    }
+
+    // last year is there because that's what a tax return needs
+    IEnumerable<(string Key, string Label, DateRange Range)> ExportPeriods()
+    {
+        var country = Countries.For(_profile!.Country);
+        var period = FinancialPeriods.ReturnPeriod(_today, _profile.TaxPeriodMonths, _profile.TaxPeriodEndMonth);
+        var fy = FinancialPeriods.TaxYear(_today, country);
+        var lastFy = FinancialPeriods.TaxYear(fy.Start.AddDays(-1), country);
+        yield return ("quarter", FinancialPeriods.ReturnPeriodLabel(period, country), period);
+        yield return ("fy", FinancialPeriods.TaxYearLabel(_today, country), fy);
+        yield return ("last-fy", FinancialPeriods.TaxYearLabel(lastFy.Start, country), lastFy);
+        yield return ("all", "All time", new DateRange(DateOnly.MinValue, DateOnly.MaxValue));
+    }
+
+    IEnumerable<InvoiceSummary> Rows => (_all ?? [])
+        .Where(s => s.Matches(_filter))
+        .Where(s => _search.Trim().Length == 0
+                    || s.Number.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase)
+                    || s.ClientName.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    // one total per currency, so two kinds of money are never added together
+    static string BalanceText(IEnumerable<InvoiceSummary> invoices, Func<InvoiceSummary, long> pick)
+    {
+        var rows = invoices.ToList();
+        var home = Format.Country.Currency;
+        var homeCents = rows.Where(s => s.Currency == home).Sum(pick);
+        var others = rows.Where(s => s.Currency != home)
+            .GroupBy(s => s.Currency)
+            .OrderBy(g => g.Key, StringComparer.Ordinal)
+            .Select(g => new CurrencyAmount(g.Key, g.Sum(pick)))
+            .ToList();
+        return others.Count == 0 ? Format.Money(homeCents) : $"{Format.Money(homeCents)} plus {Format.MoneyList(others)}";
+    }
+
+    string FooterBalanceText => BalanceText(Rows, s => s.BalanceCents);
+
+    string Summary
+    {
+        get
+        {
+            if (_quotes) return QuoteSummary;
+            if (_all is null || _all.Count == 0) return "Bills you've sent to clients, and what they still owe.";
+            var open = _all.Where(s => s.IsAwaitingPayment).ToList();
+            return open.Count == 0
+                ? "Everything you've sent has been paid."
+                : $"{BalanceText(open, s => s.BalanceCents)} still to come in, across {open.Count} invoice{(open.Count == 1 ? "" : "s")}.";
+        }
+    }
+
+    string QuoteSummary
+    {
+        get
+        {
+            var waiting = (_all ?? []).Where(s => s.Status == DisplayStatus.Sent).ToList();
+            return waiting.Count == 0
+                ? "Prices you've offered clients, and whether they said yes."
+                : $"{waiting.Count} quote{(waiting.Count == 1 ? "" : "s")} waiting on an answer, worth {BalanceText(waiting, s => s.TotalCents)}.";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        InvoiceStore.Changed += OnChanged;
+        Toasts.Changed += OnChanged;
+        Recurring.Changed += OnChanged;
+        _quotes = KindQuery == "quote";
+        await LoadAsync();
+    }
+
+    async Task LoadAsync()
+    {
+        _today = Clock.Today();
+        _profile = await Profiles.GetAsync();
+        _all = (await InvoiceStore.ListAsync(kind: _quotes ? InvoiceKind.Quote : InvoiceKind.Invoice))
+            .Where(s => !Toasts.IsPending($"invoice:{s.Id}"))
+            .ToList();
+        _repeats = await Recurring.ListAsync();
+    }
+
+    async Task ExportCsvAsync()
+    {
+        var (_, label, range) = ExportPeriods().First(p => p.Key == _exportPeriod);
+        var target = Desktop.SaveCsvAs(Format.SafeFileName($"Invoices, {label}.csv"), Paths.Exports);
+        if (target is null) return;
+        _exporting = false;
+        try
+        {
+            await using (var file = System.IO.File.Create(target)) await Exports.WriteInvoicesCsvAsync(range, file);
+            Toasts.Show($"Saved {System.IO.Path.GetFileName(target)}", ToastKind.Success,
+                new ToastAction("Open", () => { Desktop.OpenFile(target); return Task.CompletedTask; }),
+                new ToastAction("Show in folder", () => { Desktop.ShowInFolder(target); return Task.CompletedTask; }));
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+    }
+
+    async Task PauseAsync(int id)
+    {
+        await Recurring.PauseAsync(id);
+        Toasts.Show("Paused. No drafts are made until you resume it.");
+    }
+
+    async Task ResumeAsync(int id)
+    {
+        await Recurring.ResumeAsync(id);
+        Toasts.Show("Resumed. Dates missed while it was paused are skipped.");
+    }
+
+    async Task StopAsync()
+    {
+        if (_confirmStop is not { } r) return;
+        _confirmStop = null;
+        await Recurring.StopAsync(r.Id);
+        Toasts.Show($"{r.ClientName} no longer repeats.");
+    }
+
+    void Open(InvoiceSummary s) => Nav.NavigateTo(s.Status == DisplayStatus.Draft ? $"invoices/{s.Id}/edit" : $"invoices/{s.Id}");
+
+    void OnRowKey(KeyboardEventArgs e, InvoiceSummary s)
+    {
+        if (e.Key == "Enter") Open(s);
+    }
+
+    void OnChanged() => InvokeAsync(async () =>
+    {
+        await LoadAsync();
+        StateHasChanged();
+    });
+
+    public void Dispose()
+    {
+        InvoiceStore.Changed -= OnChanged;
+        Toasts.Changed -= OnChanged;
+        Recurring.Changed -= OnChanged;
+    }
+}

@@ -5,7 +5,8 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using InvoiceDesk.App.Host;
-using InvoiceDesk.App.Ui;
+using InvoiceDesk.Ui;
+using InvoiceDesk.Ui.Host;
 using InvoiceDesk.Core.Services;
 using InvoiceDesk.Core.Storage;
 using Microsoft.AspNetCore.Components.WebView;
@@ -78,7 +79,7 @@ public partial class MainWindow : Window
         var core = e.WebView.CoreWebView2;
         _webView = e.WebView;
         ApplyChrome(_theme.IsDark);
-        FilesUrl.MapHosts(core, _paths);
+        VirtualHosts.Map(core, _paths);
         core.Settings.IsStatusBarEnabled = false;
 #if !DEBUG
         // browser keys and devtools would make this feel like a web page

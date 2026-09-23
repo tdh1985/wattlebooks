@@ -5,7 +5,10 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Threading;
 using InvoiceDesk.App.Host;
-using InvoiceDesk.App.Ui;
+using InvoiceDesk.App.Pdf;
+using InvoiceDesk.Ui;
+using InvoiceDesk.Ui.Host;
+using InvoiceDesk.Ui.Platform;
 using InvoiceDesk.Core;
 using InvoiceDesk.Core.Data;
 using InvoiceDesk.Core.Rules;
@@ -99,6 +102,12 @@ public partial class App : Application
         // a brand-new data folder starts in the country windows is set to
         services.AddInvoiceDeskCore(paths, RegionInfo.CurrentRegion.TwoLetterISORegionName);
         services.AddInvoiceDeskUi();
+        services.AddSingleton<HostWindow>();
+        services.AddSingleton<IPlatformInfo, WindowsPlatform>();
+        services.AddSingleton<IDesktop, Desktop>();
+        services.AddSingleton<IPdfPrinter, PdfPrinter>();
+        services.AddSingleton<IMailer, Mailer>();
+        services.AddSingleton<IReceiptReader, ReceiptReader>();
         _services = services.BuildServiceProvider();
 
         try
@@ -138,7 +147,7 @@ public partial class App : Application
             }));
             window.Show();
             SetUpJumpList();
-            _services.GetRequiredService<RecurringRunner>().StartHourly(Dispatcher);
+            _services.GetRequiredService<RecurringRunner>().StartHourly();
         }
         catch (Exception ex)
         {

@@ -16,22 +16,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\InvoiceDesk.Core\InvoiceDesk.Core.csproj" />
+    <ProjectReference Include="..\InvoiceDesk.Ui\InvoiceDesk.Ui.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Wpf" Version="10.0.101" />
-    <!-- referenced directly only to get a path to its blazor.webview.js -->
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebView" Version="10.0.0" GeneratePathProperty="true" />
-  </ItemGroup>
-
-  <!-- web assets live inside the exe so a single file is all a user needs -->
-  <ItemGroup>
-    <Content Remove="wwwroot\**" />
-    <None Remove="wwwroot\**" />
-    <EmbeddedResource Include="wwwroot\**" LogicalName="wwwroot/%(RecursiveDir)%(Filename)%(Extension)" />
-    <EmbeddedResource Include="$(PkgMicrosoft_AspNetCore_Components_WebView)\staticwebassets\blazor.webview.js"
-                      LogicalName="wwwroot/_framework/blazor.webview.js" />
   </ItemGroup>
 
 </Project>

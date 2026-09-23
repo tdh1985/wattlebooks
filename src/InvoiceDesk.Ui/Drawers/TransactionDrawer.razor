@@ -1,0 +1,507 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@inject TransactionService Ledger
+@inject CategoryService Categories
+@inject ProfileService Profiles
+@inject ToastService Toasts
+@inject TimeProvider Clock
+@inject SuggestionService Suggestions
+@inject IReceiptReader Reader
+
+<Drawer Open="Open" Title="@DrawerTitle" Wide OnClose="OnClose">
+    <ChildContent>
+        @if (_tx is not null)
+        {
+            var isOut = _tx.Direction == Direction.Out;
+            var rules = Countries.For(_profile?.Country);
+            <form id="tx-form" class="col gap-16" @onsubmit="SaveAsync">
+                @if (_errors is { Count: > 0 })
+                {
+                    <div class="banner banner-error"><Icon Name="alert" Size="16" /><div>@string.Join(" ", _errors)</div></div>
+                }
+                <ScanBanner Scanning="_scanning" Note="@_scanNote" Highlight="_filled.Count > 0" CanUndo="_beforeScan is not null" OnUndo="UndoScan" />
+                @if (_tx.InvoiceId is { } invoiceId)
+                {
+                    <div class="banner">
+                        <Icon Name="invoice" Size="16" />
+                        @if (_tx.Direction == Direction.Out)
+                        {
+                            <div>
+                                This is the bank fee taken from a payment for
+                                <a href="invoices/@invoiceId" @onclick="OnClose">@(_tx.Invoice?.Number ?? "an invoice")</a>.
+                                The payment counts the full amount, so deleting this leaves the invoice paid.
+                            </div>
+                        }
+                        else if (_tx.ForeignAmountCents is { } sent && _tx.Invoice is { } paidInvoice
+                                 && !string.Equals(_tx.ForeignCurrency, paidInvoice.Currency, StringComparison.OrdinalIgnoreCase))
+                        {
+                            <div>
+                                This is a payment of @Format.Money(sent, _tx.ForeignCurrency) for
+                                <a href="invoices/@invoiceId" @onclick="OnClose">@paidInvoice.Number</a>.
+                                Changing the amount here changes what the invoice shows as paid.
+                            </div>
+                        }
+                        else if (_tx.ForeignAmountCents is { } billed)
+                        {
+                            <div>
+                                This is a payment of @Format.Money(billed, _tx.ForeignCurrency) for
+                                <a href="invoices/@invoiceId" @onclick="OnClose">@(_tx.Invoice?.Number ?? "an invoice")</a>.
+                                The amount here is what reached your bank.
+                            </div>
+                        }
+                        else
+                        {
+                            <div>This is a payment for <a href="invoices/@invoiceId" @onclick="OnClose">@(_tx.Invoice?.Number ?? "an invoice")</a>. Changing the amount here changes what the invoice shows as paid.</div>
+                        }
+                    </div>
+                }
+                else if (_tx.Id == 0)
+                {
+                    <div class="seg" role="group" aria-label="Kind of entry">
+                        <button type="button" class="@(isOut ? "on" : null)" aria-pressed="@isOut" @onclick="() => SetDirection(Direction.Out)"><Icon Name="out" Size="14" /> Money out</button>
+                        <button type="button" class="@(!isOut ? "on" : null)" aria-pressed="@(!isOut)" @onclick="() => SetDirection(Direction.In)"><Icon Name="in" Size="14" /> Money in</button>
+                    </div>
+                }
+
+                <div class="form-grid">
+                    @if (isOut && _tx.InvoiceId is null)
+                    {
+                        <div class="field">
+                            <label for="tx-paid-in">Paid in</label>
+                            <select id="tx-paid-in" class="select" value="@PaidIn" @onchange="e => SetPaidIn(e.Value?.ToString() ?? Home)">
+                                @foreach (var c in Currencies.All)
+                                {
+                                    <option value="@c.Code">@Currencies.Label(c.Code)</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    @if (PaidAbroad)
+                    {
+                        <div class="field @FieldState("charged")">
+                            <label for="tx-charged">Amount charged (@PaidIn)</label>
+                            <MoneyInput Id="tx-charged" Currency="@PaidIn" Cents="@(_tx.ForeignAmountCents ?? 0)" CentsChanged="SetCharged" />
+                        </div>
+                        <div class="field @FieldState("amount")">
+                            <label for="tx-amount">Amount that left your bank (@Home)</label>
+                            <MoneyInput Id="tx-amount" Cents="_tx.AmountCents" CentsChanged="SetAmount" />
+                            <span class="hint">Used for your reports and @rules.TaxWord. Any exchange difference or bank fee needs no extra entry.</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="field @FieldState("amount")">
+                            <label for="tx-amount">@(isOut ? "Amount paid" : "Amount received")</label>
+                            <MoneyInput Id="tx-amount" Cents="_tx.AmountCents" CentsChanged="SetAmount" />
+                            <span class="hint">Including any @rules.TaxWord.</span>
+                        </div>
+                    }
+                    <div class="field @FieldState("date")">
+                        <label for="tx-date">Date</label>
+                        <input id="tx-date" type="date" class="input" value="@Format.Iso(_tx.Date)" @onchange="SetDate" />
+                    </div>
+                    @if (!isOut || rules.ExpensesCarryTax)
+                    {
+                        <div class="field @FieldState("gst")">
+                            <label for="tx-gst">@rules.TaxName included</label>
+                            <MoneyInput Id="tx-gst" Cents="_tx.TaxCents" CentsChanged="SetGst" />
+                            <label class="check small soft">
+                                <input type="checkbox" checked="@_autoGst" @onchange="ToggleAutoGst" />
+                                Work it out for me (@Format.Percent(_profile?.TaxRatePpm ?? 100_000) @rules.TaxWord)
+                            </label>
+                        </div>
+                    }
+                    <div class="field">
+                        <label for="tx-category">Category</label>
+                        <select id="tx-category" class="select @(_categoryGuessed ? "guessed" : null)" value="@(_tx.CategoryId?.ToString() ?? "")" @onchange="SetCategory">
+                            <option value="">No category</option>
+                            @foreach (var c in _categories.Where(c => c.Direction == _tx.Direction && (!c.IsArchived || c.Id == _tx.CategoryId)))
+                            {
+                                <option value="@c.Id">@c.Name</option>
+                            }
+                        </select>
+                        @if (_categoryGuessed)
+                        {
+                            <span class="hint">Same as last time for @_tx.Party.Trim().</span>
+                        }
+                    </div>
+                    <div class="field @FieldState("party")">
+                        <label for="tx-party">@(isOut ? "Paid to" : "Received from")</label>
+                        <input id="tx-party" class="input" list="tx-parties" autocomplete="off" placeholder="@(isOut ? "Who you paid" : "Who paid you")"
+                               value="@_tx.Party" @onchange="SetPartyAsync" />
+                        <datalist id="tx-parties">
+                            @foreach (var party in _parties)
+                            {
+                                <option value="@party"></option>
+                            }
+                        </datalist>
+                    </div>
+                    <div class="field">
+                        <label for="tx-method">Paid by</label>
+                        <select id="tx-method" class="select" @bind="_tx.Method">
+                            <option value="@PaymentMethod.None">Not recorded</option>
+                            <option value="@PaymentMethod.BankTransfer">Bank transfer</option>
+                            <option value="@PaymentMethod.Card">Card</option>
+                            <option value="@PaymentMethod.Cash">Cash</option>
+                            <option value="@PaymentMethod.Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="field span-2">
+                        <label for="tx-description">Description</label>
+                        <input id="tx-description" class="input" placeholder="What it was for" @bind="_tx.Description" />
+                    </div>
+                    <div class="field span-2">
+                        <label for="tx-notes">Notes</label>
+                        <textarea id="tx-notes" class="textarea" rows="3" placeholder="Warranty dates, what it was used for, anything worth remembering" @bind="_tx.Notes"></textarea>
+                        <span class="hint">Only you see these. Search on the Money page finds them.</span>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <span class="label">Receipts</span>
+                    <FileDropZone OnFiles="AddFiles" />
+                    <AttachmentGallery Items="VisibleAttachments" Staged="_newFiles" OnRemove="RemoveExisting" OnRemoveStaged="RemoveStaged" />
+                </div>
+            </form>
+        }
+    </ChildContent>
+    <Footer>
+        <button type="submit" form="tx-form" class="btn btn-primary" disabled="@_saving">
+            <Icon Name="check" Size="16" /> @(_tx?.Id > 0 ? "Save changes" : _tx?.Direction == Direction.In ? "Add income" : "Add expense")
+        </button>
+        <button type="button" class="btn btn-ghost" @onclick="OnClose">Cancel</button>
+        <span class="spacer"></span>
+        @if (_tx is { Id: > 0 })
+        {
+            <button type="button" class="btn btn-danger" @onclick="DeleteAsync"><Icon Name="trash" Size="16" /> Delete</button>
+        }
+    </Footer>
+</Drawer>
+
+@code {
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public Direction Direction { get; set; } = Direction.Out;
+    [Parameter] public int? TransactionId { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+    [Parameter] public EventCallback OnDeleted { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    // a receipt dropped on the money page arrives here already attached
+    [Parameter] public IReadOnlyList<StagedFile>? InitialFiles { get; set; }
+
+    Transaction? _tx;
+    BusinessProfile? _profile;
+    List<Category> _categories = [];
+    List<StagedFile> _newFiles = [];
+    List<int> _removed = [];
+    IReadOnlyList<string>? _errors;
+    bool _autoGst;
+    bool _saving;
+    bool _categoryGuessed;
+    List<string> _parties = [];
+    Request? _loaded;
+    bool _scanning;
+    int _session;
+    bool _dateTouched;
+    string? _scanNote;
+    readonly HashSet<string> _filled = [];
+    Before? _beforeScan;
+
+    sealed record Request(int? TransactionId, Direction Direction, IReadOnlyList<StagedFile>? Files);
+
+    // what the fields held before a scan, so undo puts them back exactly
+    sealed record Before(long Amount, long Gst, DateOnly Date, string Party, int? CategoryId, bool AutoGst, bool CategoryGuessed,
+        string ForeignCurrency, long? ForeignAmount);
+
+    bool CanScan => _tx is { Id: 0, Direction: Direction.Out, AmountCents: 0, ForeignAmountCents: null or 0 } && !_scanning && _beforeScan is null;
+
+    string? FieldState(string field) => _scanning && CanFill(field) ? "scanning" : _filled.Contains(field) ? "filled" : null;
+
+    bool CanFill(string field) => field switch
+    {
+        "amount" or "gst" => _tx?.AmountCents == 0,
+        "charged" => _tx?.ForeignAmountCents is null or 0,
+        "date" => !_dateTouched,
+        _ => string.IsNullOrWhiteSpace(_tx?.Party),
+    };
+
+    string Home => Countries.For(_profile?.Country).Currency;
+
+    // the foreign fields hold the choice, blank means home money
+    string PaidIn => string.IsNullOrEmpty(_tx?.ForeignCurrency) ? Home : _tx.ForeignCurrency;
+
+    bool PaidAbroad => _tx is { Direction: Direction.Out, InvoiceId: null } && PaidIn != Home;
+
+    // overseas charges rarely carry our tax, so a foreign expense starts at none
+    void SetPaidIn(string code)
+    {
+        if (code == PaidIn) return;
+        if (code == Home)
+        {
+            _tx!.ForeignCurrency = "";
+            _tx.ForeignAmountCents = null;
+            _autoGst = _profile!.TaxRegistered;
+            SetAmount(_tx.AmountCents);
+        }
+        else
+        {
+            _tx!.ForeignCurrency = code;
+            _tx.ForeignAmountCents ??= 0;
+            _tx.TaxCents = 0;
+            _autoGst = false;
+        }
+    }
+
+    void SetCharged(long cents) => _tx!.ForeignAmountCents = cents;
+
+    string DrawerTitle => _tx switch
+    {
+        { Id: > 0, Direction: Direction.In } => "Money in",
+        { Id: > 0 } => "Expense",
+        { Direction: Direction.In } => "Add income",
+        _ => "Add expense",
+    };
+
+    IReadOnlyList<Attachment> VisibleAttachments => _tx?.Attachments.Where(a => !_removed.Contains(a.Id)).ToList() ?? [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Open)
+        {
+            _loaded = null;
+            return;
+        }
+        // search can pick a different entry while the drawer is already open
+        var request = new Request(TransactionId, Direction, InitialFiles);
+        if (request == _loaded) return;
+        _loaded = request;
+        await LoadAsync();
+    }
+
+    async Task LoadAsync()
+    {
+        _session++;
+        _errors = null;
+        _newFiles = [];
+        _removed = [];
+        _categoryGuessed = false;
+        _scanning = false;
+        _dateTouched = false;
+        _scanNote = null;
+        _filled.Clear();
+        _beforeScan = null;
+        _profile = await Profiles.GetAsync();
+        _categories = await Categories.ListAsync(includeArchived: true);
+        if (TransactionId is { } id && await Ledger.GetAsync(id) is { } existing)
+        {
+            _tx = existing;
+            _autoGst = false;
+        }
+        else
+        {
+            _tx = new Transaction { Direction = Direction, Date = Clock.Today(), Method = PaymentMethod.None };
+            _autoGst = _profile.TaxRegistered;
+        }
+        _parties = await Suggestions.PartiesAsync(_tx.Direction);
+        if (InitialFiles is { Count: > 0 } dropped && TransactionId is null)
+        {
+            _newFiles.AddRange(dropped);
+            _ = ScanAsync(dropped[0]);
+        }
+    }
+
+    async Task SetDirection(Direction direction)
+    {
+        if (_tx is null || _tx.Direction == direction) return;
+        _tx.Direction = direction;
+        SetPaidIn(Home);
+        _tx.CategoryId = null;
+        _categoryGuessed = false;
+        _parties = await Suggestions.PartiesAsync(direction);
+        await GuessCategoryAsync();
+    }
+
+    async Task SetPartyAsync(ChangeEventArgs e)
+    {
+        _tx!.Party = e.Value?.ToString() ?? "";
+        await GuessCategoryAsync();
+    }
+
+    // only fills an empty category, so a choice already made is never undone
+    async Task GuessCategoryAsync()
+    {
+        if (_tx is null || (_tx.CategoryId is not null && !_categoryGuessed)) return;
+        var guess = await Suggestions.SuggestCategoryAsync(_tx.Direction, _tx.Party);
+        _tx.CategoryId = guess;
+        _categoryGuessed = guess is not null;
+    }
+
+    void SetAmount(long cents)
+    {
+        _tx!.AmountCents = cents;
+        if (_autoGst) _tx.TaxCents = Ledger.SuggestTax(cents, _profile!, _tx.Direction);
+    }
+
+    void SetGst(long cents)
+    {
+        _tx!.TaxCents = cents;
+        _autoGst = false;
+    }
+
+    void ToggleAutoGst(ChangeEventArgs e)
+    {
+        _autoGst = e.Value is true;
+        if (_autoGst) _tx!.TaxCents = Ledger.SuggestTax(_tx.AmountCents, _profile!, _tx.Direction);
+    }
+
+    void SetDate(ChangeEventArgs e)
+    {
+        _tx!.Date = Format.ParseIso(e.Value?.ToString()) ?? _tx.Date;
+        _dateTouched = true;
+        _filled.Remove("date");
+    }
+
+    void SetCategory(ChangeEventArgs e)
+    {
+        _tx!.CategoryId = int.TryParse(e.Value?.ToString(), out var id) ? id : null;
+        _categoryGuessed = false;
+    }
+
+    void AddFiles(IReadOnlyList<StagedFile> files)
+    {
+        _newFiles.AddRange(files);
+        if (CanScan && files.Count > 0) _ = ScanAsync(files[0]);
+    }
+
+    // reads the receipt with windows ocr and fills only what's still empty
+    async Task ScanAsync(StagedFile file)
+    {
+        var session = _session;
+        _scanning = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var text = await Reader.ReadTextAsync(file.TempPath);
+            var guess = string.IsNullOrWhiteSpace(text) ? null
+                : ReceiptParser.Parse(text, Clock.Today(), await Suggestions.PartiesAsync(Direction.Out, take: 500), Countries.For(_profile!.Country).Receipts);
+            // a scan that ends after the drawer reloaded belongs to the old entry
+            if (session != _session) return;
+            await ApplyAsync(guess);
+        }
+        catch (Exception ex)
+        {
+            if (session != _session) return;
+            FileLog.Write(ex, "receipt scan");
+            _scanNote = "Couldn't read that receipt, so fill in the details yourself.";
+        }
+        _scanning = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task ApplyAsync(ReceiptGuess? guess)
+    {
+        if (_tx is null) return;
+        if (guess is null || guess == new ReceiptGuess(null, null, null, null))
+        {
+            _scanNote = "Couldn't find any details on that receipt, so fill them in yourself.";
+            return;
+        }
+
+        _beforeScan = new Before(_tx.AmountCents, _tx.TaxCents, _tx.Date, _tx.Party, _tx.CategoryId, _autoGst, _categoryGuessed,
+            _tx.ForeignCurrency, _tx.ForeignAmountCents);
+        var abroad = guess.Currency is { } cur && cur != Home && Currencies.IsSupported(cur);
+        // a bare $ on a foreign expense is most likely the amount charged
+        var bareAbroad = PaidAbroad && guess.Currency is null;
+        if ((abroad || bareAbroad) && _tx.AmountCents == 0 && _tx.ForeignAmountCents is null or 0 && guess.TotalCents is { } charged)
+        {
+            // no rate lookup, so the bank box waits for the statement
+            if (abroad) SetPaidIn(guess.Currency!);
+            _tx.ForeignAmountCents = charged;
+            _filled.Add("charged");
+        }
+        else if (!abroad && !bareAbroad && _tx.AmountCents == 0 && guess.TotalCents is { } total)
+        {
+            SetAmount(total);
+            _filled.Add("amount");
+            // a foreign expense never takes the receipt's tax
+            if (!PaidAbroad)
+            {
+                if (_profile!.TaxRegistered && Countries.For(_profile.Country).ExpensesCarryTax && guess.TaxCents is { } gst)
+                {
+                    _tx.TaxCents = gst;
+                    _autoGst = false;
+                }
+                if (_tx.TaxCents > 0) _filled.Add("gst");
+            }
+        }
+        if (!_dateTouched && guess.Date is { } date && date != _tx.Date)
+        {
+            _tx.Date = date;
+            _filled.Add("date");
+        }
+        if (string.IsNullOrWhiteSpace(_tx.Party) && guess.Party is { } party)
+        {
+            _tx.Party = party;
+            _filled.Add("party");
+            await GuessCategoryAsync();
+        }
+        _scanNote = _filled.Contains("charged")
+            ? "Filled in from the receipt. Add the amount that left your bank, then check the highlighted details."
+            : _filled.Count > 0
+                ? "Filled in from the receipt. Check the highlighted details before saving."
+                : "Couldn't find anything new on that receipt.";
+        if (_filled.Count == 0) _beforeScan = null;
+    }
+
+    void UndoScan()
+    {
+        if (_tx is null || _beforeScan is not { } b) return;
+        _tx.AmountCents = b.Amount;
+        _tx.TaxCents = b.Gst;
+        _tx.Date = b.Date;
+        _tx.Party = b.Party;
+        _tx.CategoryId = b.CategoryId;
+        _autoGst = b.AutoGst;
+        _categoryGuessed = b.CategoryGuessed;
+        _tx.ForeignCurrency = b.ForeignCurrency;
+        _tx.ForeignAmountCents = b.ForeignAmount;
+        _filled.Clear();
+        _scanNote = null;
+    }
+
+    void RemoveStaged(StagedFile file) => _newFiles.Remove(file);
+
+    void RemoveExisting(Attachment attachment) => _removed.Add(attachment.Id);
+
+    async Task SaveAsync()
+    {
+        if (_tx is null || _saving) return;
+        _saving = true;
+        try
+        {
+            var isNew = _tx.Id == 0;
+            await Ledger.SaveAsync(_tx, _newFiles, _removed);
+            Toasts.Show(isNew ? (_tx.Direction == Direction.In ? "Income added" : "Expense added") : "Changes saved");
+            await OnSaved.InvokeAsync();
+        }
+        catch (ValidationException ex)
+        {
+            _errors = ex.Errors;
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    async Task DeleteAsync()
+    {
+        if (_tx is not { Id: > 0 } tx) return;
+        var id = tx.Id;
+        var noun = tx.Direction == Direction.In ? "Income" : "Expense";
+        Toasts.ShowUndo($"{noun} deleted", $"tx:{id}", () => Ledger.DeleteAsync(id));
+        await OnDeleted.InvokeAsync();
+    }
+}

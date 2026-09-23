@@ -1,0 +1,232 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@page "/reports"
+@implements IDisposable
+@inject ReportService ReportStore
+@inject ProfileService Profiles
+@inject TransactionService Ledger
+@inject InvoiceService InvoiceStore
+@inject DocumentPdfExporter Documents
+@inject ToastService Toasts
+@inject IDesktop Desktop
+@inject AppPaths Paths
+@inject TimeProvider Clock
+@inject IJSRuntime JS
+
+<div class="page">
+    <PageHeader Title="Reports">
+        <Subtitle>@(_profile is null ? "" : $"Your {Countries.For(_profile.Country).ReturnShortName} figures and profit for any {PeriodPhrase(_profile.TaxPeriodMonths)}, ready to save or send to your accountant.")</Subtitle>
+    </PageHeader>
+
+    @if (_profile is not null)
+    {
+        <div class="detail">
+            <div class="detail-preview">
+                <div class="doc-stage" @ref="_stage">
+                    <div class="doc-frame">
+                        <ReportDocument Return="@(_kind == "return" ? _return : null)" Pl="@(_kind == "pl" ? _pl : null)" Profile="_profile"
+                                        LogoUrl="@FilesUrl.Logo(_profile)" PeriodLabel="@Period.Label" Today="_today" />
+                    </div>
+                </div>
+            </div>
+
+            <aside class="side">
+                <section class="panel panel-pad col gap-16">
+                    <div class="seg" role="group" aria-label="Report">
+                        <button type="button" class="@(_kind == "return" ? "on" : null)" aria-pressed="@(_kind == "return")" @onclick="@(() => SetKindAsync("return"))">@Countries.For(_profile.Country).ReturnTitle</button>
+                        <button type="button" class="@(_kind == "pl" ? "on" : null)" aria-pressed="@(_kind == "pl")" @onclick="@(() => SetKindAsync("pl"))">Profit &amp; loss</button>
+                    </div>
+                    <div class="field">
+                        <span class="label">Period</span>
+                        <div class="period-list" role="group" aria-label="Period">
+                            @foreach (var p in Periods())
+                            {
+                                <button type="button" class="@(_period == p.Key ? "on" : null)" aria-pressed="@(_period == p.Key)" @onclick="() => SetPeriodAsync(p.Key)">
+                                    <span>@p.Label</span>
+                                    <span class="muted small">@p.Hint</span>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel panel-pad">
+                    <div class="money-rows">
+                        @if (_kind == "return" && _return is { } ret)
+                        {
+                            @foreach (var b in ret.Boxes.Where(b => b.Line != ReturnLine.Result && (b.Note is null || b.Cents != 0)))
+                            {
+                                <div class="row"><span class="soft">@(b.Code.Length > 0 ? $"{b.Code} " : "")@b.Label</span><span class="num">@(b.WholeUnits ? Format.WholeMoney(b.Cents) : Format.Money(b.Cents))</span></div>
+                            }
+                            <div class="row"><span>@ret.NetLabel</span><span class="big">@Format.Money(Math.Abs(ret.NetCents))</span></div>
+                        }
+                        else if (_pl is { } pl)
+                        {
+                            <div class="row"><span class="soft">Income</span><span class="num">@Format.Money(pl.IncomeCents)</span></div>
+                            <div class="row"><span class="soft">Expenses</span><span class="num">@Format.Money(pl.ExpensesCents)</span></div>
+                            <div class="row"><span>@(pl.ProfitCents >= 0 ? "Net profit" : "Net loss")</span><span class="big">@Format.Money(Math.Abs(pl.ProfitCents))</span></div>
+                        }
+                    </div>
+                    <div class="row gap-8 wrap mt-16">
+                        <button type="button" class="btn btn-primary" disabled="@_busy" @onclick="SavePdfAsync"><Icon Name="download" Size="16" /> Save PDF</button>
+                        <button type="button" class="btn" disabled="@_busy" @onclick="ExportCsvAsync"><Icon Name="download" Size="16" /> Export CSV</button>
+                    </div>
+                </section>
+
+                <p class="small muted">
+                    Figures are worked out on a cash basis, from the payments and expenses in Money in &amp; out. InvoiceDesk helps you keep records, but it isn't tax advice.
+                </p>
+            </aside>
+        </div>
+    }
+</div>
+
+@code {
+    sealed record PeriodChoice(string Key, string Label, string Hint, DateRange Range);
+
+    BusinessProfile? _profile;
+    TaxReturn? _return;
+    ProfitAndLoss? _pl;
+    DateOnly _today;
+    string _kind = "return";
+    string _period = "q-prev";
+    ElementReference _stage;
+    bool _fitted;
+    bool _busy;
+
+    PeriodChoice Period => Periods().FirstOrDefault(p => p.Key == _period) ?? Periods().First();
+
+    // an annual filer's period is already "year", so don't repeat it
+    static string PeriodPhrase(int months)
+    {
+        var noun = FinancialPeriods.PeriodNoun(months);
+        return noun == "year" ? noun : $"{noun} or year";
+    }
+
+    // the period just gone is the one you're usually lodging
+    IEnumerable<PeriodChoice> Periods()
+    {
+        var country = Countries.For(_profile!.Country);
+        var (months, end) = (_profile.TaxPeriodMonths, _profile.TaxPeriodEndMonth);
+        var noun = FinancialPeriods.PeriodNoun(months);
+        var yearNoun = FinancialPeriods.YearNoun(country);
+        var current = FinancialPeriods.ReturnPeriod(_today, months, end);
+        var prev = FinancialPeriods.PreviousReturnPeriod(_today, months, end);
+        var fy = FinancialPeriods.TaxYear(_today, country);
+        var lastFy = FinancialPeriods.TaxYear(fy.Start.AddDays(-1), country);
+        // a yearly return matching the tax year would repeat the same range
+        if (current != fy)
+        {
+            yield return new("q-prev", FinancialPeriods.ReturnPeriodLabel(prev, country), $"Last {noun}", prev);
+            yield return new("q", FinancialPeriods.ReturnPeriodLabel(current, country), $"This {noun}, so far", current);
+        }
+        yield return new("fy", FinancialPeriods.TaxYearLabel(_today, country), $"This {yearNoun}, so far", fy);
+        yield return new("fy-prev", FinancialPeriods.TaxYearLabel(lastFy.Start, country), $"Last {yearNoun}", lastFy);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Ledger.Changed += OnChanged;
+        InvoiceStore.Changed += OnChanged;
+        Profiles.Changed += OnChanged;
+        await LoadAsync();
+    }
+
+    async Task LoadAsync()
+    {
+        _today = Clock.Today();
+        _profile = await Profiles.GetAsync();
+        // a yearly filer has no "last quarter", so start on the first choice offered
+        if (Periods().All(p => p.Key != _period)) _period = Periods().First().Key;
+        var range = Period.Range;
+        _return = await ReportStore.TaxReturnAsync(range);
+        _pl = await ReportStore.ProfitAndLossAsync(range);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_profile is not null && !_fitted)
+        {
+            _fitted = true;
+            await JS.InvokeVoidAsync("invoicedesk.fitPreview", _stage);
+        }
+    }
+
+    async Task SetKindAsync(string kind)
+    {
+        _kind = kind;
+        await LoadAsync();
+    }
+
+    async Task SetPeriodAsync(string period)
+    {
+        _period = period;
+        await LoadAsync();
+    }
+
+    string FileStem => Format.SafeFileName($"{(_kind == "return" ? Countries.For(_profile!.Country).ReturnTitle : "Profit and loss")}, {Period.Label}");
+
+    async Task SavePdfAsync()
+    {
+        var target = Desktop.SaveFileAs(FileStem + ".pdf", Paths.Exports);
+        if (target is null) return;
+        _busy = true;
+        try
+        {
+            await Documents.ExportAsync<ReportDocument>(new Dictionary<string, object?>
+            {
+                [nameof(ReportDocument.Return)] = _kind == "return" ? _return : null,
+                [nameof(ReportDocument.Pl)] = _kind == "pl" ? _pl : null,
+                [nameof(ReportDocument.Profile)] = _profile,
+                [nameof(ReportDocument.LogoUrl)] = FilesUrl.Logo(_profile),
+                [nameof(ReportDocument.PeriodLabel)] = Period.Label,
+                [nameof(ReportDocument.Today)] = _today,
+            }, FileStem, ["css/invoice.css"], target);
+            Saved(target);
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    async Task ExportCsvAsync()
+    {
+        var target = Desktop.SaveCsvAs(FileStem + ".csv", Paths.Exports);
+        if (target is null) return;
+        try
+        {
+            await using (var file = System.IO.File.Create(target))
+            {
+                if (_kind == "return") await ExportService.WriteTaxReturnCsvAsync(_return!, file);
+                else await ExportService.WriteProfitAndLossCsvAsync(_pl!, Countries.For(_profile!.Country), file);
+            }
+            Saved(target);
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+    }
+
+    void Saved(string path) =>
+        Toasts.Show($"Saved {System.IO.Path.GetFileName(path)}", ToastKind.Success,
+            new ToastAction("Open", () => { Desktop.OpenFile(path); return Task.CompletedTask; }),
+            new ToastAction("Show in folder", () => { Desktop.ShowInFolder(path); return Task.CompletedTask; }));
+
+    void OnChanged() => InvokeAsync(async () =>
+    {
+        await LoadAsync();
+        StateHasChanged();
+    });
+
+    public void Dispose()
+    {
+        Ledger.Changed -= OnChanged;
+        InvoiceStore.Changed -= OnChanged;
+        Profiles.Changed -= OnChanged;
+    }
+}

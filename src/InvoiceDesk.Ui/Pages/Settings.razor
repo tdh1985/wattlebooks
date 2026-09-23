@@ -1,0 +1,837 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@page "/settings"
+@using System.IO
+@implements IDisposable
+@inject DataMover Mover
+@inject ProfileService Profiles
+@inject CategoryService Categories
+@inject ThemeService Theme
+@inject ToastService Toasts
+@inject ShortcutService Shortcuts
+@inject AppPaths Paths
+@inject IDesktop Desktop
+@inject UpdateChecker Updates
+@inject TimeProvider Clock
+
+<div class="page">
+    <PageHeader Title="Settings">
+        <Subtitle>Your details here are printed on every invoice.</Subtitle>
+    </PageHeader>
+
+    @if (_profile is not null)
+    {
+        <div class="settings">
+            <nav class="settings-nav" aria-label="Settings sections">
+                <a href="settings#business">Business</a>
+                <a href="settings#payment">Payment details</a>
+                <a href="settings#invoices">Invoices and quotes</a>
+                <a href="settings#tax">@Rules.TaxName</a>
+                <a href="settings#categories">Categories</a>
+                <a href="settings#appearance">Appearance</a>
+                <a href="settings#data">Your data</a>
+                <a href="settings#about">About</a>
+            </nav>
+
+            <div>
+                <section class="settings-group" id="business">
+                    <h2>Business</h2>
+                    <p class="soft">@Rules.BusinessIntro</p>
+                    <div class="form-grid">
+                        <div class="field span-2">
+                            <label for="biz-country">Country</label>
+                            <select id="biz-country" class="select" value="@_profile.Country" disabled="@_countryLocked" @onchange="ChangeCountryAsync">
+                                @foreach (var c in Countries.All)
+                                {
+                                    <option value="@c.Code">@c.Name</option>
+                                }
+                            </select>
+                            <span class="hint">@(_countryLocked ? ProfileService.CountryLocked : $"Sets your tax, currency, tax number, bank details and tax year.")</span>
+                        </div>
+                        <div class="field span-2">
+                            <label for="biz-name">Business name</label>
+                            <input id="biz-name" class="input" @bind="_profile.Name" @bind:event="oninput" @bind:after="MarkDirty" />
+                        </div>
+                        <div class="field">
+                            <label for="biz-tax-number">@Rules.TaxNumber.Label</label>
+                            <input id="biz-tax-number" class="input num" style="text-align:left" placeholder="@Rules.TaxNumber.Placeholder"
+                                   @bind="_profile.TaxNumber" @bind:event="oninput" @bind:after="MarkDirty" />
+                            <span class="hint @(TaxNumberState == false ? "field-error" : null)">@TaxNumberHint</span>
+                        </div>
+                        <div class="field">
+                            <label for="biz-phone">Phone</label>
+                            <input id="biz-phone" type="tel" class="input" @bind="_profile.Phone" @bind:event="oninput" @bind:after="MarkDirty" />
+                        </div>
+                        <div class="field">
+                            <label for="biz-email">Email</label>
+                            <input id="biz-email" type="email" class="input" @bind="_profile.Email" @bind:event="oninput" @bind:after="MarkDirty" />
+                        </div>
+                        <div class="field">
+                            <label for="biz-website">Website</label>
+                            <input id="biz-website" class="input" placeholder="Optional" @bind="_profile.Website" @bind:event="oninput" @bind:after="MarkDirty" />
+                        </div>
+                        <div class="field span-2">
+                            <label for="biz-address">Address</label>
+                            <textarea id="biz-address" class="textarea" rows="3" @bind="_profile.Address" @bind:event="oninput" @bind:after="MarkDirty"></textarea>
+                        </div>
+                        <div class="field span-2">
+                            <span class="label">Logo</span>
+                            <div class="logo-box">
+                                <div class="logo-preview">
+                                    @if (_profile.LogoAttachment is { } logo)
+                                    {
+                                        <img src="@FilesUrl.For(logo.StoredPath)" alt="Your logo" />
+                                    }
+                                    else
+                                    {
+                                        <Icon Name="image" Size="24" Class="muted" />
+                                    }
+                                </div>
+                                <div class="col gap-8 grow">
+                                    <FileDropZone Compact Multiple="false" Accept="@AttachmentStore.ImageAcceptList" IconName="image" MaxBytes="AttachmentStore.MaxLogoBytes"
+                                                  Title="Drop your logo here, or click to choose" Hint="JPG, PNG or WebP, up to 5 MB. A wide logo on a clear background prints best."
+                                                  OnFiles="SetLogoAsync" />
+                                    @if (_profile.LogoAttachment is not null)
+                                    {
+                                        <div><button type="button" class="btn btn-ghost btn-sm" @onclick="RemoveLogoAsync"><Icon Name="trash" Size="14" /> Remove logo</button></div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field span-2">
+                            <label for="biz-private">Notes for yourself</label>
+                            <textarea id="biz-private" class="textarea" rows="3" placeholder="Licence numbers, insurance renewals, reminders"
+                                      @bind="_profile.PrivateNotes" @bind:event="oninput" @bind:after="MarkDirty"></textarea>
+                            <span class="hint">Only you see these. They're never printed.</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="settings-group" id="payment">
+                    <h2>Payment details</h2>
+                    <p class="soft">Printed on invoices so clients know where to pay. The invoice number is used as the payment reference.</p>
+                    <div class="form-grid">
+                        <div class="field span-2">
+                            <label for="bank-name">Account name</label>
+                            <input id="bank-name" class="input" @bind="_profile.BankAccountName" @bind:event="oninput" @bind:after="MarkDirty" />
+                        </div>
+                        @if (Rules.BankCode is { } bank)
+                        {
+                            <div class="field">
+                                <label for="bank-code">@bank.Label</label>
+                                <input id="bank-code" class="input num" style="text-align:left" placeholder="@bank.Placeholder"
+                                       @bind="_profile.BankCode" @bind:event="oninput" @bind:after="MarkDirty" />
+                            </div>
+                        }
+                        <div class="field @(Rules.BankCode is null ? "span-2" : null)">
+                            <label for="bank-acc">Account number</label>
+                            <input id="bank-acc" class="input num" style="text-align:left" placeholder="@Rules.AccountPlaceholder"
+                                   @bind="_profile.AccountNumber" @bind:event="oninput" @bind:after="MarkDirty" />
+                        </div>
+                        <div class="field span-2">
+                            <label for="bank-swift">SWIFT/BIC</label>
+                            <input id="bank-swift" class="input num" style="text-align:left" placeholder="Optional, like NATAAU33"
+                                   @bind="_profile.SwiftCode" @bind:event="oninput" @bind:after="MarkDirty" />
+                            <span class="hint">For clients paying from overseas. Printed on invoices when it's filled in.</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="settings-group" id="invoices">
+                    <h2>Invoices and quotes</h2>
+                    <p class="soft">How new invoices and quotes are numbered, when invoices fall due and how long a quote holds.</p>
+                    <div class="form-grid">
+                        <div class="field">
+                            <label for="inv-prefix">Number prefix</label>
+                            <input id="inv-prefix" class="input" @bind="_profile.InvoicePrefix" @bind:event="oninput" @bind:after="MarkDirty" />
+                        </div>
+                        <div class="field">
+                            <label for="inv-next">Next number</label>
+                            <input id="inv-next" type="number" min="1" class="input num" @bind="_profile.NextInvoiceNumber" @bind:after="MarkDirty" />
+                        </div>
+                        <div class="field">
+                            <label for="inv-pad">Minimum digits</label>
+                            <input id="inv-pad" type="number" min="0" max="8" class="input num" @bind="_profile.NumberPadding" @bind:after="MarkDirty" />
+                            <span class="hint">Next invoice will be <strong class="num">@NumberExample</strong></span>
+                        </div>
+                        <div class="field">
+                            <label for="inv-terms">Payment terms</label>
+                            <div class="affix suffix">
+                                <input id="inv-terms" type="number" min="0" max="365" class="input num" @bind="_profile.PaymentTermsDays" @bind:after="MarkDirty" />
+                                <span class="affix-text">days</span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="quote-prefix">Quote prefix</label>
+                            <input id="quote-prefix" class="input" @bind="_profile.QuotePrefix" @bind:event="oninput" @bind:after="MarkDirty" />
+                        </div>
+                        <div class="field">
+                            <label for="quote-next">Next quote number</label>
+                            <input id="quote-next" type="number" min="1" class="input num" @bind="_profile.NextQuoteNumber" @bind:after="MarkDirty" />
+                            <span class="hint">Next quote will be <strong class="num">@QuoteExample</strong></span>
+                        </div>
+                        <div class="field">
+                            <label for="quote-valid">Quotes are valid for</label>
+                            <div class="affix suffix">
+                                <input id="quote-valid" type="number" min="1" max="365" class="input num" @bind="_profile.QuoteValidDays" @bind:after="MarkDirty" />
+                                <span class="affix-text">days</span>
+                            </div>
+                        </div>
+                        <div class="field span-2">
+                            <label for="inv-footer">Footer note</label>
+                            <textarea id="inv-footer" class="textarea" rows="2" @bind="_profile.FooterNote" @bind:event="oninput" @bind:after="MarkDirty"></textarea>
+                            <span class="hint">Printed at the bottom of every invoice and quote.</span>
+                        </div>
+                        <div class="field span-2">
+                            <label for="inv-default-notes">Default notes for new invoices</label>
+                            <textarea id="inv-default-notes" class="textarea" rows="3" placeholder="For example: Payment within 14 days, thanks!"
+                                      @bind="_profile.DefaultInvoiceNotes" @bind:event="oninput" @bind:after="MarkDirty"></textarea>
+                            <span class="hint">Fills in the notes box on each new invoice. You can still change it on any invoice.</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="settings-group" id="tax">
+                    <h2>@Rules.TaxName</h2>
+                    <p class="soft">@Rules.TaxIntro</p>
+                    <div class="col gap-16">
+                        <label class="switch">
+                            <input type="checkbox" @bind="_profile.TaxRegistered" @bind:after="MarkDirty" />
+                            <span>@Rules.RegisteredLabel</span>
+                        </label>
+                        @if (Rules.Provinces.Count > 0)
+                        {
+                            <div class="field" style="max-width:320px">
+                                <label for="tax-province">Province or territory</label>
+                                <select id="tax-province" class="select" @bind="_profile.Region" @bind:after="MarkDirty">
+                                    @foreach (var p in Rules.Provinces)
+                                    {
+                                        <option value="@p.Code">@p.Name (@p.TaxName @Format.Percent(p.RatePpm))</option>
+                                    }
+                                </select>
+                                <span class="hint">Sets the rate for clients in your province. Clients in other provinces get their own rate.</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="field" style="max-width:200px">
+                                <label for="tax-rate">@($"{Rules.TaxName} rate")</label>
+                                <div class="affix suffix">
+                                    <input id="tax-rate" type="number" step="0.001" min="0" max="100" class="input num" @bind="TaxPercent" @bind:after="MarkDirty" />
+                                    <span class="affix-text">%</span>
+                                </div>
+                            </div>
+                            @if (Rules.HasReducedRate)
+                            {
+                                <div class="field" style="max-width:200px">
+                                    <label for="tax-reduced-rate">Reduced rate</label>
+                                    <div class="affix suffix">
+                                        <input id="tax-reduced-rate" type="number" step="0.001" min="0" max="100" class="input num" @bind="ReducedPercent" @bind:after="MarkDirty" />
+                                        <span class="affix-text">%</span>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        <div class="form-grid">
+                            <div class="field">
+                                <label for="tax-every">How often you send your @Rules.ReturnShortName</label>
+                                <select id="tax-every" class="select" @bind="_profile.TaxPeriodMonths" @bind:after="MarkDirty">
+                                    <option value="1">Every month</option>
+                                    <option value="2">Every 2 months</option>
+                                    <option value="3">Every 3 months</option>
+                                    <option value="6">Every 6 months</option>
+                                    <option value="12">Once a year</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label for="tax-ends">A period ends in</label>
+                                <select id="tax-ends" class="select" @bind="_profile.TaxPeriodEndMonth" @bind:after="MarkDirty">
+                                    @for (var m = 1; m <= 12; m++)
+                                    {
+                                        <option value="@m">@CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(m)</option>
+                                    }
+                                </select>
+                                <span class="hint">This period: @FinancialPeriods.ReturnPeriodLabel(FinancialPeriods.ReturnPeriod(Clock.Today(), _profile.TaxPeriodMonths, _profile.TaxPeriodEndMonth), Rules)</span>
+                            </div>
+                        </div>
+                        <div class="field span-2">
+                            <label for="tax-overseas">Note on invoices to overseas clients</label>
+                            <textarea id="tax-overseas" class="textarea" rows="2" @bind="_profile.OverseasNote" @bind:event="oninput" @bind:after="MarkDirty"></textarea>
+                            <span class="hint">@($"Printed when an invoice to an overseas client has no {Rules.TaxWord}.")</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="settings-group" id="categories">
+                    <h2>Categories</h2>
+                    <p class="soft">Used to sort money in and out. Archived categories stay on old entries but aren't offered for new ones. Changes here save straight away.</p>
+                    <div class="form-grid">
+                        @foreach (var direction in new[] { Direction.In, Direction.Out })
+                        {
+                            var list = _categories.Where(c => c.Direction == direction).ToList();
+                            <div class="field">
+                                <span class="label">@(direction == Direction.In ? "Money in" : "Money out")</span>
+                                <div class="cat-list">
+                                    @foreach (var cat in list)
+                                    {
+                                        <div class="cat-row @(cat.IsArchived ? "archived" : null)" @key="cat.Id">
+                                            <input class="input grow" value="@cat.Name" aria-label="Category name"
+                                                   @onchange="e => RenameAsync(cat, e.Value?.ToString())" />
+                                            <button type="button" class="btn btn-ghost btn-sm btn-icon" title="@(cat.IsArchived ? "Restore" : "Archive")"
+                                                    @onclick="() => ToggleArchiveAsync(cat)">
+                                                <Icon Name="@(cat.IsArchived ? "undo" : "archive")" Size="15" />
+                                            </button>
+                                        </div>
+                                    }
+                                    <form class="cat-row" @onsubmit="() => AddCategoryAsync(direction)">
+                                        <input class="input grow" placeholder="Add a category" aria-label="New category name"
+                                               value="@NewName(direction)" @oninput="e => _newNames[direction] = e.Value?.ToString() ?? string.Empty" />
+                                        <button type="submit" class="btn btn-ghost btn-sm btn-icon" title="Add"><Icon Name="plus" Size="15" /></button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </section>
+
+                <section class="settings-group" id="appearance">
+                    <h2>Appearance</h2>
+                    <p class="soft">The accent colour is used on your invoices and throughout the app.</p>
+                    <div class="col gap-16">
+                        <div class="field">
+                            <span class="label">Accent colour</span>
+                            <div class="swatches">
+                                @foreach (var (name, hex) in Swatches)
+                                {
+                                    <button type="button" class="swatch @(Same(hex) ? "on" : null)" style="background:@hex"
+                                            title="@name" aria-label="@name" aria-pressed="@Same(hex)" @onclick="() => PickAccent(hex)"></button>
+                                }
+                                <input type="color" aria-label="Custom colour" value="@_profile.AccentColour.ToLowerInvariant()"
+                                       @onchange="e => PickAccent(e.Value?.ToString() ?? _profile.AccentColour)" />
+                                <span class="btn btn-sm" style="margin-left:8px; background:@_profile.AccentColour; border-color:@_profile.AccentColour; color:#fff; pointer-events:none">Preview</span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <span class="label">Invoice layout</span>
+                            <div class="templates" role="radiogroup" aria-label="Invoice layout">
+                                @foreach (var t in InvoiceTemplates.All)
+                                {
+                                    var on = InvoiceTemplates.Normalise(_profile.InvoiceTemplate) == t;
+                                    <button type="button" role="radio" aria-checked="@on" class="template @(on ? "on" : null)" @onclick="() => PickTemplate(t)">
+                                        <span class="template-page" aria-hidden="true">
+                                            <InvoiceDocument Invoice="_sample" Profile="_profile" LogoUrl="@FilesUrl.Logo(_profile)" Today="_sample.IssueDate" Template="@t" />
+                                        </span>
+                                        <span class="template-name">@TemplateLabel(t)</span>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                        <div class="field">
+                            <span class="label">Theme</span>
+                            <div class="seg" role="group" aria-label="Theme">
+                                @foreach (var choice in ThemeService.Choices)
+                                {
+                                    <button type="button" class="@(Theme.Theme == choice ? "on" : null)" aria-pressed="@(Theme.Theme == choice)"
+                                            @onclick="() => Theme.Set(choice)">@Theme.Label(choice)</button>
+                                }
+                            </div>
+                        </div>
+                        @if (Theme.CanBeTranslucent)
+                        {
+                            <div class="field">
+                                <span class="label">Window</span>
+                                <label class="switch">
+                                    <input type="checkbox" checked="@Theme.Translucent" @onchange="e => Theme.SetTranslucent(e.Value is true)" />
+                                    <span>Translucent edges that pick up your desktop colours</span>
+                                </label>
+                            </div>
+                        }
+                    </div>
+                </section>
+
+                <section class="settings-group" id="data">
+                    <h2>Your data</h2>
+                    <p class="soft">Everything is kept in one folder. Put it in OneDrive, Dropbox or Google Drive and you can use InvoiceDesk on another PC too, one PC at a time. A copy of the database is made each time the app starts, and the last 10 are kept.</p>
+                    <div class="data-card">
+                        <div class="row gap-8 wrap">
+                            <span class="pill @(SyncProvider is null ? "pill-plain" : "pill-paid")">@StorageLabel</span>
+                        </div>
+                        <code class="small soft data-path">@Paths.DataRoot</code>
+                        <div class="row gap-8 wrap">
+                            <button type="button" class="btn" @onclick="StartMove"><Icon Name="upload" Size="16" /> Move to a synced folder…</button>
+                            <button type="button" class="btn" @onclick="StartUseExisting"><Icon Name="folder" Size="16" /> Use data from another PC…</button>
+                        </div>
+                        <div class="row gap-8 wrap">
+                            <button type="button" class="btn btn-ghost btn-sm" @onclick="() => Desktop.OpenFolder(Paths.DataRoot)"><Icon Name="folder" Size="14" /> Open data folder</button>
+                            <button type="button" class="btn btn-ghost btn-sm" @onclick="() => Desktop.OpenFolder(Paths.Backups)"><Icon Name="database" Size="14" /> Open backups</button>
+                            @if (Paths.IsCustomLocation)
+                            {
+                                <button type="button" class="btn btn-ghost btn-sm" @onclick="StartUseLocal"><Icon Name="undo" Size="14" /> Switch back to this PC's own data</button>
+                            }
+                        </div>
+                    </div>
+                </section>
+
+                <section class="settings-group" id="about">
+                    <h2>About</h2>
+                    <p class="soft">InvoiceDesk never goes online by itself. Checking for updates asks GitHub for the latest version, and only when you click the button.</p>
+                    <div class="data-card">
+                        <div class="about-logo">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 330" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="InvoiceDesk">
+                                <title>InvoiceDesk</title>
+                                <!-- inline so currentColor can follow the theme, not an <img> -->
+                                <defs>
+                                    <mask id="idsk-behind-front" maskUnits="userSpaceOnUse" x="-100" y="-100" width="500" height="500">
+                                        <rect x="-100" y="-100" width="500" height="500" fill="#fff"/>
+                                        <rect x="77.5" y="7.5" width="121" height="160" fill="#000"/>
+                                    </mask>
+                                    <mask id="idsk-behind-both" maskUnits="userSpaceOnUse" x="-100" y="-100" width="500" height="500">
+                                        <rect x="-100" y="-100" width="500" height="500" fill="#fff"/>
+                                        <rect x="77.5" y="7.5" width="121" height="160" fill="#000"/>
+                                        <rect x="77.5" y="7.5" width="121" height="160" fill="#000" transform="rotate(-5.4 138 400)"/>
+                                    </mask>
+                                </defs>
+                                <g transform="translate(130 6.5)">
+                                    <!-- paper: two fanned pages behind, the front page with a folded corner -->
+                                    <g fill="none" stroke="currentColor" stroke-width="9" stroke-linejoin="miter">
+                                        <g mask="url(#idsk-behind-both)"><path d="M88 150V18H188V150" transform="rotate(-10.8 138 400)"/></g>
+                                        <g mask="url(#idsk-behind-front)"><path d="M88 150V18H188V150" transform="rotate(-5.4 138 400)"/></g>
+                                        <path d="M88 160V18H156L188 50V160"/>
+                                        <path d="M156 18V50H188" fill="#DE9F32"/>
+                                    </g>
+                                    <!-- neutral invoice: heading, three lines and a paid tick with a total -->
+                                    <g fill="#DE9F32">
+                                        <rect x="104" y="34" width="32" height="9"/>
+                                        <rect x="104" y="58" width="68" height="9"/>
+                                        <rect x="104" y="75" width="68" height="9"/>
+                                        <rect x="104" y="92" width="68" height="9"/>
+                                        <rect x="146" y="124.5" width="26" height="9"/>
+                                    </g>
+                                    <path d="M106 124.5L115 133.5L133 115.5" fill="none" stroke="#DE9F32" stroke-width="9" stroke-linejoin="miter"/>
+                                    <!-- desk: top, stretcher and two splayed legs -->
+                                    <g fill="currentColor">
+                                        <rect x="0" y="150" width="240" height="18"/>
+                                        <rect x="36" y="174" width="168" height="9"/>
+                                        <path d="M23.9 160H42.4L24.5 236H6Z"/>
+                                        <path d="M216.1 160H197.6L215.5 236H234Z"/>
+                                    </g>
+                                </g>
+                                <!-- wordmark -->
+                                <text x="25" y="310" fill="currentColor" font-family="Bahnschrift, 'Segoe UI', sans-serif" font-size="60" letter-spacing="5.4"><tspan font-weight="700">INVOICE</tspan><tspan font-weight="300"> DESK</tspan></text>
+                            </svg>
+                        </div>
+                        <div class="row gap-12 wrap">
+                            <span class="about-version">Version @UpdateChecker.CurrentVersion</span>
+                            <button type="button" class="btn btn-sm" disabled="@_checking" @onclick="CheckForUpdatesAsync">
+                                <Icon Name="refresh" Size="14" /> @(_checking ? "Checking…" : "Check for updates")
+                            </button>
+                        </div>
+                        @if (_update is { } update)
+                        {
+                            <div class="row gap-8 wrap small" role="status">
+                                @if (!update.Reached)
+                                {
+                                    <span class="danger-text">Couldn't reach GitHub. Check your internet connection and try again.</span>
+                                }
+                                else if (update.IsNewer && update.Url is { } url)
+                                {
+                                    <span><strong>Version @update.Latest is out.</strong></span>
+                                    <button type="button" class="btn btn-primary btn-sm" @onclick="() => Desktop.OpenUrl(url)"><Icon Name="download" Size="14" /> Download</button>
+                                }
+                                else
+                                {
+                                    <span class="soft"><Icon Name="check" Size="14" /> You're up to date.</span>
+                                }
+                            </div>
+                        }
+                        <div class="row gap-8 wrap">
+                            <button type="button" class="btn btn-ghost btn-sm" @onclick="@(() => Desktop.OpenUrl("https://github.com/tdh1985/invoicedesk"))"><Icon Name="external" Size="14" /> InvoiceDesk on GitHub</button>
+                            <button type="button" class="btn btn-ghost btn-sm" @onclick="@(() => Desktop.OpenUrl("https://paypal.me/timdowney"))"><Icon Name="external" Size="14" /> Buy me a coffee</button>
+                            <button type="button" class="btn btn-ghost btn-sm" @onclick="@(() => Desktop.OpenUrl("https://github.com/tdh1985/invoicedesk/blob/main/LICENSE"))"><Icon Name="external" Size="14" /> MIT licence</button>
+                        </div>
+                        <p class="soft small">If InvoiceDesk saves you time, feel free to buy me a coffee, or more.</p>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        @if (_dirty)
+        {
+            <div class="savebar">
+                <span class="grow">
+                    @if (_errors is { Count: > 0 })
+                    {
+                        <span class="danger-text">@string.Join(" ", _errors)</span>
+                    }
+                    else
+                    {
+                        <text>You have unsaved changes.</text>
+                    }
+                </span>
+                <button type="button" class="btn btn-ghost" @onclick="DiscardAsync">Discard</button>
+                <button type="button" class="btn btn-primary" @onclick="SaveAsync"><Icon Name="check" Size="16" /> Save changes <kbd>Ctrl S</kbd></button>
+            </div>
+        }
+    }
+</div>
+
+<Modal Open="_dataAction is not null" Title="@_dataAction?.Title" OnClose="() => _dataAction = null">
+    <ChildContent>
+        <p>@_dataAction?.Body</p>
+        <code class="small data-path mt-16">@_dataAction?.Folder</code>
+    </ChildContent>
+    <Footer>
+        <button type="button" class="btn btn-ghost" @onclick="() => _dataAction = null">Cancel</button>
+        <button type="button" class="btn btn-primary" @onclick="ConfirmDataActionAsync">@_dataAction?.Confirm</button>
+    </Footer>
+</Modal>
+
+@code {
+    static readonly (string Name, string Hex)[] Swatches =
+    [
+        ("Eucalyptus", "#2E6B57"),
+        ("Harbour", "#1F5F8B"),
+        ("Jacaranda", "#6E4FA0"),
+        ("Ochre", "#A8641C"),
+        ("Red gum", "#A23B2E"),
+        ("Slate", "#3C4658"),
+    ];
+
+    BusinessProfile? _profile;
+    List<Category> _categories = [];
+    readonly Dictionary<Direction, string> _newNames = new() { [Direction.In] = "", [Direction.Out] = "" };
+    IReadOnlyList<string>? _errors;
+    bool _dirty;
+    bool _checking;
+    UpdateResult? _update;
+
+    CountryRules Rules => Countries.For(_profile!.Country);
+
+    bool _countryLocked;
+
+    decimal TaxPercent
+    {
+        get => (_profile?.TaxRatePpm ?? 0) / 10_000m;
+        set { if (_profile is not null) _profile.TaxRatePpm = (int)Math.Round(Math.Clamp(value, -1000m, 1000m) * 10_000); }
+    }
+
+    decimal ReducedPercent
+    {
+        get => (_profile?.ReducedRatePpm ?? 0) / 10_000m;
+        set { if (_profile is not null) _profile.ReducedRatePpm = (int)Math.Round(Math.Clamp(value, -1000m, 1000m) * 10_000); }
+    }
+
+    bool? TaxNumberState => _profile is null || string.IsNullOrWhiteSpace(_profile.TaxNumber)
+        ? null
+        : Rules.TaxNumber.IsValid(Rules.TaxNumber.Normalise(_profile.TaxNumber));
+
+    string TaxNumberHint => TaxNumberState switch
+    {
+        true => $"Valid {Rules.TaxNumber.Label}: {Rules.TaxNumber.Display(Rules.TaxNumber.Normalise(_profile!.TaxNumber))}",
+        false => Rules.TaxNumber.BadHint,
+        _ => Rules.TaxNumber.EmptyHint,
+    };
+
+    string NumberExample => _profile is null ? "" : InvoiceNumbering.Format(_profile.InvoicePrefix, Math.Max(1, _profile.NextInvoiceNumber), _profile.NumberPadding);
+
+    string QuoteExample => _profile is null ? "" : InvoiceNumbering.Format(_profile.QuotePrefix, Math.Max(1, _profile.NextQuoteNumber), _profile.NumberPadding);
+
+    protected override async Task OnInitializedAsync()
+    {
+        Shortcuts.Pressed += OnShortcut;
+        Theme.Changed += OnThemeChanged;
+        Theme.TranslucentChanged += OnThemeChanged;
+        _profile = await Profiles.GetAsync();
+        _countryLocked = await Profiles.IsCountryLockedAsync();
+        UpdateSample();
+        await LoadCategoriesAsync();
+    }
+
+    // only the country's own fields refresh so other unsaved edits survive
+    async Task ChangeCountryAsync(ChangeEventArgs e)
+    {
+        try
+        {
+            var fresh = await Profiles.ChangeCountryAsync(e.Value?.ToString() ?? "");
+            _profile!.Country = fresh.Country;
+            _profile.TaxRegistered = fresh.TaxRegistered;
+            _profile.TaxRatePpm = fresh.TaxRatePpm;
+            _profile.ReducedRatePpm = fresh.ReducedRatePpm;
+            _profile.Region = fresh.Region;
+            _profile.TaxPeriodMonths = fresh.TaxPeriodMonths;
+            _profile.TaxPeriodEndMonth = fresh.TaxPeriodEndMonth;
+            _profile.OverseasNote = fresh.OverseasNote;
+            UpdateSample();
+            Toasts.Show($"Country changed to {Rules.Name}");
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+    }
+
+    // keeps the appearance preview showing the current country's tax and currency
+    void UpdateSample()
+    {
+        if (_profile is null) return;
+        _sample.TaxEnabled = true;
+        _sample.TaxRatePpm = _profile.TaxRatePpm;
+        _sample.ReducedRatePpm = _profile.ReducedRatePpm;
+        _sample.Currency = Rules.Currency;
+        _sample.Lines[1].TaxCode = Rules.HasReducedRate ? TaxCode.Reduced : TaxCode.Standard;
+    }
+
+    async Task LoadCategoriesAsync() => _categories = await Categories.ListAsync(includeArchived: true);
+
+    async Task CheckForUpdatesAsync()
+    {
+        _checking = true;
+        try { _update = await Updates.CheckAsync(); }
+        finally { _checking = false; }
+    }
+
+    void MarkDirty()
+    {
+        _dirty = true;
+        _errors = null;
+    }
+
+    bool Same(string hex) => string.Equals(_profile?.AccentColour, hex, StringComparison.OrdinalIgnoreCase);
+
+    // an example invoice so each layout can be judged with real looking numbers
+    readonly Invoice _sample = new()
+    {
+        Number = "INV-0042",
+        IssueDate = DateOnly.FromDateTime(DateTime.Today),
+        DueDate = DateOnly.FromDateTime(DateTime.Today).AddDays(14),
+        Status = InvoiceStatus.Sent,
+        TaxEnabled = true,
+        Client = new Client { Name = "Sample client", ContactName = "Alex Smith", Address = "1 Example Street, Hobart TAS 7000" },
+        Lines =
+        [
+            new InvoiceLine { Description = "Design work", Quantity = 1, UnitPriceCents = 120000 },
+            new InvoiceLine { Description = "Photography, half day", Quantity = 1, UnitPriceCents = 60000 },
+        ],
+    };
+
+    static string TemplateLabel(string t) => t switch
+    {
+        InvoiceTemplates.Modern => "Modern",
+        InvoiceTemplates.Minimal => "Minimal",
+        _ => "Classic",
+    };
+
+    void PickTemplate(string t)
+    {
+        if (_profile is null) return;
+        _profile.InvoiceTemplate = t;
+        MarkDirty();
+    }
+
+    void PickAccent(string hex)
+    {
+        if (_profile is null) return;
+        _profile.AccentColour = hex.ToUpperInvariant();
+        MarkDirty();
+    }
+
+    async Task SaveAsync()
+    {
+        if (_profile is null) return;
+        try
+        {
+            await Profiles.SaveAsync(_profile);
+            _profile = await Profiles.GetAsync();
+            _dirty = false;
+            _errors = null;
+            Toasts.Show("Settings saved");
+        }
+        catch (ValidationException ex)
+        {
+            _errors = ex.Errors;
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+    }
+
+    async Task DiscardAsync()
+    {
+        _profile = await Profiles.GetAsync();
+        _dirty = false;
+        _errors = null;
+    }
+
+    async Task SetLogoAsync(IReadOnlyList<StagedFile> files)
+    {
+        try
+        {
+            await Profiles.SetLogoAsync(files[0]);
+            await RefreshLogoAsync();
+            Toasts.Show("Logo updated");
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+    }
+
+    async Task RemoveLogoAsync()
+    {
+        await Profiles.SetLogoAsync(null);
+        await RefreshLogoAsync();
+        Toasts.Show("Logo removed");
+    }
+
+    // only the logo changes so unsaved edits elsewhere on the page survive
+    async Task RefreshLogoAsync()
+    {
+        var fresh = await Profiles.GetAsync();
+        _profile!.LogoAttachmentId = fresh.LogoAttachmentId;
+        _profile.LogoAttachment = fresh.LogoAttachment;
+    }
+
+    string NewName(Direction direction) => _newNames[direction];
+
+    async Task AddCategoryAsync(Direction direction)
+    {
+        var name = _newNames[direction].Trim();
+        if (name.Length == 0) return;
+        try
+        {
+            await Categories.SaveAsync(new Category { Name = name, Direction = direction });
+            _newNames[direction] = "";
+            await LoadCategoriesAsync();
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+    }
+
+    async Task RenameAsync(Category category, string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name) || name.Trim() == category.Name) return;
+        try
+        {
+            category.Name = name.Trim();
+            await Categories.SaveAsync(category);
+            Toasts.Show("Category renamed");
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+        await LoadCategoriesAsync();
+    }
+
+    async Task ToggleArchiveAsync(Category category)
+    {
+        await Categories.SetArchivedAsync(category.Id, !category.IsArchived);
+        await LoadCategoriesAsync();
+    }
+
+    // data location
+
+    sealed record DataAction(string Title, string Body, string Folder, string Confirm, Action Run);
+
+    DataAction? _dataAction;
+
+    string? SyncProvider => Paths.DataRoot switch
+    {
+        var p when p.Contains("OneDrive", StringComparison.OrdinalIgnoreCase) => "OneDrive",
+        var p when p.Contains("Dropbox", StringComparison.OrdinalIgnoreCase) => "Dropbox",
+        var p when p.Contains("Google Drive", StringComparison.OrdinalIgnoreCase) || p.Contains("My Drive", StringComparison.OrdinalIgnoreCase) => "Google Drive",
+        _ => null,
+    };
+
+    string StorageLabel => SyncProvider is { } name ? $"Synced with {name}" : Paths.IsCustomLocation ? "Custom folder" : "Only on this PC";
+
+    static string SuggestedFolder() =>
+        Environment.GetEnvironmentVariable("OneDrive") is { Length: > 0 } oneDrive
+            ? oneDrive
+            : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
+    void StartMove()
+    {
+        var picked = Desktop.PickFolder("Choose a synced folder for your InvoiceDesk data", SuggestedFolder());
+        if (picked is null) return;
+        if (DataMover.FindDataFolder(picked) is { } existing)
+        {
+            OfferSwitch(existing, "That folder already has InvoiceDesk data in it. ");
+            return;
+        }
+        var target = string.Equals(Path.GetFileName(picked.TrimEnd('\\')), "InvoiceDesk", StringComparison.OrdinalIgnoreCase)
+            ? picked
+            : Path.Combine(picked, "InvoiceDesk");
+        _dataAction = new DataAction(
+            "Move your data?",
+            "Your invoices, clients, receipts and backups will be copied to this folder, then InvoiceDesk will restart using it. The current copy stays where it is as a spare.",
+            target, "Move and restart", () => Mover.MoveTo(target));
+    }
+
+    void StartUseExisting()
+    {
+        var picked = Desktop.PickFolder("Choose the InvoiceDesk folder from your other PC", SuggestedFolder());
+        if (picked is null) return;
+        if (DataMover.FindDataFolder(picked) is not { } found)
+        {
+            Toasts.Show("No InvoiceDesk data was found there. Pick the folder that contains invoicedesk.db.", ToastKind.Error);
+            return;
+        }
+        OfferSwitch(found, "");
+    }
+
+    void OfferSwitch(string folder, string lead) =>
+        _dataAction = new DataAction(
+            "Use this data?",
+            $"{lead}InvoiceDesk will restart using the data in this folder. The data it uses now stays where it is.",
+            folder, "Switch and restart", () => Mover.UseExisting(folder));
+
+    void StartUseLocal() =>
+        _dataAction = new DataAction(
+            "Switch back to this PC's data?",
+            "InvoiceDesk will restart using the data stored on this PC. Your synced folder isn't changed.",
+            Paths.LocalRoot, "Switch and restart", Mover.UseThisPc);
+
+    async Task ConfirmDataActionAsync()
+    {
+        var action = _dataAction;
+        if (action is null) return;
+        _dataAction = null;
+        try
+        {
+            if (_dirty)
+            {
+                await SaveAsync();
+                // unsaved settings would be lost in the restart
+                if (_dirty)
+                {
+                    Toasts.Show("Some settings need fixing before InvoiceDesk can restart.", ToastKind.Error);
+                    return;
+                }
+            }
+            await Toasts.FlushAsync();
+            action.Run();
+            Desktop.Restart();
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+    }
+
+    void OnShortcut(string key)
+    {
+        if (key == "s" && _dirty) InvokeAsync(SaveAsync);
+    }
+
+    void OnThemeChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Shortcuts.Pressed -= OnShortcut;
+        Theme.Changed -= OnThemeChanged;
+        Theme.TranslucentChanged -= OnThemeChanged;
+    }
+}

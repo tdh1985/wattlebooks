@@ -1,0 +1,320 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@inject InvoiceService InvoiceStore
+@inject ToastService Toasts
+@inject TimeProvider Clock
+@inject IReceiptReader Reader
+
+<Drawer Open="Open" Title="Record payment" OnClose="OnClose">
+    <ChildContent>
+        <form id="payment-form" class="col gap-16" @onsubmit="SaveAsync">
+            @if (_errors is { Count: > 0 })
+            {
+                <div class="banner banner-error"><Icon Name="alert" Size="16" /><div>@string.Join(" ", _errors)</div></div>
+            }
+            <ScanBanner Scanning="_scanning" Note="@_scanNote" Highlight="_filled.Count > 0" CanUndo="_beforeScan is not null" OnUndo="UndoScan" />
+            @if (Invoice is not null)
+            {
+                <p class="soft">@Invoice.Number for @Invoice.Client?.Name. Balance due <strong class="num">@Format.Money(BalanceCents, Invoice.Currency)</strong>.</p>
+            }
+            <div class="form-grid">
+                @if (Foreign)
+                {
+                    <div class="field @FieldState("amount")">
+                        <label for="payment-amount">Amount paid (@Invoice!.Currency)</label>
+                        <MoneyInput Id="payment-amount" Currency="@Invoice.Currency" Cents="_amount" CentsChanged="SetAmount" />
+                    </div>
+                    <div class="field @FieldState("home")">
+                        <label for="payment-home">Amount that reached your bank (@Home)</label>
+                        <MoneyInput Id="payment-home" Cents="_homeAmount" CentsChanged="SetHome" />
+                        <span class="hint">Used for your reports and @Format.Country.TaxWord. Any exchange difference or bank fee needs no extra entry.</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="field">
+                        <label for="payment-paid-in">Paid in</label>
+                        <select id="payment-paid-in" class="select" value="@_paidIn" @onchange="e => SetPaidIn(e.Value?.ToString() ?? Home)">
+                            @foreach (var c in Currencies.All)
+                            {
+                                <option value="@c.Code">@Currencies.Label(c.Code)</option>
+                            }
+                        </select>
+                    </div>
+                    @if (PaidElsewhere)
+                    {
+                        <div class="field @FieldState("sent")">
+                            <label for="payment-sent">Amount they sent (@_paidIn)</label>
+                            <MoneyInput Id="payment-sent" Currency="@_paidIn" Cents="_sent" CentsChanged="SetSent" />
+                        </div>
+                        <div class="field @FieldState("amount")">
+                            <label for="payment-amount">Amount that reached your bank (@Home)</label>
+                            <MoneyInput Id="payment-amount" Cents="_amount" CentsChanged="SetAmount" />
+                            <span class="hint">This is what counts toward the invoice and your @Format.Country.TaxWord.</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="field @FieldState("amount")">
+                            <label for="payment-amount">Amount received</label>
+                            <MoneyInput Id="payment-amount" Cents="_amount" CentsChanged="SetAmount" />
+                        </div>
+                    }
+                }
+                <div class="field @FieldState("date")">
+                    <label for="payment-date">Date received</label>
+                    <input id="payment-date" type="date" class="input" value="@Format.Iso(_date)" @onchange="OnDateChanged" />
+                </div>
+                <div class="field">
+                    <label for="payment-method">How they paid</label>
+                    <select id="payment-method" class="select" @bind="_method">
+                        <option value="@PaymentMethod.BankTransfer">Bank transfer</option>
+                        <option value="@PaymentMethod.Card">Card</option>
+                        <option value="@PaymentMethod.Cash">Cash</option>
+                        <option value="@PaymentMethod.Other">Other</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="payment-note">Note</label>
+                    <input id="payment-note" class="input" placeholder="Optional" @bind="_note" />
+                </div>
+            </div>
+            @if (PaidElsewhere && _amount > 0 && ShortBy > 0)
+            {
+                <label class="check">
+                    <input type="checkbox" checked="@_inFull" @onchange="e => _inFull = e.Value is true" />
+                    <span>Treat as paid in full. Records the @Format.Money(ShortBy) difference as a bank fee.</span>
+                </label>
+            }
+            @if (BalanceCents > 0 && _amount > BalanceCents)
+            {
+                <div class="banner banner-warn"><Icon Name="alert" Size="16" /><div>That's more than the balance due of @Format.Money(BalanceCents, Invoice!.Currency).</div></div>
+            }
+            <div class="field">
+                <span class="label">Remittance or receipt</span>
+                <FileDropZone Title="Drop the remittance or receipt here" OnFiles="AddFiles" />
+                <AttachmentGallery Staged="_files" OnRemoveStaged="RemoveFile" />
+            </div>
+        </form>
+    </ChildContent>
+    <Footer>
+        <button type="submit" form="payment-form" class="btn btn-primary" disabled="@(_saving || _scanning || _amount <= 0 || (Foreign && _homeAmount <= 0) || (PaidElsewhere && _sent <= 0))">
+            <Icon Name="check" Size="16" /> Record @Format.Money(_amount, Invoice!.Currency)
+        </button>
+        <button type="button" class="btn btn-ghost" @onclick="OnClose">Cancel</button>
+    </Footer>
+</Drawer>
+
+@code {
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public Invoice? Invoice { get; set; }
+    [Parameter] public long BalanceCents { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    long _amount;
+    long _homeAmount;
+    DateOnly _date;
+    PaymentMethod _method = PaymentMethod.BankTransfer;
+    string _note = "";
+    List<StagedFile> _files = [];
+    IReadOnlyList<string>? _errors;
+    bool _saving;
+    bool _wasOpen;
+
+    string _paidIn = "";
+    long _sent;
+    bool _inFull;
+    readonly HashSet<string> _touched = [];
+    readonly HashSet<string> _filled = [];
+    bool _scanning;
+    bool _scanned;
+    int _session;
+    string? _scanNote;
+    Before? _beforeScan;
+
+    // what the fields held before a scan, so undo puts them back exactly
+    sealed record Before(long Amount, long Home, long Sent, DateOnly Date, string PaidIn, bool InFull);
+
+    bool Foreign => Invoice is not null && Invoice.Currency != Format.Country.Currency;
+
+    string Home => Format.Country.Currency;
+
+    bool PaidElsewhere => !Foreign && _paidIn != Home;
+
+    long ShortBy => BalanceCents - _amount;
+
+    string? FieldState(string field) => _filled.Contains(field) ? "filled" : null;
+
+    void Touch(string field)
+    {
+        _touched.Add(field);
+        _filled.Remove(field);
+    }
+
+    void SetAmount(long cents) { _amount = cents; Touch("amount"); ClearInFullWhenHidden(); }
+
+    // a hidden tick box must not come back already ticked
+    void ClearInFullWhenHidden()
+    {
+        if (ShortBy <= 0 || _amount <= 0) _inFull = false;
+    }
+
+    void SetHome(long cents) { _homeAmount = cents; Touch("home"); }
+    void SetSent(long cents) { _sent = cents; Touch("sent"); }
+
+    // a fresh bank box lets the user type what landed, not the full balance
+    void SetPaidIn(string code)
+    {
+        _paidIn = code;
+        _inFull = false;
+        if (!_touched.Contains("amount")) _amount = code == Home ? Math.Max(0, BalanceCents) : 0;
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (Open && !_wasOpen)
+        {
+            _session++;
+            _amount = Math.Max(0, BalanceCents);
+            _homeAmount = 0;
+            _date = Clock.Today();
+            _method = PaymentMethod.BankTransfer;
+            _note = "";
+            _files = [];
+            _errors = null;
+            _paidIn = Invoice?.Currency ?? Home;
+            _sent = 0;
+            _inFull = false;
+            _touched.Clear();
+            _filled.Clear();
+            _scanning = false;
+            _scanned = false;
+            _scanNote = null;
+            _beforeScan = null;
+        }
+        _wasOpen = Open;
+    }
+
+    void OnDateChanged(ChangeEventArgs e)
+    {
+        _date = Format.ParseIso(e.Value?.ToString()) ?? _date;
+        Touch("date");
+    }
+
+    void AddFiles(IReadOnlyList<StagedFile> files)
+    {
+        _files.AddRange(files);
+        if (!_scanned && files.Count > 0) _ = ScanAsync(files[0]);
+    }
+
+    void RemoveFile(StagedFile file) => _files.Remove(file);
+
+    // reads the remittance with windows ocr and fills only untouched fields
+    async Task ScanAsync(StagedFile file)
+    {
+        var session = _session;
+        _scanned = true;
+        _scanning = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var text = await Reader.ReadTextAsync(file.TempPath);
+            // a scan that ends after the drawer reopened belongs to the old payment
+            if (session != _session) return;
+            var guess = string.IsNullOrWhiteSpace(text) ? null : ReceiptParser.Parse(text, Clock.Today(), [], Format.Country.Receipts);
+            Apply(guess);
+        }
+        catch (Exception ex)
+        {
+            if (session != _session) return;
+            FileLog.Write(ex, "payment scan");
+            _scanNote = "Couldn't read that file, so fill in the details yourself.";
+        }
+        _scanning = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    void Apply(ReceiptGuess? guess)
+    {
+        if (guess is null || (guess.TotalCents is null && guess.Date is null))
+        {
+            _scanNote = "Couldn't find an amount or date in that file, so fill them in yourself.";
+            return;
+        }
+        _beforeScan = new Before(_amount, _homeAmount, _sent, _date, _paidIn, _inFull);
+
+        if (!_touched.Contains("date") && guess.Date is { } date && date != _date)
+        {
+            _date = date;
+            _filled.Add("date");
+        }
+        if (guess.TotalCents is { } total && AmountBox(guess.Currency) is { } box && !_touched.Contains(box))
+        {
+            if (box == "sent" && !PaidElsewhere) SetPaidIn(guess.Currency!);
+            switch (box)
+            {
+                case "home": _homeAmount = total; break;
+                case "sent": _sent = total; break;
+                default: _amount = total; break;
+            }
+            _filled.Add(box);
+            ClearInFullWhenHidden();
+        }
+
+        var parts = new List<string>();
+        if (_filled.Overlaps(["amount", "home", "sent"])) parts.Add("amount");
+        if (_filled.Contains("date")) parts.Add("date");
+        _scanNote = parts.Count > 0 ? $"Read the receipt: filled {string.Join(" and ", parts)}." : "Couldn't find anything new in that file.";
+        if (parts.Count == 0) _beforeScan = null;
+    }
+
+    // match the receipt's currency to the box that holds that currency
+    string? AmountBox(string? currency)
+    {
+        if (Foreign)
+            return currency == Home ? "home" : currency is null || currency == Invoice!.Currency ? "amount" : null;
+        // a bare $ could be either currency, so only the date is safe to fill
+        if (currency is null) return PaidElsewhere ? null : "amount";
+        if (currency == Home) return "amount";
+        if (!Currencies.IsSupported(currency)) return null;
+        if (PaidElsewhere && currency != _paidIn) return null;
+        // switching currency only happens while the user hasn't picked one
+        return PaidElsewhere || !_touched.Contains("amount") ? "sent" : null;
+    }
+
+    void UndoScan()
+    {
+        if (_beforeScan is not { } b) return;
+        (_amount, _homeAmount, _sent, _date, _paidIn, _inFull) = (b.Amount, b.Home, b.Sent, b.Date, b.PaidIn, b.InFull);
+        _filled.Clear();
+        _scanNote = null;
+        _beforeScan = null;
+    }
+
+    async Task SaveAsync()
+    {
+        if (Invoice is null || _saving) return;
+        _saving = true;
+        try
+        {
+            var fee = PaidElsewhere && _inFull && ShortBy > 0;
+            await InvoiceStore.RecordPaymentAsync(Invoice.Id,
+                new PaymentInput(_date, _amount, _method, _note, Foreign ? _homeAmount : null,
+                    PaidElsewhere ? _paidIn : null, PaidElsewhere ? _sent : null, fee), _files);
+            Toasts.Show($"Payment of {Format.Money(_amount, Invoice.Currency)} recorded{(fee ? " and a bank fee" : "")}");
+            await OnSaved.InvokeAsync();
+        }
+        catch (ValidationException ex)
+        {
+            _errors = ex.Errors;
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(ex);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

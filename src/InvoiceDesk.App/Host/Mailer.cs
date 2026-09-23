@@ -4,24 +4,15 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using InvoiceDesk.Core.Rules;
+using InvoiceDesk.Ui.Platform;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 
 namespace InvoiceDesk.App.Host;
 
-public enum MailOutcome
-{
-    // the email opened with the pdf already attached
-    Attached,
-    // the email opened but the pdf has to be dragged in by hand
-    OpenedWithoutAttachment,
-}
-
 // hands a ready email to whatever mail app the pc uses, nothing is sent from here
-public sealed class Mailer(Desktop desktop, ILogger<Mailer> log)
+public sealed class Mailer(IDesktop desktop, ILogger<Mailer> log) : IMailer
 {
-    // long mailto links get cut off by some mail apps and browsers
-    const int MailtoBodyLimit = 1800;
     // a mail app that is going to fail usually says so quickly, one that works sits on its compose window
     static readonly TimeSpan MapiGrace = TimeSpan.FromSeconds(2.5);
 
@@ -38,7 +29,7 @@ public sealed class Mailer(Desktop desktop, ILogger<Mailer> log)
             log.LogWarning("Simple MAPI returned {Code}, falling back to mailto", code);
         }
 
-        OpenMailto(draft);
+        desktop.OpenMail(Mailto.Url(draft));
         desktop.ShowInFolder(attachmentPath);
         return MailOutcome.OpenedWithoutAttachment;
     }
@@ -51,14 +42,6 @@ public sealed class Mailer(Desktop desktop, ILogger<Mailer> log)
             if (key?.GetValue(null) is string name && name.Trim().Length > 0) return true;
         }
         return false;
-    }
-
-    static void OpenMailto(EmailDraft draft)
-    {
-        var body = draft.Body.Length > MailtoBodyLimit ? draft.Body[..MailtoBodyLimit] + "…" : draft.Body;
-        var url = $"mailto:{Uri.EscapeDataString(draft.To)}?subject={Uri.EscapeDataString(draft.Subject)}" +
-                  $"&body={Uri.EscapeDataString(body.Replace("\n", "\r\n"))}";
-        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
     }
 
     // simple mapi blocks until the compose window closes, so it gets a thread of its own

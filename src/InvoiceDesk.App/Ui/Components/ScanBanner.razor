@@ -1,0 +1,24 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@if (Scanning)
+{
+    <div class="banner scan-banner" role="status"><span class="spinner" aria-hidden="true"></span><div>Reading the receipt…</div></div>
+}
+else if (Note is not null)
+{
+    <div class="banner @(Highlight ? "scan-banner" : null)" role="status">
+        <Icon Name="receipt" Size="16" />
+        <div class="grow">@Note</div>
+        @if (CanUndo)
+        {
+            <button type="button" class="btn btn-ghost btn-sm" @onclick="OnUndo"><Icon Name="undo" Size="14" /> Undo</button>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public bool Scanning { get; set; }
+    [Parameter] public string? Note { get; set; }
+    [Parameter] public bool Highlight { get; set; }
+    [Parameter] public bool CanUndo { get; set; }
+    [Parameter] public EventCallback OnUndo { get; set; }
+}

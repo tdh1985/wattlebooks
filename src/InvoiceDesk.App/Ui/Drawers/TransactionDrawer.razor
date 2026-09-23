@@ -18,21 +18,7 @@
                 {
                     <div class="banner banner-error"><Icon Name="alert" Size="16" /><div>@string.Join(" ", _errors)</div></div>
                 }
-                @if (_scanning)
-                {
-                    <div class="banner scan-banner" role="status"><span class="spinner" aria-hidden="true"></span><div>Reading the receipt…</div></div>
-                }
-                else if (_scanNote is not null)
-                {
-                    <div class="banner @(_filled.Count > 0 ? "scan-banner" : null)" role="status">
-                        <Icon Name="receipt" Size="16" />
-                        <div class="grow">@_scanNote</div>
-                        @if (_beforeScan is not null)
-                        {
-                            <button type="button" class="btn btn-ghost btn-sm" @onclick="UndoScan"><Icon Name="undo" Size="14" /> Undo</button>
-                        }
-                    </div>
-                }
+                <ScanBanner Scanning="_scanning" Note="@_scanNote" Highlight="_filled.Count > 0" CanUndo="_beforeScan is not null" OnUndo="UndoScan" />
                 @if (_tx.InvoiceId is { } invoiceId)
                 {
                     <div class="banner">

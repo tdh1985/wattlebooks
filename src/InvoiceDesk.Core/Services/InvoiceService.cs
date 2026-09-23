@@ -337,9 +337,10 @@ public sealed class InvoiceService(
             throw new ValidationException($"Enter the amount that reached your bank in {home}.");
 
         // a home invoice can be paid in usd, the aud that landed is what counts
-        var paidIn = string.IsNullOrWhiteSpace(input.PaidCurrency) || string.Equals(input.PaidCurrency, inv.Currency, StringComparison.OrdinalIgnoreCase)
+        var code = input.PaidCurrency?.Trim();
+        var paidIn = string.IsNullOrEmpty(code) || string.Equals(code, inv.Currency, StringComparison.OrdinalIgnoreCase)
             ? null
-            : input.PaidCurrency.Trim().ToUpperInvariant();
+            : code.ToUpperInvariant();
         if (paidIn is not null)
         {
             if (foreign) throw new ValidationException($"A payment on a {inv.Currency} invoice is recorded in {inv.Currency}.");

@@ -23,7 +23,11 @@
                 {
                     <div class="banner">
                         <Icon Name="invoice" Size="16" />
-                        @if (_tx.ForeignAmountCents is { } billed)
+                        @if (_tx.Direction == Direction.Out)
+                        {
+                            <div>This is a bank fee on <a href="invoices/@invoiceId" @onclick="OnClose">@(_tx.Invoice?.Number ?? "an invoice")</a>. Deleting it puts the invoice back to part-paid.</div>
+                        }
+                        else if (_tx.ForeignAmountCents is { } billed)
                         {
                             <div>
                                 This is a payment of @Format.Money(billed, _tx.ForeignCurrency) for

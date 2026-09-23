@@ -30,6 +30,14 @@ public sealed class PdfPrinter(AppPaths paths, HostWindow host) : IDisposable
         try
         {
             var core = await EnsureAsync();
+            var paper = Format.Country.Paper;
+
+            // pin the scale so the viewport floor is the page box on any display
+            _controller!.RasterizationScale = 1.0;
+            _controller.Bounds = new System.Drawing.Rectangle(0, 0,
+                (int)Math.Ceiling(paper.WidthInches * CssPixelsPerInch),
+                (int)Math.Ceiling(paper.HeightInches * CssPixelsPerInch));
+
             Directory.CreateDirectory(paths.Render);
             await File.WriteAllTextAsync(page, html);
 
@@ -46,8 +54,6 @@ public sealed class PdfPrinter(AppPaths paths, HostWindow host) : IDisposable
             {
                 core.NavigationCompleted -= OnCompleted;
             }
-
-            var paper = Format.Country.Paper;
 
             // scrollHeight is a whole px, so round up to avoid a false "just over" from that
             var pagePx = Math.Ceiling(paper.HeightInches * CssPixelsPerInch);
@@ -99,7 +105,9 @@ public sealed class PdfPrinter(AppPaths paths, HostWindow host) : IDisposable
         _env = await CoreWebView2Environment.CreateAsync(null, Path.Combine(paths.WebView, "print"));
         _controller = await _env.CreateCoreWebView2ControllerAsync(host.Handle);
         _controller.IsVisible = false;
-        _controller.Bounds = new System.Drawing.Rectangle(0, 0, 794, 1123);
+        // otherwise a host monitor dpi change silently overrides the pinned scale
+        _controller.ShouldDetectMonitorScaleChanges = false;
+        // real bounds are set per print in PrintAsync, once the paper is known
         FilesUrl.MapHosts(_controller.CoreWebView2, paths);
         return _controller.CoreWebView2;
     }

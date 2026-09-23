@@ -101,8 +101,10 @@ window.invoicedesk = {
         if (!el || el._fit) return;
         const fit = () => {
             const doc = el.querySelector('.doc');
+            if (!doc) return;
             const mm = parseFloat(getComputedStyle(doc).getPropertyValue('--doc-w')) || 210;
-            const pageWidth = mm * 96 / 25.4;
+            // rounding keeps a4's scale from drifting off its old exact value
+            const pageWidth = Math.round(mm * 96 / 25.4);
             const width = el.clientWidth - 48;
             el.style.setProperty('--scale', Math.max(0.3, Math.min(1, width / pageWidth)).toFixed(4));
         };

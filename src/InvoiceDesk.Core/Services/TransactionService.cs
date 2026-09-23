@@ -11,6 +11,8 @@ namespace InvoiceDesk.Core.Services;
 public sealed class TransactionService(
     IDbContextFactory<AppDbContext> factory, AttachmentStore store, TimeProvider clock, ProfileService profiles)
 {
+    public const string BankFeePrefix = "Bank fee on ";
+
     public event Action? Changed;
 
     public async Task<List<Transaction>> ListAsync(TransactionFilter filter)
@@ -124,8 +126,18 @@ public sealed class TransactionService(
         var entity = await db.Transactions.Include(x => x.Attachments).SingleOrDefaultAsync(x => x.Id == id);
         if (entity is null) return;
 
-        var files = entity.Attachments.ToList();
-        db.Transactions.Remove(entity);
+        var doomed = new List<Transaction> { entity };
+        if (entity is { Direction: Direction.In, InvoiceId: { } invoiceId })
+        {
+            // a grossed-up payment would leave its fee as money that never left the bank
+            doomed.AddRange(await db.Transactions.Include(x => x.Attachments)
+                .Where(x => x.InvoiceId == invoiceId && x.Direction == Direction.Out && x.Date == entity.Date
+                            && x.Description.StartsWith(BankFeePrefix))
+                .ToListAsync());
+        }
+
+        var files = doomed.SelectMany(x => x.Attachments).ToList();
+        db.Transactions.RemoveRange(doomed);
         await db.SaveChangesAsync();
         store.DeleteFiles(files);
         Changed?.Invoke();

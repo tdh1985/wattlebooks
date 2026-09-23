@@ -360,6 +360,8 @@ public sealed class InvoiceService(
             if (shortCents <= 0) throw new ValidationException("This payment already covers the balance due.");
         }
 
+        // paid in full counts the whole balance as income and the fee as money out
+        var paymentCents = bankCents + shortCents;
         var sales = await categories.GetSalesAsync();
         var feeCategory = shortCents > 0 ? await categories.GetBankFeesAsync() : null;
         var note = Text.Clean(input.Note);
@@ -367,8 +369,8 @@ public sealed class InvoiceService(
         {
             Direction = Direction.In,
             Date = input.Date,
-            AmountCents = bankCents,
-            TaxCents = totals.IsTaxInvoice ? MoneyMath.ProportionalTax(bankCents, totals.TaxCents, totals.TotalCents) : 0,
+            AmountCents = paymentCents,
+            TaxCents = totals.IsTaxInvoice ? MoneyMath.ProportionalTax(paymentCents, totals.TaxCents, totals.TotalCents) : 0,
             CategoryId = sales.Id,
             Party = inv.Client!.Name,
             Description = note.Length == 0 ? $"Payment for {inv.Number}" : $"Payment for {inv.Number} – {note}",
@@ -392,7 +394,7 @@ public sealed class InvoiceService(
                 TaxCents = 0,
                 CategoryId = feeCategory.Id,
                 Party = inv.Client.Name,
-                Description = $"Bank fee on {inv.Number}",
+                Description = $"{TransactionService.BankFeePrefix}{inv.Number}",
                 InvoiceId = inv.Id,
                 Method = PaymentMethod.None,
                 CreatedAt = clock.Now(),

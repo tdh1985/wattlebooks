@@ -28,8 +28,8 @@ public class Invoice
     public List<Attachment> Attachments { get; set; } = [];
     public List<Reminder> Reminders { get; set; } = [];
 
-    // fee rows are money out that was written off against this invoice
-    public long PaidCents => Payments.Sum(p => p.Direction == Direction.In ? SettledBy(p) : p.AmountCents);
+    // a written-off payment is grossed up so its fee row must not settle twice
+    public long PaidCents => Payments.Where(p => p.Direction == Direction.In).Sum(SettledBy);
 
     // an aud invoice paid in usd is settled by the aud that landed
     public long SettledBy(Transaction payment) =>

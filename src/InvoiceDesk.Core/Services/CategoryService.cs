@@ -65,4 +65,20 @@ public sealed class CategoryService(IDbContextFactory<AppDbContext> factory)
         await db.SaveChangesAsync();
         return sales;
     }
+
+    // a written-off shortfall needs a home even if the seeded one was removed
+    public async Task<Category> GetBankFeesAsync()
+    {
+        await using var db = await factory.CreateDbContextAsync();
+        var fees = await db.Categories.AsNoTracking()
+            .Where(c => c.Direction == Direction.Out && c.Name == "Bank fees")
+            .OrderBy(c => c.IsArchived)
+            .FirstOrDefaultAsync();
+        if (fees is not null) return fees;
+
+        fees = new Category { Name = "Bank fees", Direction = Direction.Out };
+        db.Categories.Add(fees);
+        await db.SaveChangesAsync();
+        return fees;
+    }
 }

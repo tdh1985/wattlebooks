@@ -48,7 +48,9 @@ public sealed record InvoiceSummary(
     public bool IsAwaitingPayment => Kind == InvoiceKind.Invoice && Matches(InvoiceFilter.Sent);
 }
 
-public sealed record PaymentInput(DateOnly Date, long AmountCents, PaymentMethod Method, string Note, long? HomeAmountCents = null);
+// amount is in the invoice's currency, paid fields are what they sent
+public sealed record PaymentInput(DateOnly Date, long AmountCents, PaymentMethod Method, string Note, long? HomeAmountCents = null,
+    string? PaidCurrency = null, long? PaidAmountCents = null, bool TreatAsPaidInFull = false);
 
 public sealed record TransactionFilter(
     Direction? Direction = null, DateRange? Range = null, int? CategoryId = null, string? Search = null);

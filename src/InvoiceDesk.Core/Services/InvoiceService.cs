@@ -322,7 +322,8 @@ public sealed class InvoiceService(
         if (input.AmountCents <= 0) throw new ValidationException("Payment amount must be more than zero.");
 
         await using var db = await factory.CreateDbContextAsync();
-        var inv = await db.Invoices.Include(i => i.Client).Include(i => i.Lines).SingleOrDefaultAsync(i => i.Id == invoiceId)
+        var inv = await db.Invoices.Include(i => i.Client).Include(i => i.Lines).Include(i => i.Payments)
+                      .SingleOrDefaultAsync(i => i.Id == invoiceId)
                   ?? throw new ValidationException("This invoice no longer exists.");
         if (inv.Kind == InvoiceKind.Quote) throw new ValidationException("Quotes can't take payments. Turn it into an invoice first.");
         if (inv.Status != InvoiceStatus.Sent)
@@ -334,11 +335,32 @@ public sealed class InvoiceService(
         var foreign = !string.Equals(inv.Currency, home, StringComparison.OrdinalIgnoreCase);
         if (foreign && input.HomeAmountCents is not > 0)
             throw new ValidationException($"Enter the amount that reached your bank in {home}.");
+
+        // a home invoice can be paid in usd, the aud that landed is what counts
+        var paidIn = string.IsNullOrWhiteSpace(input.PaidCurrency) || string.Equals(input.PaidCurrency, inv.Currency, StringComparison.OrdinalIgnoreCase)
+            ? null
+            : input.PaidCurrency.Trim().ToUpperInvariant();
+        if (paidIn is not null)
+        {
+            if (foreign) throw new ValidationException($"A payment on a {inv.Currency} invoice is recorded in {inv.Currency}.");
+            if (!Currencies.IsSupported(paidIn)) throw new ValidationException("Choose a currency from the list.");
+            if (input.PaidAmountCents is not > 0) throw new ValidationException($"Enter the amount they sent in {paidIn}.");
+        }
+
         // the bank amount counts for tax and profit, the other settles the invoice
         var bankCents = foreign ? input.HomeAmountCents!.Value : input.AmountCents;
-
         var totals = inv.Totals();
+
+        long shortCents = 0;
+        if (input.TreatAsPaidInFull)
+        {
+            if (paidIn is null) throw new ValidationException("Only a payment in another currency can be treated as paid in full.");
+            shortCents = totals.TotalCents - inv.PaidCents - input.AmountCents;
+            if (shortCents <= 0) throw new ValidationException("This payment already covers the balance due.");
+        }
+
         var sales = await categories.GetSalesAsync();
+        var feeCategory = shortCents > 0 ? await categories.GetBankFeesAsync() : null;
         var note = Text.Clean(input.Note);
         var payment = new Transaction
         {
@@ -352,13 +374,29 @@ public sealed class InvoiceService(
             InvoiceId = inv.Id,
             Method = input.Method,
             CreatedAt = clock.Now(),
-            ForeignAmountCents = foreign ? input.AmountCents : null,
-            ForeignCurrency = foreign ? inv.Currency : "",
+            ForeignAmountCents = foreign ? input.AmountCents : paidIn is not null ? input.PaidAmountCents : null,
+            ForeignCurrency = foreign ? inv.Currency : paidIn ?? "",
         };
 
         var files = store.ImportAll(receipts, AttachmentKind.Receipt);
         payment.Attachments.AddRange(files);
         db.Transactions.Add(payment);
+        if (feeCategory is not null)
+        {
+            db.Transactions.Add(new Transaction
+            {
+                Direction = Direction.Out,
+                Date = input.Date,
+                AmountCents = shortCents,
+                TaxCents = 0,
+                CategoryId = feeCategory.Id,
+                Party = inv.Client.Name,
+                Description = $"Bank fee on {inv.Number}",
+                InvoiceId = inv.Id,
+                Method = PaymentMethod.None,
+                CreatedAt = clock.Now(),
+            });
+        }
         try
         {
             await db.SaveChangesAsync();

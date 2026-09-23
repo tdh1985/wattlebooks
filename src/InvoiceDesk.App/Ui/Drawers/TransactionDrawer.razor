@@ -46,11 +46,38 @@
                 }
 
                 <div class="form-grid">
-                    <div class="field @FieldState("amount")">
-                        <label for="tx-amount">@(isOut ? "Amount paid" : "Amount received")</label>
-                        <MoneyInput Id="tx-amount" Cents="_tx.AmountCents" CentsChanged="SetAmount" />
-                        <span class="hint">Including any @rules.TaxWord.</span>
-                    </div>
+                    @if (isOut && _tx.InvoiceId is null)
+                    {
+                        <div class="field">
+                            <label for="tx-paid-in">Paid in</label>
+                            <select id="tx-paid-in" class="select" value="@PaidIn" @onchange="e => SetPaidIn(e.Value?.ToString() ?? Home)">
+                                @foreach (var c in Currencies.All)
+                                {
+                                    <option value="@c.Code">@Currencies.Label(c.Code)</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    @if (PaidAbroad)
+                    {
+                        <div class="field @FieldState("charged")">
+                            <label for="tx-charged">Amount charged (@PaidIn)</label>
+                            <MoneyInput Id="tx-charged" Currency="@PaidIn" Cents="@(_tx.ForeignAmountCents ?? 0)" CentsChanged="SetCharged" />
+                        </div>
+                        <div class="field @FieldState("amount")">
+                            <label for="tx-amount">Amount that left your bank (@Home)</label>
+                            <MoneyInput Id="tx-amount" Cents="_tx.AmountCents" CentsChanged="SetAmount" />
+                            <span class="hint">Used for your reports and @rules.TaxWord. Any exchange difference or bank fee needs no extra entry.</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="field @FieldState("amount")">
+                            <label for="tx-amount">@(isOut ? "Amount paid" : "Amount received")</label>
+                            <MoneyInput Id="tx-amount" Cents="_tx.AmountCents" CentsChanged="SetAmount" />
+                            <span class="hint">Including any @rules.TaxWord.</span>
+                        </div>
+                    }
                     <div class="field @FieldState("date")">
                         <label for="tx-date">Date</label>
                         <input id="tx-date" type="date" class="input" value="@Format.Iso(_tx.Date)" @onchange="SetDate" />
@@ -163,18 +190,43 @@
     sealed record Request(int? TransactionId, Direction Direction, IReadOnlyList<StagedFile>? Files);
 
     // what the fields held before a scan, so undo puts them back exactly
-    sealed record Before(long Amount, long Gst, DateOnly Date, string Party, int? CategoryId, bool AutoGst, bool CategoryGuessed);
+    sealed record Before(long Amount, long Gst, DateOnly Date, string Party, int? CategoryId, bool AutoGst, bool CategoryGuessed,
+        string ForeignCurrency, long? ForeignAmount);
 
-    bool CanScan => _tx is { Id: 0, Direction: Direction.Out, AmountCents: 0 } && !_scanning && _beforeScan is null;
+    bool CanScan => _tx is { Id: 0, Direction: Direction.Out, AmountCents: 0, ForeignAmountCents: null or 0 } && !_scanning && _beforeScan is null;
 
     string? FieldState(string field) => _scanning && CanFill(field) ? "scanning" : _filled.Contains(field) ? "filled" : null;
 
     bool CanFill(string field) => field switch
     {
         "amount" or "gst" => _tx?.AmountCents == 0,
+        "charged" => _tx?.ForeignAmountCents is null or 0,
         "date" => !_dateTouched,
         _ => string.IsNullOrWhiteSpace(_tx?.Party),
     };
+
+    string Home => Countries.For(_profile?.Country).Currency;
+
+    // the foreign fields hold the choice, blank means home money
+    string PaidIn => string.IsNullOrEmpty(_tx?.ForeignCurrency) ? Home : _tx.ForeignCurrency;
+
+    bool PaidAbroad => _tx is { Direction: Direction.Out, InvoiceId: null } && PaidIn != Home;
+
+    void SetPaidIn(string code)
+    {
+        if (code == Home)
+        {
+            _tx!.ForeignCurrency = "";
+            _tx.ForeignAmountCents = null;
+        }
+        else
+        {
+            _tx!.ForeignCurrency = code;
+            _tx.ForeignAmountCents ??= 0;
+        }
+    }
+
+    void SetCharged(long cents) => _tx!.ForeignAmountCents = cents;
 
     string DrawerTitle => _tx switch
     {
@@ -235,6 +287,7 @@
     {
         if (_tx is null || _tx.Direction == direction) return;
         _tx.Direction = direction;
+        SetPaidIn(Home);
         _tx.CategoryId = null;
         _categoryGuessed = false;
         _parties = await Suggestions.PartiesAsync(direction);
@@ -326,8 +379,17 @@
             return;
         }
 
-        _beforeScan = new Before(_tx.AmountCents, _tx.TaxCents, _tx.Date, _tx.Party, _tx.CategoryId, _autoGst, _categoryGuessed);
-        if (_tx.AmountCents == 0 && guess.TotalCents is { } total)
+        _beforeScan = new Before(_tx.AmountCents, _tx.TaxCents, _tx.Date, _tx.Party, _tx.CategoryId, _autoGst, _categoryGuessed,
+            _tx.ForeignCurrency, _tx.ForeignAmountCents);
+        var abroad = guess.Currency is { } cur && cur != Home && Currencies.IsSupported(cur);
+        if (abroad && _tx.AmountCents == 0 && _tx.ForeignAmountCents is null or 0 && guess.TotalCents is { } charged)
+        {
+            // no rate lookup, so the bank box waits for the statement
+            SetPaidIn(guess.Currency!);
+            _tx.ForeignAmountCents = charged;
+            _filled.Add("charged");
+        }
+        else if (!abroad && _tx.AmountCents == 0 && guess.TotalCents is { } total)
         {
             SetAmount(total);
             _filled.Add("amount");
@@ -349,9 +411,11 @@
             _filled.Add("party");
             await GuessCategoryAsync();
         }
-        _scanNote = _filled.Count > 0
-            ? "Filled in from the receipt. Check the highlighted details before saving."
-            : "Couldn't find anything new on that receipt.";
+        _scanNote = _filled.Contains("charged")
+            ? "Filled in from the receipt. Add the amount that left your bank, then check the highlighted details."
+            : _filled.Count > 0
+                ? "Filled in from the receipt. Check the highlighted details before saving."
+                : "Couldn't find anything new on that receipt.";
         if (_filled.Count == 0) _beforeScan = null;
     }
 
@@ -365,6 +429,8 @@
         _tx.CategoryId = b.CategoryId;
         _autoGst = b.AutoGst;
         _categoryGuessed = b.CategoryGuessed;
+        _tx.ForeignCurrency = b.ForeignCurrency;
+        _tx.ForeignAmountCents = b.ForeignAmount;
         _filled.Clear();
         _scanNote = null;
     }

@@ -9,6 +9,7 @@
 @inject TimeProvider Clock
 @inject ExportService Exports
 @inject IDesktop Desktop
+@inject IReceiptReader Reader
 @inject AppPaths Paths
 @inject IJSRuntime JS
 @inject ProfileService Profiles
@@ -171,7 +172,7 @@
 {
     <div class="page-drop" @onclick="HidePageDrop">
         <FileDropZone Multiple="false" IconName="receipt" Title="Drop a receipt to add it as an expense"
-                      Hint="InvoiceDesk reads the amount, date and supplier from it for you" OnFiles="OnPageDropAsync" />
+                      Hint="@(Reader.IsAvailable ? "InvoiceDesk reads the amount, date and supplier from it for you" : "It's attached to a new expense for you to fill in")" OnFiles="OnPageDropAsync" />
     </div>
 }
 

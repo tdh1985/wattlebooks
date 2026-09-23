@@ -16,10 +16,19 @@ public sealed class EmailActions(InvoiceService invoices, ProfileService profile
 {
     public async Task EmailInvoiceAsync(int invoiceId, string? pdfPath = null)
     {
-        var path = pdfPath ?? await pdf.ExportAsync(invoiceId);
         var invoice = await invoices.GetAsync(invoiceId) ?? throw new ValidationException("This invoice no longer exists.");
         var profile = await profiles.GetAsync();
-        await ComposeAsync(invoice.Kind == InvoiceKind.Quote ? EmailTemplates.Quote(invoice, profile) : EmailTemplates.Invoice(invoice, profile), path);
+        var draft = invoice.Kind == InvoiceKind.Quote ? EmailTemplates.Quote(invoice, profile) : EmailTemplates.Invoice(invoice, profile);
+        string path;
+        try { path = pdfPath ?? await pdf.ExportAsync(invoiceId); }
+        catch (PdfUnavailableException ex)
+        {
+            // the email still goes out, the user attaches a pdf they print themselves
+            desktop.OpenMail(Mailto.Url(draft));
+            toasts.Show($"Your email is open without the PDF. {ex.Message}", ToastKind.Info);
+            return;
+        }
+        await ComposeAsync(draft, path);
     }
 
     public async Task<MailOutcome> ComposeAsync(EmailDraft draft, string attachmentPath, params ToastAction[] extra)

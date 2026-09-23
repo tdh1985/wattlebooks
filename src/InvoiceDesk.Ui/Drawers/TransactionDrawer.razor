@@ -371,9 +371,11 @@
         if (CanScan && files.Count > 0) _ = ScanAsync(files[0]);
     }
 
-    // reads the receipt with windows ocr and fills only what's still empty
+    // reads the receipt with the os text reader and fills only what's still empty
     async Task ScanAsync(StagedFile file)
     {
+        // no text reader on this os, so the file is only attached
+        if (!Reader.IsAvailable) return;
         var session = _session;
         _scanning = true;
         await InvokeAsync(StateHasChanged);

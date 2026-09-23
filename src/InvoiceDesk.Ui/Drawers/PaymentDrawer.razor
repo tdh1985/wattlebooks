@@ -209,9 +209,11 @@
 
     void RemoveFile(StagedFile file) => _files.Remove(file);
 
-    // reads the remittance with windows ocr and fills only untouched fields
+    // reads the remittance with the os text reader and fills only untouched fields
     async Task ScanAsync(StagedFile file)
     {
+        // no text reader on this os, so the file is only attached
+        if (!Reader.IsAvailable) return;
         var session = _session;
         _scanned = true;
         _scanning = true;

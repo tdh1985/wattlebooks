@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <!-- winexe only matters on windows, where photino runs just for testing -->
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>InvoiceDesk.Desktop</RootNamespace>
+    <AssemblyName>InvoiceDesk</AssemblyName>
+    <Product>InvoiceDesk</Product>
+    <Version>1.3.0</Version>
+    <ApplicationIcon>..\InvoiceDesk.App\Assets\app.ico</ApplicationIcon>
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
+    <!-- the messagebox import generates unsafe marshalling code -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\InvoiceDesk.Ui\InvoiceDesk.Ui.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Photino.Blazor" Version="4.0.13" />
+  </ItemGroup>
+
+  <!-- photino needs the icon as a file, so it's written out from here at startup -->
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\icon.png" LogicalName="icon.png" />
+  </ItemGroup>
+
+</Project>

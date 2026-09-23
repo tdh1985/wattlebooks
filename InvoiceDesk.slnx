@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/InvoiceDesk.App/InvoiceDesk.App.csproj" />
     <Project Path="src/InvoiceDesk.Core/InvoiceDesk.Core.csproj" />
+    <Project Path="src/InvoiceDesk.Desktop/InvoiceDesk.Desktop.csproj" />
     <Project Path="src/InvoiceDesk.Ui/InvoiceDesk.Ui.csproj" />
   </Folder>
 </Solution>

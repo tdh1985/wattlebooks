@@ -10,16 +10,20 @@ namespace InvoiceDesk.Ui.Host;
 public sealed class SingleInstance : IDisposable
 {
     readonly Mutex _mutex;
-    readonly EventWaitHandle _activate;
+    // named events only exist on windows, elsewhere the handoff file is the signal
+    readonly EventWaitHandle? _activate;
     readonly string _handoff;
     RegisteredWaitHandle? _registration;
+    FileSystemWatcher? _watcher;
 
-    public SingleInstance(string dataRoot, string localRoot)
+    public SingleInstance(string dataRoot, string localRoot) : this(dataRoot, localRoot, !OperatingSystem.IsWindows()) { }
+
+    public SingleInstance(string dataRoot, string localRoot, bool fileSignal)
     {
         var key = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(dataRoot.ToLowerInvariant())))[..12];
         _mutex = new Mutex(true, $@"Local\InvoiceDesk.{key}", out var created);
         IsFirst = created;
-        _activate = new EventWaitHandle(false, EventResetMode.AutoReset, $@"Local\InvoiceDesk.{key}.Activate");
+        if (!fileSignal) _activate = new EventWaitHandle(false, EventResetMode.AutoReset, $@"Local\InvoiceDesk.{key}.Activate");
         // kept on this pc, never in a synced data folder where another pc could read it
         _handoff = Path.Combine(localRoot, $"activate-{key}.txt");
     }
@@ -29,21 +33,42 @@ public sealed class SingleInstance : IDisposable
     // a jump list click in a second copy passes its page to the first before it quits
     public void SignalFirst(string? route)
     {
-        if (route is not null)
+        // with no named event the file itself is the signal, so it's written even without a page
+        if (route is not null || _activate is null)
         {
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(_handoff)!);
-                File.WriteAllText(_handoff, route);
+                // written aside then renamed, so a watcher never sees it half written
+                var partial = _handoff + ".partial";
+                File.WriteAllText(partial, route ?? "");
+                File.Move(partial, _handoff, overwrite: true);
             }
             catch (IOException ex) { FileLog.Write(ex, "activation handoff"); }
             catch (UnauthorizedAccessException ex) { FileLog.Write(ex, "activation handoff"); }
         }
-        _activate.Set();
+        _activate?.Set();
     }
 
-    public void ListenForActivation(Action<string?> onActivate) =>
-        _registration = ThreadPool.RegisterWaitForSingleObject(_activate, (_, _) => onActivate(TakeHandoff()), null, Timeout.Infinite, executeOnlyOnce: false);
+    public void ListenForActivation(Action<string?> onActivate)
+    {
+        if (_activate is not null)
+        {
+            _registration = ThreadPool.RegisterWaitForSingleObject(_activate, (_, _) => onActivate(TakeHandoff()), null, Timeout.Infinite, executeOnlyOnce: false);
+            return;
+        }
+        Directory.CreateDirectory(Path.GetDirectoryName(_handoff)!);
+        _watcher = new FileSystemWatcher(Path.GetDirectoryName(_handoff)!, Path.GetFileName(_handoff));
+        // one write can raise several events, only the one that finds the file counts
+        void OnFile(object? sender, FileSystemEventArgs e)
+        {
+            if (File.Exists(_handoff)) onActivate(TakeHandoff());
+        }
+        _watcher.Created += OnFile;
+        _watcher.Changed += OnFile;
+        _watcher.Renamed += OnFile;
+        _watcher.EnableRaisingEvents = true;
+    }
 
     string? TakeHandoff()
     {
@@ -61,8 +86,9 @@ public sealed class SingleInstance : IDisposable
     public void Dispose()
     {
         _registration?.Unregister(null);
+        _watcher?.Dispose();
         if (IsFirst) _mutex.ReleaseMutex();
         _mutex.Dispose();
-        _activate.Dispose();
+        _activate?.Dispose();
     }
 }

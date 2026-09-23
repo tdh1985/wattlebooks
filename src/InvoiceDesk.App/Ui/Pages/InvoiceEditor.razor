@@ -560,7 +560,7 @@
         catch (TaskCanceledException) { return; }
 
         var term = line.Description;
-        var found = await Suggestions.LineSuggestionsAsync(_invoice?.ClientId, term);
+        var found = await Suggestions.LineSuggestionsAsync(_invoice?.ClientId, term, _invoice?.Currency ?? Format.Country.Currency);
         if (token.IsCancellationRequested) return;
         // a suggestion that would change nothing is just noise
         found.RemoveAll(s => string.Equals(s.Description, term.Trim(), StringComparison.OrdinalIgnoreCase)

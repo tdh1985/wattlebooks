@@ -13,7 +13,7 @@ public sealed class SuggestionService(IDbContextFactory<AppDbContext> factory)
 {
     const int MinTermLength = 2;
 
-    public async Task<List<LineSuggestion>> LineSuggestionsAsync(int? clientId, string? term, int take = 6)
+    public async Task<List<LineSuggestion>> LineSuggestionsAsync(int? clientId, string? term, string currency, int take = 6)
     {
         var t = Text.Clean(term);
         if (t.Length < MinTermLength) return [];
@@ -23,11 +23,13 @@ public sealed class SuggestionService(IDbContextFactory<AppDbContext> factory)
         var lines = await db.InvoiceLines.AsNoTracking()
             .Join(db.Invoices.Where(i => i.Status == InvoiceStatus.Sent), l => l.InvoiceId, i => i.Id, (l, i) => new
             {
-                l.Description, l.UnitPriceCents, l.TaxCode, i.ClientId, i.IssueDate, InvoiceId = i.Id, l.SortOrder,
+                l.Description, l.UnitPriceCents, l.TaxCode, i.ClientId, i.IssueDate, InvoiceId = i.Id, l.SortOrder, i.Currency,
             })
             .ToListAsync();
 
         return lines
+            // a price in another currency would be offered under this draft's sign
+            .Where(l => string.Equals(l.Currency, currency, StringComparison.OrdinalIgnoreCase))
             .Where(l => Text.Has(l.Description, t))
             .GroupBy(l => l.Description.Trim().ToLowerInvariant())
             .Select(g =>

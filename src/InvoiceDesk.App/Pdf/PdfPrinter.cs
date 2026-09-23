@@ -1,8 +1,11 @@
 // Copyright (c) 2026 Tim Downey. Licensed under the MIT License.
 
+using System.Globalization;
 using System.IO;
+using System.Text.Json;
 using InvoiceDesk.App.Host;
 using InvoiceDesk.App.Ui;
+using InvoiceDesk.Core.Rules;
 using InvoiceDesk.Core.Storage;
 using Microsoft.Web.WebView2.Core;
 
@@ -13,6 +16,10 @@ public sealed class PdfPrinter(AppPaths paths, HostWindow host) : IDisposable
 {
     const double A4WidthInches = 8.27;
     const double A4HeightInches = 11.69;
+    const double CssPixelsPerInch = 96;
+
+    // printing can land a touch taller than the script measured, so leave slack
+    const double ReflowSlackPx = 16;
 
     readonly SemaphoreSlim _gate = new(1, 1);
     CoreWebView2Environment? _env;
@@ -40,6 +47,23 @@ public sealed class PdfPrinter(AppPaths paths, HostWindow host) : IDisposable
             finally
             {
                 core.NavigationCompleted -= OnCompleted;
+            }
+
+            // scrollHeight is a whole px, so round up to avoid a false "just over" from that
+            var pagePx = Math.Ceiling(A4HeightInches * CssPixelsPerInch);
+            var contentPx = await MeasureHeightAsync(core);
+            var scale = PageFit.ScaleFor(contentPx, pagePx);
+            if (scale < 1)
+            {
+                // a fresh document loads next time, so this can't leak into the next print
+                await ZoomAsync(core, scale);
+                var reflowedPx = await MeasureHeightAsync(core);
+                var extra = PageFit.ScaleFor(reflowedPx, pagePx - ReflowSlackPx);
+                if (extra < 1)
+                {
+                    scale = Math.Max(scale * extra, PageFit.MinScale);
+                    await ZoomAsync(core, scale);
+                }
             }
 
             var settings = _env!.CreatePrintSettings();
@@ -78,6 +102,18 @@ public sealed class PdfPrinter(AppPaths paths, HostWindow host) : IDisposable
         _controller.Bounds = new System.Drawing.Rectangle(0, 0, 794, 1123);
         FilesUrl.MapHosts(_controller.CoreWebView2, paths);
         return _controller.CoreWebView2;
+    }
+
+    static async Task<double> MeasureHeightAsync(CoreWebView2 core)
+    {
+        var json = await core.ExecuteScriptAsync("document.documentElement.scrollHeight");
+        return JsonSerializer.Deserialize<double>(json);
+    }
+
+    static Task ZoomAsync(CoreWebView2 core, double scale)
+    {
+        var value = scale.ToString(CultureInfo.InvariantCulture);
+        return core.ExecuteScriptAsync($"document.documentElement.style.zoom = '{value}'");
     }
 
     public void Dispose()

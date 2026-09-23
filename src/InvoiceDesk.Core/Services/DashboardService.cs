@@ -82,7 +82,7 @@ public sealed class DashboardService(IDbContextFactory<AppDbContext> factory, Ti
             var label = t.Party.Length > 0 ? t.Party : t.Description;
             items.Add(t switch
             {
-                { InvoiceId: { } invoiceId } => new ActivityItem(t.CreatedAt, ActivityKind.PaymentReceived, invoiceId,
+                { Direction: Direction.In, InvoiceId: { } invoiceId } => new ActivityItem(t.CreatedAt, ActivityKind.PaymentReceived, invoiceId,
                     $"Payment from {t.Party}", t.Invoice?.Number ?? "", t.AmountCents),
                 { Direction: Direction.In } => new ActivityItem(t.CreatedAt, ActivityKind.Income, t.Id, label, "Income", t.AmountCents),
                 _ => new ActivityItem(t.CreatedAt, ActivityKind.Expense, t.Id, label, "Expense", t.AmountCents),

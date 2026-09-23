@@ -122,7 +122,7 @@ public static partial class ReceiptParser
         return counts.Count == 1 || counts[0].Count > counts[1].Count ? counts[0].Code : null;
     }
 
-    // a mark only counts beside a figure, so "currency: usd" on its own is ignored
+    // a mark only counts beside a figure, "currency: usd" alone is ignored
     static string? CurrencyOn(string raw, string line)
     {
         if (LastAmount(line) is null) return null;

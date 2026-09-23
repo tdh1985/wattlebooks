@@ -393,12 +393,16 @@
         {
             SetAmount(total);
             _filled.Add("amount");
-            if (_profile!.TaxRegistered && Countries.For(_profile.Country).ExpensesCarryTax && guess.TaxCents is { } gst)
+            // a foreign expense keeps its auto tax, not the receipt's currency
+            if (!PaidAbroad)
             {
-                _tx.TaxCents = gst;
-                _autoGst = false;
+                if (_profile!.TaxRegistered && Countries.For(_profile.Country).ExpensesCarryTax && guess.TaxCents is { } gst)
+                {
+                    _tx.TaxCents = gst;
+                    _autoGst = false;
+                }
+                if (_tx.TaxCents > 0) _filled.Add("gst");
             }
-            if (_tx.TaxCents > 0) _filled.Add("gst");
         }
         if (!_dateTouched && guess.Date is { } date && date != _tx.Date)
         {

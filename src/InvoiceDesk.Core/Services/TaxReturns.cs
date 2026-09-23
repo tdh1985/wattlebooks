@@ -51,15 +51,19 @@ public static class TaxReturns
         ], net, net >= 0 ? "GST to pay" : "GST refund");
     }
 
+    // what a transaction carried no gst on, per row so rounding can't borrow from a real one
+    static long ZeroRated(Transaction t, int ratePpm) =>
+        Math.Max(0, t.AmountCents - MoneyMath.InclusiveFromTax(t.TaxCents, ratePpm));
+
     // gst charged is the authority so a part zero-rated sale can't inflate box 8
     static (List<ReturnBox>, long, string) NewZealand(CountryRules c, List<Transaction> sales, List<Transaction> costs)
     {
         var b5 = sales.Sum(t => t.AmountCents);
         var b8 = sales.Sum(t => t.TaxCents);
-        var b7 = MoneyMath.InclusiveFromTax(b8, c.StandardRatePpm);
-        var b6 = b5 - b7;
+        var b6 = sales.Sum(t => ZeroRated(t, c.StandardRatePpm));
+        var b7 = b5 - b6;
         var b12 = costs.Sum(t => t.TaxCents);
-        var b11 = MoneyMath.InclusiveFromTax(b12, c.StandardRatePpm);
+        var b11 = costs.Sum(t => t.AmountCents - ZeroRated(t, c.StandardRatePpm));
         var b15 = b8 - b12;
         var label = b15 >= 0 ? "GST to pay" : "GST refund";
         return ([

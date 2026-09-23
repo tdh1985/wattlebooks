@@ -21,6 +21,8 @@ namespace InvoiceDesk.Desktop;
 static class Program
 {
     const string Title = "InvoiceDesk";
+    const string FilesScheme = "idfiles";
+    const string LocalScheme = "idlocal";
 
     [STAThread]
     static int Main(string[] args)
@@ -120,6 +122,11 @@ static class Program
         var toasts = services.GetRequiredService<ToastService>();
         var launches = services.GetRequiredService<LaunchRequests>();
         var recurring = services.GetRequiredService<RecurringRunner>();
+
+        // receipts and logos load through schemes of our own, like webview2's virtual hosts on windows
+        FilesUrl.Configure($"{FilesScheme}://data/", $"{LocalScheme}://data/");
+        app.MainWindow.RegisterCustomSchemeHandler(FilesScheme, (object _, string _, string url, out string type) => FileScheme.Serve(paths.DataRoot, url, out type)!);
+        app.MainWindow.RegisterCustomSchemeHandler(LocalScheme, (object _, string _, string url, out string type) => FileScheme.Serve(paths.LocalRoot, url, out type)!);
 
         app.MainWindow
             .SetTitle(Title)

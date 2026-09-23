@@ -113,7 +113,7 @@
                                     }
                                 </td>
                                 <td><a href="invoices/@r.LatestInvoiceId" class="num">@r.LatestNumber</a></td>
-                                <td class="num">@Format.Money(r.LatestTotalCents)</td>
+                                <td class="num">@Format.Money(r.LatestTotalCents, r.Currency)</td>
                                 <td class="nowrap" style="text-align:right">
                                     @if (r.IsPaused)
                                     {

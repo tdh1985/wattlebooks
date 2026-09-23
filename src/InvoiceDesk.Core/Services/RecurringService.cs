@@ -11,7 +11,7 @@ public sealed record RepeatInfo(int Id, RepeatEvery Every, bool IsPaused, DateOn
 
 public sealed record RepeatSummary(
     int Id, RepeatEvery Every, bool IsPaused, DateOnly? NextDate, DateOnly? EndDate,
-    string ClientName, int LatestInvoiceId, string LatestNumber, long LatestTotalCents);
+    string ClientName, int LatestInvoiceId, string LatestNumber, long LatestTotalCents, string Currency);
 
 // repeating invoices only ever make drafts, so nothing goes to a client unseen
 public sealed class RecurringService(IDbContextFactory<AppDbContext> factory, InvoiceService invoices, TimeProvider clock)
@@ -67,7 +67,7 @@ public sealed class RecurringService(IDbContextFactory<AppDbContext> factory, In
                 .OrderByDescending(i => i.IssueDate).ThenByDescending(i => i.Id).FirstOrDefault()))
             .Where(x => x.latest is not null)
             .Select(x => new RepeatSummary(x.s.Id, x.s.Every, x.s.IsPaused, NextOf(x.s), x.s.EndDate,
-                x.latest!.Client?.Name ?? "", x.latest.Id, x.latest.Number, x.latest.Totals().TotalCents))
+                x.latest!.Client?.Name ?? "", x.latest.Id, x.latest.Number, x.latest.Totals().TotalCents, x.latest.Currency))
             .OrderBy(r => r.IsPaused).ThenBy(r => r.NextDate ?? DateOnly.MaxValue)
             .ToList();
     }

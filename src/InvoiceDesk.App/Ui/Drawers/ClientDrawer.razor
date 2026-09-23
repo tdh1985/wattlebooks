@@ -117,9 +117,7 @@
 
     bool TaxNumberBad => TaxRule is not null && _client.TaxNumber.Length > 0 && !TaxRule.IsValid(_client.TaxNumber);
 
-    string TaxNumberHint => TaxRule is null
-        ? "Printed on your invoices to them."
-        : TaxNumberBad ? TaxRule.BadHint : TaxRule.EmptyHint;
+    string TaxNumberHint => TaxNumberBad ? TaxRule!.BadHint : "Printed on your invoices to them.";
 
     protected override async Task OnParametersSetAsync()
     {

@@ -113,7 +113,9 @@ public sealed class ClientService(IDbContextFactory<AppDbContext> factory, TimeP
         var issued = invoices.Where(i => i.Status == InvoiceStatus.Sent).ToList();
         var billed = issued.Sum(i => i.Totals().TotalCents);
         var outstanding = issued.Sum(i => Math.Max(0, i.Totals().TotalCents - i.PaidCents));
+        // invoice count spans every currency, unlike the money figures above
+        var invoiceCount = c.Invoices.Count(i => i.Kind == InvoiceKind.Invoice);
         var quotes = c.Invoices.Count(i => i.Kind == InvoiceKind.Quote);
-        return new ClientSummary(c, invoices.Count, billed, outstanding, quotes, currency);
+        return new ClientSummary(c, invoiceCount, billed, outstanding, quotes, currency);
     }
 }

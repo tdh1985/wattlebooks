@@ -111,6 +111,22 @@ The business and clients in these are made up.
 
 ![The invoice editor with a tax invoice preview](docs/screenshots/invoice-editor.png)
 
+**Pick your country, and the tax and bank details follow**
+
+![Settings with the country picker and the VAT section](docs/screenshots/settings-country.png)
+
+**A UK VAT invoice with items at 20% and 5%**
+
+![A VAT invoice with a VAT column and a row for each rate](docs/screenshots/vat-invoice.png)
+
+**A client overseas, billed and paid in US dollars**
+
+![A USD invoice with the payment drawer asking for both amounts](docs/screenshots/overseas-invoice.png)
+
+**A New Zealand GST return for the period**
+
+![The GST return with boxes 5 to 15](docs/screenshots/gst-return.png)
+
 **Invoices, with drafts, overdue and repeating ones picked out**
 
 ![The invoice list with status filters](docs/screenshots/invoices.png)

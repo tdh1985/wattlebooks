@@ -229,17 +229,23 @@
 
     bool PaidAbroad => _tx is { Direction: Direction.Out, InvoiceId: null } && PaidIn != Home;
 
+    // overseas charges rarely carry our tax, so a foreign expense starts at none
     void SetPaidIn(string code)
     {
+        if (code == PaidIn) return;
         if (code == Home)
         {
             _tx!.ForeignCurrency = "";
             _tx.ForeignAmountCents = null;
+            _autoGst = _profile!.TaxRegistered;
+            SetAmount(_tx.AmountCents);
         }
         else
         {
             _tx!.ForeignCurrency = code;
             _tx.ForeignAmountCents ??= 0;
+            _tx.TaxCents = 0;
+            _autoGst = false;
         }
     }
 
@@ -410,7 +416,7 @@
         {
             SetAmount(total);
             _filled.Add("amount");
-            // a foreign expense keeps its auto tax, not the receipt's currency
+            // a foreign expense never takes the receipt's tax
             if (!PaidAbroad)
             {
                 if (_profile!.TaxRegistered && Countries.For(_profile.Country).ExpensesCarryTax && guess.TaxCents is { } gst)

@@ -9,8 +9,8 @@
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
 $project = Join-Path $repo 'src/InvoiceDesk.Desktop'
-[xml]$csproj = Get-Content (Join-Path $project 'InvoiceDesk.Desktop.csproj')
-$version = ($csproj.Project.PropertyGroup | Where-Object { $_.Version } | Select-Object -First 1).Version
+[xml]$props = Get-Content (Join-Path $repo 'Directory.Build.props')
+$version = ($props.Project.PropertyGroup | Where-Object { $_.Version } | Select-Object -First 1).Version
 
 foreach ($build in @(@{ Profile = 'MacArm'; Rid = 'osx-arm64'; Arch = 'arm64' }, @{ Profile = 'MacIntel'; Rid = 'osx-x64'; Arch = 'x64' })) {
     dotnet publish $project -p:PublishProfile=$($build.Profile)

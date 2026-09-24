@@ -27,6 +27,7 @@ static class Program
     [STAThread]
     static int Main(string[] args)
     {
+        LinuxRendering.Apply();
         var paths = AppPaths.Default();
         // a synced folder can vanish briefly, such as before a sync app signs in
         while (paths.IsCustomLocation && !DataLocation.HasData(paths.DataRoot))

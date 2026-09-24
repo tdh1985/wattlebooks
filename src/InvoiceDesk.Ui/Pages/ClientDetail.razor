@@ -297,15 +297,13 @@
         _menu = false;
         try
         {
-            var (path, statement) = await Statements.ExportAsync(Id);
             if (email)
             {
-                var owing = statement.Sections.Select(s => new CurrencyAmount(s.Currency, s.Aged.Total)).ToList();
-                var draft = EmailTemplates.Statement(statement.Client, await Profiles.GetAsync(), owing, statement.AsOf);
-                await Email.ComposeAsync(draft, path);
+                await Email.EmailStatementAsync(Id);
             }
             else
             {
+                var (path, _) = await Statements.ExportAsync(Id);
                 Toasts.Show($"Saved {System.IO.Path.GetFileName(path)}", ToastKind.Success,
                     new ToastAction("Open", () => { Desktop.OpenFile(path); return Task.CompletedTask; }),
                     new ToastAction("Show in folder", () => { Desktop.ShowInFolder(path); return Task.CompletedTask; }));

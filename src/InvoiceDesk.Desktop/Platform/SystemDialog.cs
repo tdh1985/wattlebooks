@@ -37,8 +37,8 @@ public static partial class SystemDialog
         {
             // osascript exits 1 when its cancel button or escape is used
             "osascript" => exitCode != 0 ? closed : stdout.Contains("button returned:Yes") ? DialogChoice.Yes : DialogChoice.No,
-            // zenity prints an extra button's label and exits 1
-            "zenity" => exitCode == 0 ? DialogChoice.Yes : stdout.Trim() == "Cancel" ? DialogChoice.Cancel : DialogChoice.No,
+            // zenity prints an extra button's label, closing it prints nothing, both exit 1
+            "zenity" => exitCode == 0 ? DialogChoice.Yes : stdout.Trim() == "No" ? DialogChoice.No : closed,
             "kdialog" => exitCode switch { 0 => DialogChoice.Yes, 1 => DialogChoice.No, _ => closed },
             _ => closed,
         };
@@ -96,7 +96,8 @@ public static partial class SystemDialog
     {
         DialogButtons.Ok => new Command("zenity", ["--info", "--no-markup", "--title", title, "--text", message]),
         DialogButtons.YesNo => new Command("zenity", ["--question", "--no-markup", "--title", title, "--text", message, "--ok-label", "Yes", "--cancel-label", "No"]),
-        _ => new Command("zenity", ["--question", "--no-markup", "--title", title, "--text", message, "--ok-label", "Yes", "--cancel-label", "No", "--extra-button", "Cancel"]),
+        // no is the extra button, so escape or the close box lands on cancel like the other oses
+        _ => new Command("zenity", ["--question", "--no-markup", "--title", title, "--text", message, "--ok-label", "Yes", "--cancel-label", "Cancel", "--extra-button", "No"]),
     };
 
     static Command Kdialog(string title, string message, DialogButtons buttons) =>

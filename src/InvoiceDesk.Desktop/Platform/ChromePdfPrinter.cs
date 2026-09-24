@@ -106,6 +106,8 @@ public sealed class ChromePdfPrinter(AppPaths paths, Func<string?> findBrowser, 
         try
         {
             await process.WaitForExitAsync(timeout.Token);
+            // a leftover child process can hold the output open after the browser itself exits
+            return await stdout.WaitAsync(timeout.Token);
         }
         catch (OperationCanceledException)
         {
@@ -113,6 +115,5 @@ public sealed class ChromePdfPrinter(AppPaths paths, Func<string?> findBrowser, 
             catch (InvalidOperationException) { }
             throw new IOException("The browser took too long to make the PDF. Close any stuck browser windows and try again.");
         }
-        return await stdout;
     }
 }

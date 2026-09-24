@@ -821,18 +821,7 @@
         try
         {
             var id = _invoice!.Id;
-            var path = await Pdf.ExportAsync(id);
-            await InvoiceStore.MarkSentAsync(id, path);
-            if (email)
-            {
-                await Email.EmailInvoiceAsync(id, path);
-            }
-            else
-            {
-                Toasts.Show($"{_invoice.Number} marked as sent. The PDF is ready to email.", ToastKind.Success,
-                    new ToastAction("Open PDF", () => { Desktop.OpenFile(path); return Task.CompletedTask; }),
-                    new ToastAction("Show in folder", () => { Desktop.ShowInFolder(path); return Task.CompletedTask; }));
-            }
+            await Email.IssueAsync(id, email);
             _leaving = true;
             Nav.NavigateTo($"invoices/{id}");
         }

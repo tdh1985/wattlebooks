@@ -1,7 +1,6 @@
 @* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
 @inject InvoiceService InvoiceStore
 @inject ProfileService Profiles
-@inject InvoicePdfExporter Pdf
 @inject EmailActions Email
 @inject ToastService Toasts
 @inject TimeProvider Clock
@@ -93,12 +92,8 @@
         _busy = true;
         try
         {
-            var id = _invoice.Id;
-            var path = await Pdf.ExportAsync(id);
             var draft = new EmailDraft(_invoice.Client?.Email ?? "", _subject, _body);
-            var reminder = await InvoiceStore.RecordReminderAsync(id, _tone);
-            // recorded as soon as the email opens, with undo if it never got sent
-            await Email.ComposeAsync(draft, path, new ToastAction("Undo reminder", () => InvoiceStore.DeleteReminderAsync(reminder.Id)));
+            await Email.RemindAsync(_invoice.Id, draft, _tone);
             await OnSent.InvokeAsync();
         }
         catch (Exception ex)

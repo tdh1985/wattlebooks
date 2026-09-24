@@ -57,17 +57,27 @@ public sealed class SingleInstance : IDisposable
             _registration = ThreadPool.RegisterWaitForSingleObject(_activate, (_, _) => onActivate(TakeHandoff()), null, Timeout.Infinite, executeOnlyOnce: false);
             return;
         }
-        Directory.CreateDirectory(Path.GetDirectoryName(_handoff)!);
-        _watcher = new FileSystemWatcher(Path.GetDirectoryName(_handoff)!, Path.GetFileName(_handoff));
         // one write can raise several events, only the one that finds the file counts
         void OnFile(object? sender, FileSystemEventArgs e)
         {
             if (File.Exists(_handoff)) onActivate(TakeHandoff());
         }
-        _watcher.Created += OnFile;
-        _watcher.Changed += OnFile;
-        _watcher.Renamed += OnFile;
-        _watcher.EnableRaisingEvents = true;
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(_handoff)!);
+            _watcher = new FileSystemWatcher(Path.GetDirectoryName(_handoff)!, Path.GetFileName(_handoff));
+            _watcher.Created += OnFile;
+            _watcher.Changed += OnFile;
+            _watcher.Renamed += OnFile;
+            _watcher.EnableRaisingEvents = true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            // linux caps how many folders can be watched, a second copy then just can't bring this forward
+            FileLog.Write(ex, "activation watcher");
+            _watcher?.Dispose();
+            _watcher = null;
+        }
     }
 
     string? TakeHandoff()

@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Tim Downey. Licensed under the MIT License.
 
 using InvoiceDesk.Ui.Host;
+using InvoiceDesk.Ui.Platform;
 using InvoiceDesk.Core.Rules;
 
 namespace InvoiceDesk.Ui;
@@ -47,6 +48,12 @@ public sealed class ToastService
         if (ex is ValidationException v)
         {
             Show(string.Join(" ", v.Errors), ToastKind.Error);
+            return;
+        }
+        // not a failure, this computer just has nothing to make pdfs with
+        if (ex is PdfUnavailableException)
+        {
+            Show(ex.Message, ToastKind.Info);
             return;
         }
         FileLog.Write(ex, "ui action");

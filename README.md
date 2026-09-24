@@ -23,6 +23,21 @@ It's a single file with nothing to install. The exe isn't code-signed yet, so
 Windows SmartScreen may say it protected your PC. Click **More info**, then
 **Run anyway**.
 
+### Mac and Linux (preview)
+
+The same app also builds for macOS (Apple Silicon and Intel) and Linux, with
+the same screens. There are no downloads for these yet, so see
+[Build and run](#build-and-run) to make your own. A few things work
+differently there:
+
+- **PDFs** are made with Chrome, Edge, Chromium or Brave if one is installed.
+  Without one, the invoice opens in your browser for you to print to PDF.
+- **Email** opens your mail app with the message filled in, and shows the PDF
+  so you can drag it in.
+- **Receipt scanning** isn't there yet, so receipts are attached for you to
+  fill in by hand.
+- The taskbar badge, jump list and translucent window are Windows only.
+
 ## Features
 
 - Invoices with tax turned on or off per invoice, and a heading that matches
@@ -170,6 +185,10 @@ The business and clients in these are made up.
   which Windows 11 already has
 - [.NET 10 SDK](https://dotnet.microsoft.com/download), only if you're building it yourself
 
+On a Mac, macOS 12 or later. On Linux, 64-bit with WebKitGTK
+(`sudo apt install libwebkit2gtk-4.1-0` on Ubuntu and Debian). For PDFs on
+either, Chrome, Edge, Chromium or Brave.
+
 ## Build and run
 
 ```powershell
@@ -183,9 +202,29 @@ ends up in `dist\InvoiceDesk.exe`:
 dotnet publish src/InvoiceDesk.App -p:PublishProfile=SingleExe
 ```
 
+The Mac and Linux version is `src/InvoiceDesk.Desktop`. Linux builds to a
+single file in `dist/linux-x64/InvoiceDesk`:
+
+```powershell
+dotnet publish src/InvoiceDesk.Desktop -p:PublishProfile=Linux
+```
+
+For Macs, this makes `dist/InvoiceDesk-macos-arm64.tar.gz` and `-x64.tar.gz`,
+each holding `InvoiceDesk.app`:
+
+```powershell
+pwsh build/make-mac-app.ps1
+```
+
+The app isn't notarised by Apple, so the first time you open it macOS says it
+can't check it. Open **System Settings → Privacy & Security** and click
+**Open Anyway**.
+
 ## Where your data lives
 
-Everything is in `%LOCALAPPDATA%\InvoiceDesk\` unless you move it in
+Everything is in `%LOCALAPPDATA%\InvoiceDesk\` on Windows,
+`~/Library/Application Support/InvoiceDesk/` on a Mac and
+`~/.local/share/InvoiceDesk/` on Linux, unless you move it in
 **Settings → Your data**:
 
 | Path | What it is |
@@ -207,7 +246,9 @@ click it.
 | Project | What's in it |
 |---|---|
 | `src/InvoiceDesk.Core` | Data model, tax rules for each country, money maths, numbering, EF Core with SQLite, services and file storage. No UI code. |
-| `src/InvoiceDesk.App` | The WPF window hosting Blazor (`BlazorWebView`), Razor pages and components, CSS and PDF export. |
+| `src/InvoiceDesk.Ui` | The Razor pages and components, CSS and the HTML for PDFs, shared by both apps. Anything that differs by OS goes through the interfaces in `Platform/`. |
+| `src/InvoiceDesk.App` | The Windows app: a WPF window hosting Blazor (`BlazorWebView`), with PDF printing, Outlook email, receipt reading and taskbar extras. |
+| `src/InvoiceDesk.Desktop` | The Mac and Linux app: a [Photino](https://www.tryphotino.io/) window hosting the same Blazor UI, with PDFs from headless Chromium. |
 
 Money is stored as whole cents (`long`) and tax rates as parts per million
 (10% = 100,000), so rates like 8.875% fit. Totals are rounded half away from

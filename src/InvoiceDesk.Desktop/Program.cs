@@ -96,7 +96,7 @@ static class Program
         builder.Services.AddInvoiceDeskUi();
         builder.Services.AddSingleton(window);
         builder.Services.AddSingleton<IPlatformInfo, DesktopPlatform>();
-        builder.Services.AddSingleton<IDesktop>(new UnixDesktop(window));
+        builder.Services.AddSingleton<IDesktop>(new UnixDesktop(window, OperatingSystem.IsLinux() ? new DesktopPortal() : null));
         builder.Services.AddSingleton<IPdfPrinter>(sp => new ChromePdfPrinter(paths, sp.GetRequiredService<IDesktop>()));
         builder.Services.AddSingleton<IMailer, MailtoMailer>();
         builder.Services.AddSingleton<IReceiptReader, NoReceiptReader>();

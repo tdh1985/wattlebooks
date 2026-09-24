@@ -1,0 +1,17 @@
+/* open look-alikes for macs and linux, windows lists its own fonts first */
+/* inter and barlow come under the sil open font license in fonts/ */
+
+@font-face { font-family: "InvoiceDesk Text"; font-weight: 400; font-display: block; src: url("../fonts/inter-400.woff2") format("woff2"); }
+@font-face { font-family: "InvoiceDesk Text"; font-weight: 500; font-display: block; src: url("../fonts/inter-500.woff2") format("woff2"); }
+@font-face { font-family: "InvoiceDesk Text"; font-weight: 600; font-display: block; src: url("../fonts/inter-600.woff2") format("woff2"); }
+@font-face { font-family: "InvoiceDesk Text"; font-weight: 700; font-display: block; src: url("../fonts/inter-700.woff2") format("woff2"); }
+
+@font-face { font-family: "InvoiceDesk Numbers"; font-weight: 400; font-display: block; src: url("../fonts/barlow-400.woff2") format("woff2"); }
+@font-face { font-family: "InvoiceDesk Numbers"; font-weight: 500; font-display: block; src: url("../fonts/barlow-500.woff2") format("woff2"); }
+@font-face { font-family: "InvoiceDesk Numbers"; font-weight: 600; font-display: block; src: url("../fonts/barlow-600.woff2") format("woff2"); }
+@font-face { font-family: "InvoiceDesk Numbers"; font-weight: 700; font-display: block; src: url("../fonts/barlow-700.woff2") format("woff2"); }
+
+@font-face { font-family: "InvoiceDesk Display"; font-weight: 600; font-display: block; src: url("../fonts/barlow-semi-condensed-600.woff2") format("woff2"); }
+@font-face { font-family: "InvoiceDesk Display"; font-weight: 700; font-display: block; src: url("../fonts/barlow-semi-condensed-700.woff2") format("woff2"); }
+
+@font-face { font-family: "InvoiceDesk Display Condensed"; font-weight: 700; font-display: block; src: url("../fonts/barlow-condensed-700.woff2") format("woff2"); }

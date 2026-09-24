@@ -11,8 +11,8 @@
     --doc-ink-3: #7B859C;
     --doc-rule: #DCE1E7;
     --doc-rule-strong: #B9C1CC;
-    --doc-num: Bahnschrift, "Segoe UI Variable Text", "Segoe UI", sans-serif;
-    --doc-display: "Bahnschrift Condensed", "Bahnschrift SemiCondensed", Bahnschrift, "Segoe UI", sans-serif;
+    --doc-num: Bahnschrift, "Segoe UI Variable Text", "Segoe UI", "InvoiceDesk Numbers", sans-serif;
+    --doc-display: "Bahnschrift Condensed", "Bahnschrift SemiCondensed", Bahnschrift, "Segoe UI", "InvoiceDesk Display Condensed", sans-serif;
     --doc-w: 210mm;
     --doc-h: 297mm;
     position: relative;
@@ -24,7 +24,7 @@
     padding: 60px 60px 44px 78px;
     background: #FFFFFF;
     color: var(--doc-ink);
-    font: 13px/1.5 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    font: 13px/1.5 "Segoe UI Variable Text", "Segoe UI", "InvoiceDesk Text", system-ui, sans-serif;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
 }

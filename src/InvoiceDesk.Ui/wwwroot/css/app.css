@@ -31,9 +31,9 @@
     --r-sheet: 14px;
     --r-control: 7px;
     --r-tab: 10px;
-    --font-ui: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-    --font-display: "Bahnschrift SemiCondensed", Bahnschrift, "Segoe UI Variable Display", "Segoe UI", sans-serif;
-    --font-num: Bahnschrift, "Segoe UI Variable Text", "Segoe UI", sans-serif;
+    --font-ui: "Segoe UI Variable Text", "Segoe UI", "InvoiceDesk Text", system-ui, sans-serif;
+    --font-display: "Bahnschrift SemiCondensed", Bahnschrift, "Segoe UI Variable Display", "Segoe UI", "InvoiceDesk Display", sans-serif;
+    --font-num: Bahnschrift, "Segoe UI Variable Text", "Segoe UI", "InvoiceDesk Numbers", sans-serif;
     --ease: cubic-bezier(.2, .8, .2, 1);
 }
 

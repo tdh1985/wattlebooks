@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Tim Downey. Licensed under the MIT License.
 
 using System.Net;
+using System.Text.RegularExpressions;
 using InvoiceDesk.Ui.Host;
 using InvoiceDesk.Ui;
 using InvoiceDesk.Ui.Platform;
@@ -31,7 +32,7 @@ public sealed class DocumentPdfExporter(IServiceProvider services, IPdfPrinter p
             return output.ToHtmlString();
         });
 
-        var css = string.Concat(cssFiles.Select(f => EmbeddedAssets.Instance.ReadText(f)));
+        var css = BundledFonts.Value + string.Concat(cssFiles.Select(f => EmbeddedAssets.Instance.ReadText(f)));
         // @page can't read a css variable, so the country's size is inlined here
         var paperSize = Format.Country.Paper.CssSize;
         // keep the margin reset, a4 only fits its viewport with body margins gone
@@ -47,4 +48,14 @@ public sealed class DocumentPdfExporter(IServiceProvider services, IPdfPrinter p
             </html>
             """;
     }
+
+    // the pdf page loads from a file, so its font files travel inside the css
+    static readonly Lazy<string> BundledFonts = new(() =>
+        Regex.Replace(EmbeddedAssets.Instance.ReadText("css/fonts.css"), @"url\(""\.\./(fonts/[^""]+)""\)", m =>
+        {
+            using var file = EmbeddedAssets.Instance.GetFileInfo(m.Groups[1].Value).CreateReadStream();
+            using var bytes = new MemoryStream();
+            file.CopyTo(bytes);
+            return $"url(data:font/woff2;base64,{Convert.ToBase64String(bytes.ToArray())})";
+        }));
 }

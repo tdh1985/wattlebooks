@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <PackageReference Include="Photino.Blazor" Version="4.0.13" />
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.1" />
   </ItemGroup>
 
   <!-- photino needs the icon as a file, so it's written out from here at startup -->

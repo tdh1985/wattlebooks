@@ -6,11 +6,15 @@ using InvoiceDesk.Ui.Platform;
 namespace InvoiceDesk.Desktop.Platform;
 
 // shell and dialog calls for macos and linux, and windows when photino runs there for testing
-public sealed class UnixDesktop(PhotinoWindowRef window, DialogOs os, Action<SystemDialog.Command> run) : IDesktop
+public sealed class UnixDesktop(PhotinoWindowRef window, DialogOs os, Action<SystemDialog.Command> run, IFilePortal? portal = null) : IDesktop
 {
-    public UnixDesktop(PhotinoWindowRef window) : this(window, SystemDialog.CurrentOs, Start) { }
+    public UnixDesktop(PhotinoWindowRef window, IFilePortal? portal) : this(window, SystemDialog.CurrentOs, Start, portal) { }
 
-    public void OpenFile(string path) => Open(path);
+    public void OpenFile(string path)
+    {
+        if (os == DialogOs.Linux && portal?.OpenFile(path) == true) return;
+        Open(path);
+    }
 
     public void OpenFolder(string path)
     {
@@ -24,7 +28,8 @@ public sealed class UnixDesktop(PhotinoWindowRef window, DialogOs os, Action<Sys
         {
             case DialogOs.Mac: run(new("open", ["-R", path])); break;
             case DialogOs.Windows: run(new("explorer.exe", [$"/select,{path}"])); break;
-            // file managers differ on selecting a file, so linux just opens its folder
+            case DialogOs.Linux when portal?.OpenDirectory(path) == true: break;
+            // without the portal file managers differ on selecting a file, so just open its folder
             default: run(new("xdg-open", [path.LastIndexOf('/') is > 0 and var cut ? path[..cut] : "/"])); break;
         }
     }

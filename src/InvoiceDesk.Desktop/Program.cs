@@ -71,6 +71,12 @@ static class Program
         {
             return Run(paths, route, instance);
         }
+        catch (Exception ex) when (MissingWebView.IsCause(ex))
+        {
+            FileLog.Write(ex, "webview");
+            SystemDialog.Ask(Title, MissingWebView.Message(SystemDialog.CurrentOs), DialogButtons.Ok);
+            return 1;
+        }
         finally
         {
             // closed files let a sync app upload a complete database

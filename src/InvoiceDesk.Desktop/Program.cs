@@ -90,7 +90,7 @@ static class Program
         builder.Services.AddSingleton(window);
         builder.Services.AddSingleton<IPlatformInfo, DesktopPlatform>();
         builder.Services.AddSingleton<IDesktop>(new UnixDesktop(window));
-        builder.Services.AddSingleton<IPdfPrinter, ChromePdfPrinter>();
+        builder.Services.AddSingleton<IPdfPrinter>(sp => new ChromePdfPrinter(paths, sp.GetRequiredService<IDesktop>()));
         builder.Services.AddSingleton<IMailer, MailtoMailer>();
         builder.Services.AddSingleton<IReceiptReader, NoReceiptReader>();
         builder.RootComponents.Add<Main>("#app");

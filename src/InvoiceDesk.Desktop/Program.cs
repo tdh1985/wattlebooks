@@ -46,6 +46,8 @@ static class Program
             }
         }
 
+        if (OperatingSystem.IsLinux()) paths = paths.WithExports(LinuxExports.Folder());
+
         var route = LaunchArgs.RouteFor(args);
         using var instance = new SingleInstance(paths.DataRoot, paths.LocalRoot);
         if (!instance.IsFirst)

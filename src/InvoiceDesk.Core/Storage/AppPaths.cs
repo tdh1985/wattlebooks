@@ -23,7 +23,12 @@ public sealed class AppPaths
 
     public string Database => Path.Combine(DataRoot, DatabaseFileName);
     public string Attachments => Path.Combine(DataRoot, "attachments");
-    public string Exports => Path.Combine(DataRoot, "exports");
+    string? _exports;
+
+    public string Exports => _exports ?? Path.Combine(DataRoot, "exports");
+
+    // linux keeps exports where sandboxed apps such as snaps can open them
+    public AppPaths WithExports(string folder) => new(DataRoot, LocalRoot) { _exports = Path.GetFullPath(folder) };
     public string Backups => Path.Combine(DataRoot, "backups");
     public string LockFile => Path.Combine(DataRoot, "invoicedesk.lock");
 

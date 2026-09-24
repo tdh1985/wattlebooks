@@ -231,7 +231,7 @@ Everything is in `%LOCALAPPDATA%\InvoiceDesk\` on Windows,
 |---|---|
 | `invoicedesk.db` | SQLite database |
 | `attachments\` | copies of receipts and logos (your originals aren't moved) |
-| `exports\` | exported PDFs |
+| `exports\` | exported PDFs (on Linux they go in `~/Documents/InvoiceDesk/` instead, so any app can open them) |
 | `backups\` | a copy of the database from each start, the last 10 kept |
 
 The app makes a backup each time it starts. You can also copy the whole folder

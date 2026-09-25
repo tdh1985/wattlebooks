@@ -23,12 +23,13 @@ It's a single file with nothing to install. The exe isn't code-signed yet, so
 Windows SmartScreen may say it protected your PC. Click **More info**, then
 **Run anyway**.
 
-### Mac and Linux (preview)
+### Mac and Linux
 
-The same app also builds for macOS (Apple Silicon and Intel) and Linux, with
-the same screens. There are no downloads for these yet, so see
-[Build and run](#build-and-run) to make your own. A few things work
-differently there:
+The same app also runs on Linux and macOS (Apple Silicon and Intel), with the
+same screens. Download `InvoiceDesk-linux-x64.tar.gz` or the Mac file for your
+chip from the [latest release](https://github.com/tdh1985/invoicedesk/releases/latest).
+The Mac version is a **preview**: it hasn't been tried on a real Mac yet, so
+please report anything that goes wrong. A few things work differently on both:
 
 - **PDFs** are made with Chrome, Edge, Chromium or Brave if one is installed.
   Without one, the invoice opens in your browser for you to print to PDF.

@@ -16,6 +16,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Reminder> Reminders => Set<Reminder>();
     public DbSet<RecurringSchedule> RecurringSchedules => Set<RecurringSchedule>();
+    public DbSet<PhoneItem> PhoneItems => Set<PhoneItem>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -52,6 +53,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         b.Entity<Attachment>(e =>
         {
             e.Ignore(a => a.IsImage);
+        });
+
+        b.Entity<PhoneItem>(e =>
+        {
+            e.HasIndex(p => p.InboxId).IsUnique();
+            e.HasOne<Invoice>().WithMany().HasForeignKey(p => p.InvoiceId).OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

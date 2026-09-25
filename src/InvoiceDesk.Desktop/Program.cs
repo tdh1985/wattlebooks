@@ -172,10 +172,13 @@ static class Program
             launches.Request(next);
         }));
         recurring.StartHourly();
+        var sync = services.GetRequiredService<SyncRunner>();
+        sync.Start();
 
         app.Run();
 
         recurring.Stop();
+        sync.Stop();
         try { (services as IDisposable)?.Dispose(); }
         catch (Exception ex) { FileLog.Write(ex, "shutdown"); }
         return 0;

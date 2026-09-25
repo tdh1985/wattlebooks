@@ -186,6 +186,8 @@
     [Parameter] public EventCallback OnClose { get; set; }
     // a receipt dropped on the money page arrives here already attached
     [Parameter] public IReadOnlyList<StagedFile>? InitialFiles { get; set; }
+    // a phone receipt's note says what it was for
+    [Parameter] public string? InitialDescription { get; set; }
 
     Transaction? _tx;
     BusinessProfile? _profile;
@@ -205,7 +207,7 @@
     readonly HashSet<string> _filled = [];
     Before? _beforeScan;
 
-    sealed record Request(int? TransactionId, Direction Direction, IReadOnlyList<StagedFile>? Files);
+    sealed record Request(int? TransactionId, Direction Direction, IReadOnlyList<StagedFile>? Files, string? Description);
 
     // what the fields held before a scan, so undo puts them back exactly
     sealed record Before(long Amount, long Gst, DateOnly Date, string Party, int? CategoryId, bool AutoGst, bool CategoryGuessed,
@@ -270,7 +272,7 @@
             return;
         }
         // search can pick a different entry while the drawer is already open
-        var request = new Request(TransactionId, Direction, InitialFiles);
+        var request = new Request(TransactionId, Direction, InitialFiles, InitialDescription);
         if (request == _loaded) return;
         _loaded = request;
         await LoadAsync();
@@ -297,7 +299,7 @@
         }
         else
         {
-            _tx = new Transaction { Direction = Direction, Date = Clock.Today(), Method = PaymentMethod.None };
+            _tx = new Transaction { Direction = Direction, Date = Clock.Today(), Method = PaymentMethod.None, Description = InitialDescription ?? "" };
             _autoGst = _profile.TaxRegistered;
         }
         _parties = await Suggestions.PartiesAsync(_tx.Direction);

@@ -13,6 +13,8 @@
 @inject AppPaths Paths
 @inject IJSRuntime JS
 @inject ProfileService Profiles
+@inject PhoneItemService Phone
+@inject SyncRunner Sync
 
 <div class="page">
     <PageHeader Title="Money in &amp; out">
@@ -23,6 +25,8 @@
             <button type="button" class="btn btn-primary" @onclick="() => StartNew(Direction.Out)"><Icon Name="out" Size="16" /> Add expense</button>
         </Actions>
     </PageHeader>
+
+    <PhoneTray OnFile="FilePhoneReceiptAsync" />
 
     <div class="toolbar">
         <div class="seg" role="group" aria-label="Direction">
@@ -176,8 +180,8 @@
     </div>
 }
 
-<TransactionDrawer Open="_drawerOpen" Direction="_newDirection" TransactionId="_openId" InitialFiles="_droppedFiles"
-                   OnSaved="OnDrawerDoneAsync" OnDeleted="OnDrawerDoneAsync" OnClose="CloseDrawer" />
+<TransactionDrawer Open="_drawerOpen" Direction="_newDirection" TransactionId="_openId" InitialFiles="_droppedFiles" InitialDescription="@_droppedNote"
+                   OnSaved="OnDrawerSavedAsync" OnDeleted="OnDrawerDoneAsync" OnClose="CloseDrawer" />
 
 @code {
     static readonly (string Tab, string Label)[] Tabs = [("all", "All"), ("in", "Money in"), ("out", "Money out")];
@@ -199,6 +203,9 @@
     int? _openId;
     bool _pageDrop;
     IReadOnlyList<StagedFile>? _droppedFiles;
+    // the tray item being filed, cleared once its expense is saved
+    int? _phoneItemId;
+    string? _droppedNote;
     DotNetObjectReference<Money>? _ref;
 
     Direction? TabDirection => _tab switch { "in" => Direction.In, "out" => Direction.Out, _ => null };
@@ -227,6 +234,8 @@
         InvoiceStore.Changed += OnChanged;
         Toasts.Changed += OnToastsChanged;
         _categories = await Categories.ListAsync();
+        // coming here is the moment someone wants their phone receipts
+        Sync.Kick();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -344,6 +353,9 @@
 
     void StartNew(Direction direction)
     {
+        // a palette or jump list can reuse the open drawer for something else
+        _phoneItemId = null;
+        _droppedNote = null;
         _droppedFiles = null;
         _openId = null;
         _newDirection = direction;
@@ -352,12 +364,38 @@
 
     void OpenEntry(int id)
     {
+        _phoneItemId = null;
+        _droppedNote = null;
         _openId = id;
         _drawerOpen = true;
     }
 
+    async Task FilePhoneReceiptAsync(int id)
+    {
+        try
+        {
+            var staged = await Phone.StageAsync(id);
+            // set before the drawer opens so it loads once with the note
+            _droppedNote = (await Phone.ListTrayAsync()).FirstOrDefault(i => i.Id == id)?.Note;
+            _phoneItemId = id;
+            await OnPageDropAsync([staged]);
+        }
+        catch (ValidationException ex)
+        {
+            Toasts.Show(ex.Message, ToastKind.Error);
+        }
+    }
+
+    async Task OnDrawerSavedAsync()
+    {
+        if (_phoneItemId is { } id) await Phone.FinishAsync(id);
+        await OnDrawerDoneAsync();
+    }
+
     void CloseDrawer()
     {
+        _phoneItemId = null;
+        _droppedNote = null;
         _drawerOpen = false;
         _openId = null;
         _droppedFiles = null;

@@ -1,0 +1,60 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@using InvoiceDesk.Core.Sync
+@implements IDisposable
+@inject PhoneItemService Phone
+@inject ToastService Toasts
+
+@if (_items.Count > 0)
+{
+    <section class="phone-tray" aria-label="From your phone">
+        <h2 class="phone-tray-title"><Icon Name="upload" Size="16" /> From your phone</h2>
+        <ul class="phone-tray-list">
+            @foreach (var item in _items)
+            {
+                <li class="phone-tray-item">
+                    @if (item.Problem.Length > 0)
+                    {
+                        <span class="danger-text small">@item.Problem</span>
+                        <button type="button" class="btn btn-ghost btn-sm" @onclick="() => DismissAsync(item.Id)">Dismiss</button>
+                    }
+                    else
+                    {
+                        <img class="phone-tray-thumb" src="@FilesUrl.For(item.StoredPath)" alt="Receipt photo from @item.TakenAt.ToString("d MMM")" />
+                        <div class="phone-tray-text">
+                            <strong>@(item.Note.Length > 0 ? item.Note : "Receipt")</strong>
+                            <span class="soft small">@item.TakenAt.ToString("d MMM, h:mm tt")</span>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" @onclick="() => OnFile.InvokeAsync(item.Id)">Add as expense</button>
+                        <button type="button" class="btn btn-ghost btn-sm" @onclick="() => DismissAsync(item.Id)">Discard</button>
+                    }
+                </li>
+            }
+        </ul>
+    </section>
+}
+
+@code {
+    List<PhoneTrayItem> _items = [];
+
+    [Parameter] public EventCallback<int> OnFile { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Phone.Changed += OnChanged;
+        _items = await Phone.ListTrayAsync();
+    }
+
+    void OnChanged() => InvokeAsync(async () =>
+    {
+        _items = await Phone.ListTrayAsync();
+        StateHasChanged();
+    });
+
+    async Task DismissAsync(int id)
+    {
+        await Phone.FinishAsync(id);
+        Toasts.Show("Removed from the phone tray.", ToastKind.Info);
+    }
+
+    public void Dispose() => Phone.Changed -= OnChanged;
+}

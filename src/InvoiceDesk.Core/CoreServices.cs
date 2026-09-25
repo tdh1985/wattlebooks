@@ -4,6 +4,7 @@ using InvoiceDesk.Core.Data;
 using InvoiceDesk.Core.Rules;
 using InvoiceDesk.Core.Services;
 using InvoiceDesk.Core.Storage;
+using InvoiceDesk.Core.Sync;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -40,6 +41,14 @@ public static class CoreServices
         services.AddSingleton<StatementService>();
         services.AddSingleton<ReportService>();
         services.AddSingleton<RecurringService>();
+        services.TryAddSingleton(SyncConfig.Default());
+        services.AddSingleton<SyncSettings>();
+        services.AddSingleton(sp => new SupabaseClient(
+            new HttpClient { Timeout = TimeSpan.FromSeconds(30) }, sp.GetRequiredService<SyncConfig>(), sp.GetRequiredService<SyncSettings>()));
+        services.AddSingleton<SyncAccount>();
+        services.AddSingleton<PhoneItemService>();
+        services.AddSingleton<SnapshotPusher>();
+        services.AddSingleton<InboxPuller>();
         return services;
     }
 }

@@ -148,6 +148,7 @@ public partial class App : Application
             window.Show();
             SetUpJumpList();
             _services.GetRequiredService<RecurringRunner>().StartHourly();
+            _services.GetRequiredService<SyncRunner>().Start();
         }
         catch (Exception ex)
         {
@@ -190,6 +191,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _heartbeat?.Stop();
+        _services?.GetService<SyncRunner>()?.Stop();
         _instance?.Dispose();
         try { _services?.Dispose(); }
         catch (Exception ex) { FileLog.Write(ex, "shutdown"); }

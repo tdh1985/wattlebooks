@@ -1,0 +1,188 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@using InvoiceDesk.Core.Sync
+@implements IDisposable
+@inject SyncAccount Account
+@inject SyncRunner Runner
+@inject SyncConfig Config
+@inject IDesktop Desktop
+@inject ToastService Toasts
+
+<div class="data-card">
+    @if (!Account.IsConfigured)
+    {
+        <p class="soft">Phone sync isn't set up in this version yet.</p>
+    }
+    else if (Account.IsOn && Account.Session is { } session)
+    {
+        <div class="row gap-8 wrap">
+            <span class="pill pill-paid">On</span>
+            <span>Signed in as <strong>@session.Email</strong></span>
+            <span class="pill pill-plain">Pilot</span>
+        </div>
+        <p class="soft small" role="status">
+            @if (Runner.Status.NeedsSignIn)
+            {
+                <span class="danger-text">@Runner.Status.Error</span>
+            }
+            else if (Runner.Status.Error is { } error)
+            {
+                <span class="danger-text">@error</span>
+            }
+            else if (Runner.Status.LastSync is { } last)
+            {
+                <span>Last synced @last.ToString("h:mm tt").ToLowerInvariant().</span>
+            }
+            else
+            {
+                <span>Syncing…</span>
+            }
+        </p>
+        @if (PhoneUrl is { } url)
+        {
+            <p class="small">On your phone, open <strong>@url</strong>, sign in with the same email and choose <strong>Add to Home Screen</strong>.</p>
+        }
+        <div class="row gap-8 wrap">
+            @if (Runner.Status.NeedsSignIn)
+            {
+                <button type="button" class="btn btn-primary btn-sm" @onclick="() => SignOutAsync(false)">Sign in again</button>
+            }
+            else
+            {
+                <button type="button" class="btn btn-sm" @onclick="Runner.Kick"><Icon Name="refresh" Size="14" /> Sync now</button>
+            }
+            @if (PhoneUrl is { } link)
+            {
+                <button type="button" class="btn btn-ghost btn-sm" @onclick="() => Desktop.OpenUrl(link)"><Icon Name="external" Size="14" /> Open the phone app</button>
+            }
+            <button type="button" class="btn btn-ghost btn-sm" @onclick="() => _confirmSignOut = true">Sign out…</button>
+        </div>
+    }
+    else if (Account.Session is { Linked: false })
+    {
+        <p><strong>This login is already used for a different business.</strong> Its invoices are on your phone now.</p>
+        <p class="soft small">Use this business instead and your phone will show this business's invoices, not the other one's. Anything waiting to come down from the phone stays and lands here.</p>
+        <div class="row gap-8 wrap">
+            <button type="button" class="btn btn-primary btn-sm" disabled="@_busy" @onclick="TakeOverAsync">Use this business</button>
+            <button type="button" class="btn btn-ghost btn-sm" disabled="@_busy" @onclick="() => SignOutAsync(false)">Cancel</button>
+        </div>
+    }
+    else
+    {
+        <p class="soft">Snap receipts, see who owes you and start quick invoices on your phone. Once you sign in, your open invoices and client names are kept online so your phone can see them. Nothing goes online until you do.</p>
+        @if (!_codeSent)
+        {
+            <div class="form-grid">
+                <div class="field span-2">
+                    <label for="sync-email">Email</label>
+                    <input id="sync-email" class="input" type="email" autocomplete="email" @bind="_email" @bind:event="oninput" @onkeydown="OnEmailKey" />
+                    <span class="hint">We'll email you a code. There's no password.</span>
+                </div>
+            </div>
+            <div class="row gap-8">
+                <button type="button" class="btn btn-primary btn-sm" disabled="@_busy" @onclick="SendCodeAsync">@(_busy ? "Sending…" : "Email me a code")</button>
+            </div>
+        }
+        else
+        {
+            <div class="form-grid">
+                <div class="field">
+                    <label for="sync-code">Code from the email</label>
+                    <input id="sync-code" class="input num" style="text-align:left" inputmode="numeric" autocomplete="one-time-code" @bind="_code" @bind:event="oninput" @onkeydown="OnCodeKey" />
+                    <span class="hint">Sent to @_email.</span>
+                </div>
+            </div>
+            <div class="row gap-8 wrap">
+                <button type="button" class="btn btn-primary btn-sm" disabled="@_busy" @onclick="VerifyAsync">@(_busy ? "Signing in…" : "Sign in")</button>
+                <button type="button" class="btn btn-ghost btn-sm" disabled="@_busy" @onclick="() => _codeSent = false">Use a different email</button>
+            </div>
+        }
+        @if (_error is not null)
+        {
+            <p class="danger-text small" role="alert">@_error</p>
+        }
+    }
+</div>
+
+<Modal Open="_confirmSignOut" Title="Sign out of phone sync" OnClose="() => _confirmSignOut = false">
+    <p>Your phone stops seeing this business. Everything on this PC stays as it is.</p>
+    <label class="row gap-8">
+        <input type="checkbox" @bind="_removeData" />
+        <span>Also remove my invoices, clients and waiting photos from the cloud</span>
+    </label>
+    <div class="row gap-8" style="justify-content:flex-end; margin-top:16px">
+        <button type="button" class="btn btn-ghost" @onclick="() => _confirmSignOut = false">Cancel</button>
+        <button type="button" class="btn btn-primary" disabled="@_busy" @onclick="() => SignOutAsync(_removeData)">Sign out</button>
+    </div>
+</Modal>
+
+@code {
+    string _email = "";
+    string _code = "";
+    bool _codeSent;
+    bool _busy;
+    bool _confirmSignOut;
+    bool _removeData;
+    string? _error;
+
+    string? PhoneUrl => Config.PhoneUrl.Length > 0 ? Config.PhoneUrl : null;
+
+    protected override void OnInitialized()
+    {
+        Runner.Changed += OnSyncChanged;
+        Account.Changed += OnSyncChanged;
+        _email = Account.Session?.Email ?? "";
+    }
+
+    void OnSyncChanged() => InvokeAsync(StateHasChanged);
+
+    Task OnEmailKey(KeyboardEventArgs e) => e.Key == "Enter" ? SendCodeAsync() : Task.CompletedTask;
+    Task OnCodeKey(KeyboardEventArgs e) => e.Key == "Enter" ? VerifyAsync() : Task.CompletedTask;
+
+    Task SendCodeAsync() => BusyAsync(async () =>
+    {
+        await Account.SendCodeAsync(_email);
+        _code = "";
+        _codeSent = true;
+    });
+
+    Task VerifyAsync() => BusyAsync(async () =>
+    {
+        if (await Account.VerifyAsync(_email, _code) == LinkResult.Linked)
+            Toasts.Show("Phone sync is on. Your invoices will be on your phone in a moment.");
+        _codeSent = false;
+    });
+
+    Task TakeOverAsync() => BusyAsync(async () =>
+    {
+        await Account.LinkAsync(takeOver: true);
+        Toasts.Show("Phone sync is on for this business.");
+    });
+
+    Task SignOutAsync(bool removeData) => BusyAsync(async () =>
+    {
+        await Account.SignOutAsync(removeData);
+        _confirmSignOut = false;
+        _removeData = false;
+        _codeSent = false;
+    });
+
+    async Task BusyAsync(Func<Task> work)
+    {
+        _busy = true;
+        _error = null;
+        try { await work(); }
+        catch (SyncException ex) { _error = ex.Message; if (_confirmSignOut) Toasts.Show(ex.Message, ToastKind.Error); }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            _error = "Couldn't reach phone sync. Check your internet connection and try again.";
+            if (_confirmSignOut) Toasts.Show(_error, ToastKind.Error);
+        }
+        finally { _busy = false; }
+    }
+
+    public void Dispose()
+    {
+        Runner.Changed -= OnSyncChanged;
+        Account.Changed -= OnSyncChanged;
+    }
+}

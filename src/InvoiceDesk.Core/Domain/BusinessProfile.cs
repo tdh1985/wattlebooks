@@ -42,4 +42,7 @@ public class BusinessProfile
 
     // for the owner only, never printed
     public string PrivateNotes { get; set; } = "";
+
+    // ties a phone login to this database so two businesses never mix
+    public string SyncId { get; set; } = "";
 }

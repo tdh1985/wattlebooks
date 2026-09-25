@@ -22,6 +22,7 @@ public static class UiServices
         services.AddSingleton<EmailActions>();
         services.AddSingleton<LaunchRequests>();
         services.AddSingleton<RecurringRunner>();
+        services.AddSingleton<SyncRunner>();
         return services;
     }
 }

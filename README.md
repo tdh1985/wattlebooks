@@ -234,6 +234,7 @@ Everything is in `%LOCALAPPDATA%\InvoiceDesk\` on Windows,
 | `attachments\` | copies of receipts and logos (your originals aren't moved) |
 | `exports\` | exported PDFs (on Linux they go in `~/Documents/InvoiceDesk/` instead, so any app can open them) |
 | `backups\` | a copy of the database from each start, the last 10 kept |
+| `phone\` | receipt photos from your phone, waiting in the tray on Money in & out |
 
 The app makes a backup each time it starts. You can also copy the whole folder
 yourself to take your own backup.
@@ -241,6 +242,27 @@ yourself to take your own backup.
 InvoiceDesk never goes online by itself. **Settings → About** has a **Check
 for updates** button, which asks GitHub for the latest version only when you
 click it.
+
+## Phone (pilot)
+
+Sign in under **Settings → Phone** to use InvoiceDesk from your phone. The phone
+app is a web page you add to your home screen. From it you can:
+
+- **Snap a receipt.** It lands in a **From your phone** tray on Money in & out,
+  and opening it starts a new expense with the photo read for you.
+- **See who owes you**, with overdue invoices first.
+- **Start a quick invoice.** It arrives as a draft for InvoiceDesk to number,
+  check and send.
+
+Receipts and quick invoices wait on the phone when there's no signal and upload
+later.
+
+Once you sign in, your open invoices, recently paid ones and client names are
+kept online in [Supabase](https://supabase.com) so your phone can see them.
+Each login can only read its own data. Photos are deleted from the cloud as
+soon as your computer has them. Signing out can remove everything from the
+cloud too. Your computer stays the only full copy, and the app still works the
+same without signing in.
 
 ## How the code is laid out
 
@@ -250,6 +272,8 @@ click it.
 | `src/InvoiceDesk.Ui` | The Razor pages and components, CSS and the HTML for PDFs, shared by both apps. Anything that differs by OS goes through the interfaces in `Platform/`. |
 | `src/InvoiceDesk.App` | The Windows app: a WPF window hosting Blazor (`BlazorWebView`), with PDF printing, Outlook email, receipt reading and taskbar extras. |
 | `src/InvoiceDesk.Desktop` | The Mac and Linux app: a [Photino](https://www.tryphotino.io/) window hosting the same Blazor UI, with PDFs from headless Chromium. |
+| `mobile` | The phone web app (Vite and TypeScript). See `mobile/README.md`. |
+| `supabase/migrations` | The tables and row level security behind phone sync. |
 
 Money is stored as whole cents (`long`) and tax rates as parts per million
 (10% = 100,000), so rates like 8.875% fit. Totals are rounded half away from

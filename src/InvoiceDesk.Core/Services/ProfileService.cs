@@ -75,9 +75,12 @@ public sealed partial class ProfileService(IDbContextFactory<AppDbContext> facto
         ValidationException.ThrowIfAny(Validate(profile));
 
         var logoId = existing.LogoAttachmentId;
+        var syncId = existing.SyncId;
         db.Entry(existing).CurrentValues.SetValues(profile);
         // the logo only changes through SetLogoAsync so a stale form can't drop it
         existing.LogoAttachmentId = logoId;
+        // a form opened before sign in would otherwise blank the phone link
+        existing.SyncId = syncId;
         await db.SaveChangesAsync();
         Changed?.Invoke();
     }

@@ -5,8 +5,8 @@ namespace InvoiceDesk.Core.Sync;
 // the publishable key is meant to ship in apps, row level security guards the data
 public sealed record SyncConfig(string Url, string Key, string PhoneUrl = "")
 {
-    const string BuiltInUrl = "";
-    const string BuiltInKey = "";
+    const string BuiltInUrl = "https://hckrulledfqdrwlltdyn.supabase.co";
+    const string BuiltInKey = "sb_publishable_Qq88vo8NkiLtJxY5hc7mow_ebeQcnyH";
     const string BuiltInPhoneUrl = "";
 
     public bool IsSet => Url.Length > 0 && Key.Length > 0;

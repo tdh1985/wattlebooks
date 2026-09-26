@@ -88,7 +88,7 @@
                 <div class="field">
                     <label for="sync-code">Code from the email</label>
                     <input id="sync-code" class="input num" style="text-align:left" inputmode="numeric" autocomplete="one-time-code" @bind="_code" @bind:event="oninput" @onkeydown="OnCodeKey" />
-                    <span class="hint">Sent to @_email.</span>
+                    <span class="hint">Sent to @_email. If it isn't there, check your junk folder.</span>
                 </div>
             </div>
             <div class="row gap-8 wrap">

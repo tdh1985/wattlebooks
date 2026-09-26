@@ -98,7 +98,7 @@ export function signInScreen(client: SupabaseClient): HTMLElement {
         },
       },
       h('label', { for: 'code' }, 'Code'),
-      h('p', { class: 'hint' }, `We emailed a code to ${email}.`),
+      h('p', { class: 'hint' }, `We emailed a code to ${email}. If it isn't there, check your junk folder.`),
       input,
       error,
       button,

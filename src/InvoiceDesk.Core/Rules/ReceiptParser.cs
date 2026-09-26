@@ -21,7 +21,7 @@ public static partial class ReceiptParser
         rules ??= Australia.Rules.Receipts;
         var raw = text.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
         if (raw.Count == 0) return new ReceiptGuess(null, null, null, null);
-        var lines = raw.Select(FixDigits).ToList();
+        var lines = raw.Select(FixDigits).Select(l => SpacedThousands().Replace(l, ",")).ToList();
 
         var total = FindTotal(lines);
         return new ReceiptGuess(
@@ -218,6 +218,10 @@ public static partial class ReceiptParser
 
     [GeneratedRegex(@"(?<![\d.,])(\d{1,3}(?:,\d{3})+|\d+)\s*[.,]\s*(\d{2})(?![\d])")]
     private static partial Regex Amount();
+
+    // ocr reads $1,100.00 as $1 100.00, the sign keeps a quantity from joining a price
+    [GeneratedRegex(@"(?<=[$£€]\s*\d{1,3}(?:\s\d{3})*)\s(?=\d{3}(?:\s\d{3})*\s*[.,]\s*\d{2}(?!\d))")]
+    private static partial Regex SpacedThousands();
 
     [GeneratedRegex(@"^[$£€]?\s*[\d,]+\s*[.,]\s*\d{2}$")]
     private static partial Regex AmountOnly();

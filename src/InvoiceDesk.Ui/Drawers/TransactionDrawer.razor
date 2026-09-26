@@ -469,6 +469,7 @@
         _tx.ForeignAmountCents = b.ForeignAmount;
         _filled.Clear();
         _scanNote = null;
+        _beforeScan = null;
     }
 
     void RemoveStaged(StagedFile file) => _newFiles.Remove(file);

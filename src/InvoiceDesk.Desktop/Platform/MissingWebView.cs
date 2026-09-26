@@ -8,7 +8,8 @@ public static class MissingWebView
     public static bool IsCause(Exception ex)
     {
         for (Exception? e = ex; e is not null; e = e.InnerException)
-            if (e is DllNotFoundException) return true;
+            // a missing sqlite library is a broken install, not a missing web view
+            if (e is DllNotFoundException && e.Message.Contains("Photino", StringComparison.OrdinalIgnoreCase)) return true;
         return false;
     }
 

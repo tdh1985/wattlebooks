@@ -127,9 +127,10 @@ public sealed class TransactionService(
         if (entity is null) return;
 
         var doomed = new List<Transaction> { entity };
-        if (entity is { Direction: Direction.In, InvoiceId: { } invoiceId })
+        if (entity is { Direction: Direction.In, InvoiceId: { } invoiceId } && entity.ForeignCurrency.Length > 0)
         {
             // a grossed-up payment would leave its fee as money that never left the bank
+            // only foreign payments carry a fee, so a home one on the same day leaves it
             doomed.AddRange(await db.Transactions.Include(x => x.Attachments)
                 .Where(x => x.InvoiceId == invoiceId && x.Direction == Direction.Out && x.Date == entity.Date
                             && x.Description.StartsWith(BankFeePrefix))

@@ -7,7 +7,7 @@ public sealed record SyncConfig(string Url, string Key, string PhoneUrl = "")
 {
     const string BuiltInUrl = "https://hckrulledfqdrwlltdyn.supabase.co";
     const string BuiltInKey = "sb_publishable_Qq88vo8NkiLtJxY5hc7mow_ebeQcnyH";
-    const string BuiltInPhoneUrl = "";
+    const string BuiltInPhoneUrl = "https://invoicedesk-phone.vercel.app";
 
     public bool IsSet => Url.Length > 0 && Key.Length > 0;
 

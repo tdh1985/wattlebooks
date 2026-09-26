@@ -34,6 +34,8 @@ Deploy to Vercel with **root directory `mobile`**. Vercel picks up Vite on its o
 
 In Supabase, add the Vercel URL to Auth → URL Configuration, and make sure the email template shows `{{ .Token }}` so people get a code rather than a link.
 
+The live copy is the Vercel project `invoicedesk-phone` at https://invoicedesk-phone.vercel.app. Deploy it from this folder with `vercel deploy --prod`. Supabase sends its emails through Mailgun SMTP from `no-reply@in.setitnow.online`, and both the "Magic link or OTP" and "Confirm sign up" templates carry the code.
+
 ## Layout
 
 - `src/lib/money.ts`: cents parsing and the preview total, with the desktop's rounding

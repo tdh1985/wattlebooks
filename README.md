@@ -89,6 +89,9 @@ please report anything that goes wrong. A few things work differently on both:
   income. The icon shows how many invoices are overdue.
 - Your data can live in a OneDrive, Dropbox or Google Drive folder so you can
   use it on another PC, one PC at a time.
+- A phone app for snapping receipts, checking who owes you and starting a
+  quick invoice on the go. It's a pilot and you turn it on in Settings. See
+  [Phone (pilot)](#phone-pilot).
 
 ## Countries
 
@@ -158,6 +161,14 @@ The business and clients in these are made up.
 **Drop a receipt and the details fill themselves in**
 
 ![A new expense filled in from a fuel receipt](docs/screenshots/receipt-scan.png)
+
+**The phone app: who owes you, snapping a receipt and a quick invoice**
+
+![Three phone screens: the list of unpaid invoices, a receipt photo with a note, and a quick invoice form](docs/screenshots/phone-app.png)
+
+**A receipt from your phone waiting on Money in & out**
+
+![The From your phone tray above the money list with Add as expense and Discard](docs/screenshots/phone-tray.png)
 
 **A BAS worksheet for the quarter, ready for your accountant**
 
@@ -246,7 +257,8 @@ click it.
 ## Phone (pilot)
 
 Sign in under **Settings → Phone** to use InvoiceDesk from your phone. The phone
-app is a web page you add to your home screen. From it you can:
+app is a web page you add to your home screen, at
+**<https://invoicedesk-phone.vercel.app>**. From it you can:
 
 - **Snap a receipt.** It lands in a **From your phone** tray on Money in & out,
   and opening it starts a new expense with the photo read for you.
@@ -256,6 +268,18 @@ app is a web page you add to your home screen. From it you can:
 
 Receipts and quick invoices wait on the phone when there's no signal and upload
 later.
+
+![The Phone section of Settings, signed in, with the phone app's address](docs/screenshots/phone-settings.png)
+
+To sign in:
+
+1. In InvoiceDesk, open **Settings → Phone**, enter your email and click
+   **Email me a code**. Type in the code from the email. There's no password.
+2. On your phone, open the phone app, sign in with the same email and a new
+   code, then choose **Add to Home Screen**.
+
+The code comes from `no-reply@in.setitnow.online`. While the pilot is new it
+can land in junk, so check there and mark it as not junk.
 
 Once you sign in, your open invoices, recently paid ones and client names are
 kept online in [Supabase](https://supabase.com) so your phone can see them.

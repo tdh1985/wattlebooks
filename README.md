@@ -7,10 +7,12 @@
 
 # InvoiceDesk
 
-A Windows desktop app for sending invoices to clients and keeping track of
-money in and out. Made for sole traders and small businesses in Australia,
-New Zealand, the UK, Canada and the US, so it follows your country's GST, VAT
-or sales tax rules. It runs as one exe and keeps your data on your own PC.
+A desktop app for sending invoices to clients and keeping track of money in
+and out, on Windows, Linux and Mac. Made for sole traders and small businesses
+in Australia, New Zealand, the UK, Canada and the US, so it follows your
+country's GST, VAT or sales tax rules. It's a single file with nothing to
+install, and your data stays on your own computer. An optional
+[phone app](#phone-pilot) lets you snap receipts and start invoices on the go.
 
 ![The dashboard, showing what clients owe, money in and out, and recent activity](docs/screenshots/dashboard.png)
 

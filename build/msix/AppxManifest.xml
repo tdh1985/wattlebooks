@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- identity values come from partner center, product 9NHXGB9BDRR1 -->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:desktop6="http://schemas.microsoft.com/appx/manifest/desktop/windows10/6"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap desktop6 rescap">
+
+  <Identity
+    Name="TIMD.InvoiceDesk"
+    Publisher="CN=A4C4B8E0-4035-4AD1-ACEB-11F2BBFD28CF"
+    Version="$(Version).0"
+    ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>Invoice Desk</DisplayName>
+    <PublisherDisplayName>TIMD</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <!-- books stay in %LOCALAPPDATA%\InvoiceDesk so uninstalling can't delete them -->
+    <desktop6:FileSystemWriteVirtualization>disabled</desktop6:FileSystemWriteVirtualization>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-AU" />
+  </Resources>
+
+  <Applications>
+    <Application Id="InvoiceDesk" Executable="InvoiceDesk.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="Invoice Desk"
+        Description="Free invoicing for sole traders: tax invoices, GST and your BAS figures."
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" ShortName="Invoice Desk" />
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+    <rescap:Capability Name="unvirtualizedResources" />
+  </Capabilities>
+</Package>

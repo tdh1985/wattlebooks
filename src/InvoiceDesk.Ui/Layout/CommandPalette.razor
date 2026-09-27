@@ -70,8 +70,14 @@
             : new("Actions", "moon", "Switch to dark theme", "", null, () => SetTheme("dark")),
         new("Actions", "hash", "Keyboard shortcuts", "?", null, () => OnShowShortcuts.InvokeAsync()),
         new("Actions", "folder", "Open data folder", "Where your database, receipts and backups live", null, OpenDataFolder),
-        new("Actions", "refresh", "Check for updates", $"You have version {UpdateChecker.CurrentVersion}", null, CheckForUpdatesAsync),
+        .. UpdateActions(),
     ];
+
+    IEnumerable<Item> UpdateActions()
+    {
+        if (UpdateChecker.IsStoreInstall) yield break;
+        yield return new("Actions", "refresh", "Check for updates", $"You have version {UpdateChecker.CurrentVersion}", null, CheckForUpdatesAsync);
+    }
 
     bool _open;
     string _query = "";

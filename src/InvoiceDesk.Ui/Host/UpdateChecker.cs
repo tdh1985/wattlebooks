@@ -2,6 +2,7 @@
 
 using System.Net.Http;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using InvoiceDesk.Core.Rules;
 using Microsoft.Extensions.Logging;
@@ -18,6 +19,20 @@ public sealed class UpdateChecker(ILogger<UpdateChecker> log)
 
     public static string CurrentVersion { get; } = ReleaseVersion.Display(
         typeof(UpdateChecker).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.0");
+
+    // the store updates its own copy and won't pass an app that links elsewhere
+    public static bool IsStoreInstall { get; } = OperatingSystem.IsWindows() && HasPackageIdentity();
+
+    const int NoPackage = 15700;
+
+    [DllImport("kernel32.dll")]
+    static extern int GetCurrentPackageFullName(ref uint length, IntPtr fullName);
+
+    static bool HasPackageIdentity()
+    {
+        uint length = 0;
+        return GetCurrentPackageFullName(ref length, IntPtr.Zero) != NoPackage;
+    }
 
     public async Task<UpdateResult> CheckAsync()
     {

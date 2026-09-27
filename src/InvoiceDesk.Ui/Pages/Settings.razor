@@ -427,9 +427,16 @@
                         </div>
                         <div class="row gap-12 wrap">
                             <span class="about-version">Version @UpdateChecker.CurrentVersion</span>
-                            <button type="button" class="btn btn-sm" disabled="@_checking" @onclick="CheckForUpdatesAsync">
-                                <Icon Name="refresh" Size="14" /> @(_checking ? "Checking…" : "Check for updates")
-                            </button>
+                            @if (UpdateChecker.IsStoreInstall)
+                            {
+                                <span class="soft small">Updates come through the Microsoft Store.</span>
+                            }
+                            else
+                            {
+                                <button type="button" class="btn btn-sm" disabled="@_checking" @onclick="CheckForUpdatesAsync">
+                                    <Icon Name="refresh" Size="14" /> @(_checking ? "Checking…" : "Check for updates")
+                                </button>
+                            }
                         </div>
                         @if (_update is { } update)
                         {

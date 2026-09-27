@@ -1,0 +1,69 @@
+<!doctype html>
+<!-- page art for facebook and instagram: brand.html?art=avatar or ?art=cover -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@500;600&display=swap">
+<style>
+:root {
+  --paper: #F5F6F2;
+  --ink: #172038;
+  --muted: #566074;
+  --accent: #2E6B57;
+  --navy: #14315C;
+  --amber: #DE9F32;
+  --slate: #A9B0C3;
+}
+* { margin: 0; box-sizing: border-box; }
+html, body { background: var(--paper); }
+.art { display: none; position: relative; overflow: hidden; }
+body[data-art="avatar"] #avatar, body[data-art="cover"] #cover { display: block; }
+
+#avatar { width: 1080px; height: 1080px; background: var(--navy); }
+#avatar svg { position: absolute; left: 50%; top: 50%; width: 620px; transform: translate(-50%, -52%); }
+
+#cover { width: 1640px; height: 624px; background: var(--paper); font-family: "Barlow", sans-serif; color: var(--ink); }
+/* phones only show the middle ~1110px so the words sit between x 280 and 820 */
+#cover .words { position: absolute; left: 290px; top: 92px; width: 560px; }
+#cover .eyebrow { font: 600 22px/1 "Barlow", sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+#cover h1 { margin-top: 22px; font: 700 76px/.95 "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .005em; }
+#cover h1 em { font-style: normal; color: var(--accent); display: block; margin-top: 6px; }
+#cover .sub { margin-top: 26px; font: 500 25px/1.35 "Barlow", sans-serif; color: var(--muted); }
+#cover .shot { position: absolute; left: 880px; top: 70px; width: 900px; border-radius: 14px; border: 10px solid #0F1627;
+  box-shadow: 0 30px 60px rgba(23, 32, 56, .22), 0 6px 14px rgba(23, 32, 56, .12); }
+#cover .shot img { display: block; width: 100%; border-radius: 5px; }
+#cover .band { position: absolute; left: 0; right: 0; bottom: 0; height: 10px; background: var(--amber); }
+</style>
+</head>
+<body>
+<div class="art" id="avatar">
+  <svg viewBox="56 72 400 368">
+    <rect x="120" y="104" width="40" height="224" fill="#fff"/>
+    <polygon points="176,72 304,72 384,152 384,328 176,328" fill="#fff"/>
+    <polygon points="304,72 384,152 304,152" fill="var(--amber)"/>
+    <rect x="208" y="168" width="64" height="32" fill="var(--amber)"/>
+    <rect x="208" y="224" width="144" height="32" fill="var(--amber)"/>
+    <rect x="208" y="280" width="144" height="32" fill="var(--amber)"/>
+    <rect x="56" y="328" width="400" height="40" fill="var(--slate)"/>
+    <polygon points="120,368 158,368 134,440 96,440" fill="var(--slate)"/>
+    <polygon points="354,368 392,368 416,440 378,440" fill="var(--slate)"/>
+    </svg>
+</div>
+
+<div class="art" id="cover">
+  <div class="words">
+    <div class="eyebrow">Free for sole traders</div>
+    <h1>Tax invoices, GST and your BAS.<em>No monthly fee.</em></h1>
+    <p class="sub">Open source · Windows, Mac and Linux<br>Your books stay on your own computer</p>
+  </div>
+  <div class="shot"><img src="../../docs/screenshots/dashboard.png" alt=""></div>
+  <div class="band"></div>
+</div>
+
+<script>
+document.body.dataset.art = new URLSearchParams(location.search).get('art') || 'avatar';
+</script>
+</body>
+</html>

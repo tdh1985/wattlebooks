@@ -39,6 +39,20 @@ please report anything that goes wrong. A few things work differently on both:
   fill in by hand.
 - The taskbar badge, jump list and translucent window are Windows only.
 
+## What's new
+
+| Version | Date | What changed |
+|---|---|---|
+| [1.5.1](https://github.com/tdh1985/invoicedesk/releases/tag/v1.5.1) | 27 Sep 2026 | A [phone app](#phone-pilot) as a pilot, for snapping receipts, seeing who owes you and starting a quick invoice. Also fixes scanned amounts over $999 being misread and a bank fee being deleted with the wrong payment. |
+| [1.4.0](https://github.com/tdh1985/invoicedesk/releases/tag/v1.4.0) | 25 Sep 2026 | Runs on Linux and, as a preview, on macOS. |
+| [1.3.0](https://github.com/tdh1985/invoicedesk/releases/tag/v1.3.0) | 24 Sep 2026 | Scan a remittance to record a payment. Payments and expenses in another currency, with the bank fee. |
+| [1.2.1](https://github.com/tdh1985/invoicedesk/releases/tag/v1.2.1) | 23 Sep 2026 | Easier-to-read grey text in both themes. |
+| [1.2.0](https://github.com/tdh1985/invoicedesk/releases/tag/v1.2.0) | 23 Sep 2026 | New Zealand, the UK, Canada and the US, and billing overseas clients in their own currency. |
+| [1.1.0](https://github.com/tdh1985/invoicedesk/releases/tag/v1.1.0) | 21 Sep 2026 | Quotes, repeating invoices, receipt scanning, reminders and statements. |
+| [1.0.0](https://github.com/tdh1985/invoicedesk/releases/tag/v1.0.0) | 21 Sep 2026 | The first release, for Australian businesses. |
+
+The full notes for each version are on the [releases page](https://github.com/tdh1985/invoicedesk/releases).
+
 ## Features
 
 - Invoices with tax turned on or off per invoice, and a heading that matches

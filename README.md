@@ -248,6 +248,10 @@ The app isn't notarised by Apple, so the first time you open it macOS says it
 can't check it. Open **System Settings → Privacy & Security** and click
 **Open Anyway**.
 
+Release downloads come from the [release workflow](.github/workflows/release.yml)
+instead. Pushing a `v*` tag builds all four files on GitHub, signs them, and
+puts them in a draft release for you to add notes and publish.
+
 ## Where your data lives
 
 Everything is in `%LOCALAPPDATA%\InvoiceDesk\` on Windows,
@@ -329,6 +333,32 @@ dotnet ef migrations add <Name> --project src/InvoiceDesk.Core
 ```
 
 Migrations are applied automatically on startup.
+
+## Code signing policy
+
+Free code signing for Windows provided by [SignPath.io](https://about.signpath.io),
+certificate by [SignPath Foundation](https://signpath.org). Mac builds are signed
+with an Apple Developer ID and notarised by Apple.
+
+Every download is built from this repository by the
+[release workflow](.github/workflows/release.yml) on GitHub Actions. Nothing
+built on a personal computer gets signed.
+
+- Committers and reviewers: [Tim Downey](https://github.com/tdh1985)
+- Approvers: [Tim Downey](https://github.com/tdh1985), who approves each
+  signing request by hand
+
+### Privacy
+
+InvoiceDesk won't send any information to other networked systems unless
+you ask it to. Your data is kept on your computer. It only goes online when:
+
+- you choose **Check for updates**, which asks GitHub for the latest version
+  number
+- you sign in under **Settings → Phone**, which keeps your open invoices,
+  recently paid ones and client names in Supabase, as described in
+  [Phone (pilot)](#phone-pilot)
+- you click a link, which opens in your browser
 
 ## Disclaimer
 

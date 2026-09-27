@@ -1,0 +1,183 @@
+# builds every download on github so signpath and apple can trust where it came from
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    env:
+      SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: publish
+        run: dotnet publish src/InvoiceDesk.App -p:PublishProfile=SingleExe
+
+      - name: upload unsigned
+        id: unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-unsigned
+          path: dist/InvoiceDesk.exe
+          if-no-files-found: error
+
+      # skipped until signpath approves the project and the token is added
+      - name: sign with signpath
+        if: env.SIGNPATH_API_TOKEN != ''
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: invoicedesk
+          signing-policy-slug: ${{ startsWith(github.ref, 'refs/tags/') && 'release-signing' || 'test-signing' }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          # release signing waits for you to approve it on signpath.io
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed
+
+      - name: use the signed exe
+        if: env.SIGNPATH_API_TOKEN != ''
+        shell: pwsh
+        run: Copy-Item signed/InvoiceDesk.exe dist/InvoiceDesk.exe -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/InvoiceDesk.exe
+          if-no-files-found: error
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: publish
+        run: dotnet publish src/InvoiceDesk.Desktop -p:PublishProfile=Linux
+
+      - name: pack
+        run: |
+          chmod 755 dist/linux-x64/InvoiceDesk
+          tar -czf InvoiceDesk-linux-x64.tar.gz -C dist/linux-x64 InvoiceDesk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: InvoiceDesk-linux-x64.tar.gz
+          if-no-files-found: error
+
+  mac:
+    runs-on: macos-latest
+    env:
+      APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: load the developer id certificate
+        if: env.APPLE_CERTIFICATE_P12 != ''
+        run: |
+          keychain="$RUNNER_TEMP/build.keychain"
+          password="$(uuidgen)"
+          echo "$APPLE_CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          security import "$RUNNER_TEMP/cert.p12" -k "$keychain" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$password" "$keychain"
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/cert.p12"
+          identity=$(security find-identity -v -p codesigning "$keychain" | grep 'Developer ID Application' | head -1 | awk -F'"' '{print $2}')
+          test -n "$identity" || { echo "no Developer ID Application identity in the p12"; exit 1; }
+          echo "SIGN_IDENTITY=$identity" >> "$GITHUB_ENV"
+
+      - name: build, sign and notarise
+        run: |
+          version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props)
+          project=src/InvoiceDesk.Desktop
+          for arch in arm64 x64; do
+            rid=osx-$arch
+            # native libs sit beside the exe so each one can be signed
+            dotnet publish $project -p:PublishProfile=$([ $arch = arm64 ] && echo MacArm || echo MacIntel) \
+              -p:IncludeNativeLibrariesForSelfExtract=false -p:PublishDir="$PWD/out/$rid/"
+
+            app="out/mac-$arch/InvoiceDesk.app"
+            mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+            cp out/$rid/InvoiceDesk out/$rid/*.dylib "$app/Contents/MacOS/"
+            chmod 755 "$app/Contents/MacOS/InvoiceDesk"
+            cp $project/Mac/InvoiceDesk.icns "$app/Contents/Resources/"
+            sed "s/\$(Version)/$version/g" $project/Mac/Info.plist > "$app/Contents/Info.plist"
+
+            if [ -n "$SIGN_IDENTITY" ]; then
+              for lib in "$app"/Contents/MacOS/*.dylib; do
+                codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$lib"
+              done
+              codesign --force --timestamp --options runtime --entitlements $project/Mac/InvoiceDesk.entitlements \
+                --sign "$SIGN_IDENTITY" "$app"
+              codesign --verify --strict --verbose=2 "$app"
+
+              ditto -c -k --keepParent "$app" "out/notarise-$arch.zip"
+              xcrun notarytool submit "out/notarise-$arch.zip" --apple-id "$APPLE_ID" \
+                --password "$APPLE_APP_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+              xcrun stapler staple "$app"
+            fi
+
+            COPYFILE_DISABLE=1 tar -czf InvoiceDesk-macos-$arch.tar.gz -C out/mac-$arch InvoiceDesk.app
+          done
+
+      - name: remove the keychain
+        if: always() && env.APPLE_CERTIFICATE_P12 != ''
+        run: security delete-keychain "$RUNNER_TEMP/build.keychain" || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac
+          path: InvoiceDesk-macos-*.tar.gz
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [windows, linux, mac]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # by name so the unsigned exe never ends up in the release
+      - uses: actions/download-artifact@v5
+        with:
+          name: windows
+      - uses: actions/download-artifact@v5
+        with:
+          name: linux
+      - uses: actions/download-artifact@v5
+        with:
+          name: mac
+
+      # a draft so the notes can be written before it goes public
+      - uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: |
+            InvoiceDesk.exe
+            InvoiceDesk-linux-x64.tar.gz
+            InvoiceDesk-macos-arm64.tar.gz
+            InvoiceDesk-macos-x64.tar.gz

@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root {
+  --paper: #F5F6F2; --ink: #172038; --muted: #566074; --line: #D8DDD6;
+  --accent: #2E6B57; --mint: #8FD3B6; --amber: #E3A13A; --amber-ink: #3A2606;
+  --display: "Barlow Condensed", sans-serif; --body: "Barlow", sans-serif; --mono: "IBM Plex Mono", monospace;
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { width: 1080px; height: var(--h); overflow: hidden; }
+body { font-family: var(--body); color: var(--ink); background: var(--paper); }
+body.sq { --h: 1080px; } body.story { --h: 1920px; }
+.ad { width: 1080px; height: var(--h); display: none; flex-direction: column; padding: 84px 84px 64px; gap: 44px; position: relative; overflow: hidden; }
+.ad.on { display: flex; }
+.story .ad { padding: 170px 90px 150px; gap: 64px; }
+h1 { font: 700 96px/0.98 var(--display); text-transform: uppercase; letter-spacing: 0.005em; }
+.story h1 { font-size: 118px; }
+h1 em { font-style: normal; color: var(--accent); }
+.sub { font-size: 34px; line-height: 1.35; color: var(--muted); max-width: 22em; }
+.story .sub { font-size: 40px; }
+.eyebrow { font: 600 26px/1 var(--body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+.brand { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.brand img { height: 92px; }
+.story .brand img { height: 120px; }
+.cta { font: 600 30px/1 var(--body); background: var(--accent); color: #fff; padding: 22px 30px; border-radius: 12px; }
+.story .cta { font-size: 36px; padding: 28px 36px; }
+.visual { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; position: relative; }
+
+/* a: the $0.00 invoice */
+.bill { width: 100%; background: #fff; border: 2px solid var(--line); border-left: 12px solid var(--accent); border-radius: 6px; padding: 40px 46px; transform: rotate(-2deg); box-shadow: 0 40px 80px -40px rgba(23,32,56,.35); position: relative; }
+.story .bill { padding: 56px 56px; }
+.bill-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.bill h2 { font: 700 52px/1 var(--display); letter-spacing: .04em; text-transform: uppercase; color: var(--accent); }
+.bill .meta { font: 500 24px/1.5 var(--mono); color: var(--muted); text-align: right; }
+.bill table { width: 100%; border-collapse: collapse; margin-top: 26px; font-size: 30px; }
+.story .bill table { font-size: 34px; margin-top: 40px; }
+.bill td { padding: 14px 0; border-bottom: 2px dashed var(--line); }
+.story .bill td { padding: 22px 0; }
+.bill td:last-child { text-align: right; font: 600 30px/1 var(--mono); }
+.bill .total td { border-top: 4px solid var(--ink); border-bottom: 0; font-weight: 600; font-size: 36px; padding-top: 18px; }
+.bill .total td:last-child { font-size: 38px; }
+.stamp { position: absolute; left: 40%; bottom: 20px; transform: rotate(-14deg); font: 700 64px/1 var(--display); letter-spacing: .12em; color: var(--amber); border: 6px solid var(--amber); border-radius: 10px; padding: 8px 20px 4px; }
+
+/* b: phone on navy */
+.ad.b { background: var(--ink); color: #fff; }
+.ad.b h1 em { color: var(--mint); }
+.ad.b .sub { color: #B9C1D3; }
+.ad.b .eyebrow { color: var(--mint); }
+.ad.b .cta { background: var(--amber); color: var(--amber-ink); }
+.phone { height: 100%; max-height: 1000px; width: auto; border-radius: 40px; box-shadow: 0 40px 90px -30px rgba(0,0,0,.7); }
+.sq .ad.b { display: none; }
+.sq .ad.b.on { display: grid; grid-template-columns: 1fr 380px; grid-template-rows: auto 1fr auto; column-gap: 50px; row-gap: 36px; }
+.sq .ad.b .copy { grid-column: 1; grid-row: 1 / 3; display: flex; flex-direction: column; gap: 32px; }
+.sq .ad.b .visual { grid-column: 2; grid-row: 1 / 3; }
+.sq .ad.b .phone { height: 800px; }
+.sq .ad.b .brand { grid-column: 1 / 3; grid-row: 3; }
+.sq .ad.b h1 { font-size: 88px; }
+.story .ad.b .copy { display: flex; flex-direction: column; gap: 44px; }
+.pill { display: inline-block; font: 600 24px/1 var(--body); letter-spacing: .08em; text-transform: uppercase; background: var(--amber); color: var(--amber-ink); padding: 10px 14px; border-radius: 6px; align-self: flex-start; }
+
+/* c: BAS worksheet */
+.ad.c { background: #E8F0EB; }
+.sheet { width: 100%; background: #fff; border-radius: 8px; border-left: 12px solid var(--accent); box-shadow: 0 40px 80px -40px rgba(23,32,56,.35); padding: 44px 50px; }
+.story .sheet { padding: 60px 56px; }
+.sheet-top { display: flex; justify-content: space-between; align-items: baseline; }
+.sheet h2 { font: 700 54px/1 var(--display); letter-spacing: .04em; text-transform: uppercase; color: var(--accent); }
+.sheet .q { font: 600 28px/1 var(--body); color: var(--muted); }
+.rows { margin-top: 28px; display: grid; }
+.row { display: grid; grid-template-columns: 90px 1fr auto; align-items: baseline; gap: 16px; padding: 20px 0; border-bottom: 2px solid var(--line); font-size: 32px; }
+.story .row { padding: 30px 0; font-size: 36px; }
+.row b { font: 600 32px/1 var(--mono); color: var(--accent); }
+.row span:last-child { font: 600 34px/1 var(--mono); }
+.row.pay { border-top: 4px solid var(--ink); border-bottom: 0; font-weight: 600; }
+.row.pay span:last-child { font-size: 42px; }
+.note { font-size: 22px; color: var(--muted); margin-top: 18px; }
+/* video cards */
+.ad.hook { background: var(--ink); color: #fff; justify-content: center; }
+.ad.hook h1 { font-size: 150px; }
+.ad.hook h1 em { color: var(--amber); }
+.ad.end { justify-content: center; align-items: center; text-align: center; gap: 70px; }
+.ad.end img { width: 640px; }
+.ad.end h1 { font-size: 130px; }
+.ad.end .url { font: 600 44px/1 var(--mono); color: var(--accent); }
+.ad.end .sub { font-size: 44px; }
+</style>
+</head>
+<body>
+
+<section class="ad a" id="a">
+  <div class="eyebrow">For Australian sole traders</div>
+  <h1>Invoicing software that bills you <em>$0.00</em></h1>
+  <div class="visual">
+    <div class="bill">
+      <div class="bill-top"><h2>Tax invoice</h2><div class="meta">INV-0001<br>Due: never</div></div>
+      <table>
+        <tr><td>Monthly subscription</td><td>$0.00</td></tr>
+        <tr><td>Fee per invoice</td><td>$0.00</td></tr>
+        <tr><td>GST (10%)</td><td>$0.00</td></tr>
+        <tr class="total"><td>Total inc. GST</td><td>$0.00</td></tr>
+      </table>
+      <span class="stamp">PAID</span>
+    </div>
+  </div>
+  <p class="sub story-only">Tax invoices, GST and your BAS figures. Free, and it runs on your own computer.</p>
+  <div class="brand"><img src="../site/img/logo.png" alt="InvoiceDesk"><span class="cta">Free download</span></div>
+</section>
+
+<section class="ad b" id="b">
+  <div class="copy">
+    <span class="pill">New phone app</span>
+    <h1>Snap it on site. <em>Sort it at your desk.</em></h1>
+    <p class="sub">Receipt photos from your phone land in InvoiceDesk, ready to turn into expenses.</p>
+  </div>
+  <div class="visual"><img class="phone" src="../site/img/phone-snap.png" alt=""></div>
+  <div class="brand"><img src="../site/img/logo-dark.png" alt="InvoiceDesk"><span class="cta">Free download</span></div>
+</section>
+
+<section class="ad c" id="c">
+  <div class="eyebrow">BAS due?</div>
+  <h1>G1, 1A and 1B, <em>already worked out</em></h1>
+  <div class="visual">
+    <div class="sheet">
+      <div class="sheet-top"><h2>BAS worksheet</h2><span class="q">Jul–Sep 2026</span></div>
+      <div class="rows">
+        <div class="row"><b>G1</b><span>Total sales</span><span>$4,757.84</span></div>
+        <div class="row"><b>1A</b><span>GST on sales</span><span>$431.36</span></div>
+        <div class="row"><b>1B</b><span>GST on purchases</span><span>$93.95</span></div>
+        <div class="row pay"><b></b><span>GST to pay</span><span>$337.41</span></div>
+      </div>
+      <p class="note">Example figures. Check with your accountant before you lodge.</p>
+    </div>
+  </div>
+  <p class="sub story-only">Free invoicing for Aussie sole traders, with no monthly fee.</p>
+  <div class="brand"><img src="../site/img/logo.png" alt="InvoiceDesk"><span class="cta">Free download</span></div>
+</section>
+
+<section class="ad hook" id="hook">
+  <h1>Still paying <em>every month</em> just to send invoices?</h1>
+</section>
+
+<section class="ad end" id="end">
+  <img src="../site/img/logo.png" alt="InvoiceDesk">
+  <h1>Free.<br><em>No monthly fee.</em></h1>
+  <p class="sub">Windows, Mac and Linux</p>
+  <p class="url">tdh1985.github.io/invoicedesk</p>
+</section>
+
+<script>
+const q = new URLSearchParams(location.search);
+document.body.className = q.get('size') || 'sq';
+document.getElementById(q.get('ad') || 'a').classList.add('on');
+if (document.body.className === 'sq') document.querySelectorAll('.story-only').forEach(e => e.remove());
+</script>
+</body>
+</html>

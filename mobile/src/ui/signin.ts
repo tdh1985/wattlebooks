@@ -26,6 +26,7 @@ export function signInScreen(client: SupabaseClient): HTMLElement {
       required: true,
       value: email,
       placeholder: 'you@example.com',
+      'aria-describedby': 'email-hint',
     });
     const error = h('p', { class: 'error', role: 'alert' }, message);
     const button = h('button', { type: 'submit', class: 'primary' }, 'Send code');
@@ -52,7 +53,7 @@ export function signInScreen(client: SupabaseClient): HTMLElement {
       },
       h('label', { for: 'email' }, 'Email'),
       input,
-      h('p', { class: 'hint' }, 'Use the same email you signed in with on Settings → Phone in InvoiceDesk.'),
+      h('p', { id: 'email-hint', class: 'hint' }, 'Use the same email you signed in with on Settings → Phone in InvoiceDesk.'),
       error,
       button,
     );
@@ -71,6 +72,7 @@ export function signInScreen(client: SupabaseClient): HTMLElement {
       maxlength: 10,
       required: true,
       class: 'code-input',
+      'aria-describedby': 'code-hint',
     });
     const error = h('p', { class: 'error', role: 'alert' });
     const button = h('button', { type: 'submit', class: 'primary' }, 'Sign in');
@@ -98,7 +100,7 @@ export function signInScreen(client: SupabaseClient): HTMLElement {
         },
       },
       h('label', { for: 'code' }, 'Code'),
-      h('p', { class: 'hint' }, `We emailed a code to ${email}. If it isn't there, check your junk folder.`),
+      h('p', { id: 'code-hint', class: 'hint' }, `We emailed a code to ${email}. If it isn't there, check your junk folder.`),
       input,
       error,
       button,

@@ -86,9 +86,10 @@ function showApp(session: Session) {
     h('nav', { class: 'tabbar', 'aria-label': 'Sections' }, tabButtons),
   );
 
-  function showTab() {
+  function showTab(moveFocus: boolean) {
     const tab = tabFromHash();
     replace(main, screens[tab]);
+    document.title = `${TABS.find((t) => t.id === tab)!.label} · InvoiceDesk`;
     for (const b of tabButtons) {
       const active = b.dataset.tab === tab;
       b.classList.toggle('active', active);
@@ -97,7 +98,14 @@ function showApp(session: Session) {
     }
     if (tab === 'owed') owed.refresh();
     window.scrollTo(0, 0);
+    // screen readers otherwise stay on the tab bar and miss the new view
+    const heading = moveFocus ? main.querySelector('h1') : null;
+    if (heading) {
+      heading.tabIndex = -1;
+      heading.focus({ preventScroll: true });
+    }
   }
+  const onHashChange = () => showTab(true);
 
   const setPending = (count: number) => {
     pending.hidden = count === 0;
@@ -110,11 +118,11 @@ function showApp(session: Session) {
     if (document.visibilityState === 'visible') flush();
   };
   const unlisten = app.outbox.onChange(updatePending);
-  window.addEventListener('hashchange', showTab);
+  window.addEventListener('hashchange', onHashChange);
   window.addEventListener('online', flush);
   document.addEventListener('visibilitychange', onVisible);
 
-  showTab();
+  showTab(false);
   updatePending();
   flush();
 
@@ -126,7 +134,7 @@ function showApp(session: Session) {
     userId: session.user.id,
     dispose() {
       unlisten();
-      window.removeEventListener('hashchange', showTab);
+      window.removeEventListener('hashchange', onHashChange);
       window.removeEventListener('online', flush);
       document.removeEventListener('visibilitychange', onVisible);
       app.outbox.close();
@@ -138,8 +146,13 @@ function render(session: Session | null) {
   if (session && current?.userId === session.user.id) return;
   current?.dispose();
   current = null;
-  if (session) showApp(session);
-  else replace(root, signInScreen(supabase!));
+  if (session) {
+    showApp(session);
+  } else {
+    // drop the last tab's name so the title doesn't claim a signed in view
+    document.title = 'Sign in · InvoiceDesk';
+    replace(root, signInScreen(supabase!));
+  }
 }
 
 if (!supabase) {

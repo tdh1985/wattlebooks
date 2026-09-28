@@ -13,7 +13,8 @@
   --paper: #FFFFFF;
   --paper-2: #F6F7F9;
   --rule: #DCE1E7;
-  --rule-strong: #C4CBD5;
+  /* field and button edges need 3:1 against white and the desk */
+  --rule-strong: #7C8599;
   --ink: #18213A;
   --ink-2: #4B5570;
   --ink-3: #626A7D;
@@ -43,7 +44,7 @@
     --paper: #191E2C;
     --paper-2: #1F2535;
     --rule: #2B3246;
-    --rule-strong: #3A4259;
+    --rule-strong: #646E8C;
     --ink: #E6E9F1;
     --ink-2: #A9B0C3;
     --ink-3: #8D94A8;
@@ -120,9 +121,13 @@ input, textarea {
 textarea { resize: vertical; }
 
 input:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible, label:focus-within {
-  outline: 3px solid color-mix(in oklab, var(--accent) 45%, transparent);
+  /* solid so the ring stays 3:1 or better on white, desk and dark cards */
+  outline: 3px solid var(--accent-text);
   outline-offset: 2px;
 }
+
+/* the heading only takes focus so screen readers announce the new tab */
+h1[tabindex="-1"]:focus { outline: none; }
 
 input:focus-visible, textarea:focus-visible { border-color: var(--accent); }
 
@@ -166,7 +171,7 @@ button:disabled { opacity: .6; cursor: default; }
 }
 
 .link.danger { color: var(--stamp); }
-.link.small { min-height: 36px; font-size: 13px; }
+.link.small { min-height: 44px; font-size: 13px; }
 
 /* sign in */
 
@@ -211,7 +216,11 @@ button:disabled { opacity: .6; cursor: default; }
   border-radius: 999px;
   background: var(--canary);
   color: var(--canary-ink);
+  position: relative;
 }
+
+/* stretches the tap area to 44px without making the pill look heavier */
+.pending::after { content: ""; position: absolute; inset: -6px 0; }
 
 .pending[hidden] { display: none; }
 
@@ -360,6 +369,9 @@ button:disabled { opacity: .6; cursor: default; }
 .invoice-client { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .invoice-meta { color: var(--ink-3); font-size: 14px; }
 .invoice-amount { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* settled rows step back so the ones still owing stand out */
+.is-paid .invoice-client, .is-paid .invoice-amount { font-weight: 500; color: var(--ink-2); }
 
 .pill {
   font-size: 12px;

@@ -27,8 +27,14 @@ export function quickScreen(app: App): { el: HTMLElement; update: (s: Snapshot) 
   const lineList = h('div', { class: 'stack' });
   const notes = h('textarea', { id: 'notes', rows: 3, maxlength: 2000 });
   const preview = h('div', { class: 'preview' });
-  const error = h('p', { class: 'error', role: 'alert' });
-  const newName = h('input', { id: 'new-name', type: 'text', autocomplete: 'off', maxlength: 200 });
+  const error = h('p', { id: 'quick-error', class: 'error', role: 'alert' });
+  const newName = h('input', {
+    id: 'new-name',
+    type: 'text',
+    autocomplete: 'off',
+    maxlength: 200,
+    oninput: () => clearInvalid(newName),
+  });
   const newEmail = h('input', { id: 'new-email', type: 'email', autocomplete: 'off', inputmode: 'email' });
 
   function renderClient() {
@@ -61,6 +67,7 @@ export function quickScreen(app: App): { el: HTMLElement; update: (s: Snapshot) 
 
     const clients = snapshot?.clients ?? [];
     const search = h('input', {
+      id: 'client-search',
       type: 'search',
       placeholder: clients.length ? 'Search clients' : 'No clients synced yet',
       'aria-label': 'Search clients',
@@ -88,7 +95,10 @@ export function quickScreen(app: App): { el: HTMLElement; update: (s: Snapshot) 
         ),
       );
     };
-    search.addEventListener('input', showResults);
+    search.addEventListener('input', () => {
+      clearInvalid(search);
+      showResults();
+    });
     showResults();
     replace(
       clientBox,
@@ -104,7 +114,8 @@ export function quickScreen(app: App): { el: HTMLElement; update: (s: Snapshot) 
             setChoice({ kind: 'new' });
           },
         },
-        '+ New client',
+        h('span', { 'aria-hidden': 'true' }, '+'),
+        'New client',
       ),
     );
   }
@@ -116,14 +127,23 @@ export function quickScreen(app: App): { el: HTMLElement; update: (s: Snapshot) 
 
   function addLine() {
     const n = nextLineId++;
-    const description = h('input', { id: `desc-${n}`, type: 'text', maxlength: 500, placeholder: 'Call-out' });
+    const description = h('input', {
+      id: `desc-${n}`,
+      type: 'text',
+      maxlength: 500,
+      placeholder: 'Call-out',
+      oninput: () => clearInvalid(description),
+    });
     const quantity = h('input', {
       id: `qty-${n}`,
       type: 'text',
       inputmode: 'decimal',
       value: '1',
       class: 'num',
-      oninput: renderPreview,
+      oninput: () => {
+        clearInvalid(quantity);
+        renderPreview();
+      },
     });
     const price = h('input', {
       id: `price-${n}`,
@@ -131,7 +151,10 @@ export function quickScreen(app: App): { el: HTMLElement; update: (s: Snapshot) 
       inputmode: 'decimal',
       placeholder: '0.00',
       class: 'num',
-      oninput: renderPreview,
+      oninput: () => {
+        clearInvalid(price);
+        renderPreview();
+      },
     });
     const amount = h('span', { class: 'line-amount' });
     const inputs: LineInputs = { row: h('div'), description, quantity, price, amount };
@@ -175,17 +198,34 @@ export function quickScreen(app: App): { el: HTMLElement; update: (s: Snapshot) 
     return !line.description.value.trim() && !line.price.value.trim();
   }
 
-  function readLines(): { lines: DraftLine[]; problem: string } {
+  function readLines(): { lines: DraftLine[]; problem: string; field?: HTMLInputElement } {
     const out: DraftLine[] = [];
     for (const [i, line] of lines.entries()) {
       if (isBlank(line)) continue;
       const quantity = parseQuantity(line.quantity.value);
       const unit = parseCents(line.price.value || '0');
-      if (quantity === null) return { lines: out, problem: `Line ${i + 1}: the quantity needs to be a number above 0.` };
-      if (unit === null) return { lines: out, problem: `Line ${i + 1}: the price needs to be an amount like 120 or 49.50.` };
+      if (quantity === null) {
+        return { lines: out, problem: `Line ${i + 1}: the quantity needs to be a number above 0.`, field: line.quantity };
+      }
+      if (unit === null) {
+        return { lines: out, problem: `Line ${i + 1}: the price needs to be an amount like 120 or 49.50.`, field: line.price };
+      }
       out.push({ description: line.description.value, quantity, unit_cents: unit });
     }
-    return { lines: out, problem: out.length ? '' : 'Add at least one line.' };
+    return { lines: out, problem: out.length ? '' : 'Add at least one line.', field: out.length ? undefined : lines[0]?.description };
+  }
+
+  // ties the field to the message so screen readers read why it was refused
+  function markInvalid(field: HTMLInputElement, problem: string) {
+    error.textContent = problem;
+    field.setAttribute('aria-invalid', 'true');
+    field.setAttribute('aria-describedby', error.id);
+    field.focus();
+  }
+
+  function clearInvalid(field: HTMLInputElement) {
+    field.removeAttribute('aria-invalid');
+    field.removeAttribute('aria-describedby');
   }
 
   function renderPreview() {
@@ -234,14 +274,18 @@ export function quickScreen(app: App): { el: HTMLElement; update: (s: Snapshot) 
 
   async function onSubmit(e: Event) {
     e.preventDefault();
+    for (const field of root.querySelectorAll<HTMLInputElement>('[aria-invalid]')) clearInvalid(field);
     const client = readClient();
     if (typeof client === 'string') {
-      error.textContent = client;
+      const field = choice.kind === 'new' ? newName : clientBox.querySelector<HTMLInputElement>('#client-search');
+      if (field) markInvalid(field, client);
+      else error.textContent = client;
       return;
     }
     const read = readLines();
     if (read.problem) {
-      error.textContent = read.problem;
+      if (read.field) markInvalid(read.field, read.problem);
+      else error.textContent = read.problem;
       return;
     }
     error.textContent = '';
@@ -282,6 +326,7 @@ export function quickScreen(app: App): { el: HTMLElement; update: (s: Snapshot) 
     choice = { kind: 'none' };
     lines = [];
     newName.value = '';
+    clearInvalid(newName);
     newEmail.value = '';
     notes.value = '';
     error.textContent = '';
@@ -298,7 +343,7 @@ export function quickScreen(app: App): { el: HTMLElement; update: (s: Snapshot) 
         clientBox,
         h('h2', null, 'Lines'),
         lineList,
-        h('button', { type: 'button', class: 'secondary', onclick: addLine }, '+ Add line'),
+        h('button', { type: 'button', class: 'secondary', onclick: addLine }, h('span', { 'aria-hidden': 'true' }, '+'), 'Add line'),
         h('label', { for: 'notes' }, 'Notes ', h('span', { class: 'muted' }, '(optional)')),
         notes,
         preview,

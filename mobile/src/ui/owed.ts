@@ -47,6 +47,9 @@ export function owedScreen(app: App, onSnapshot: (s: Snapshot) => void): { el: H
 
     const totals = totalsByCurrency(snapshot.invoices, home);
     const invoices = sortInvoices(snapshot.invoices);
+    // paid ones get their own group so they don't read as money still owed
+    const unpaid = invoices.filter((i) => i.status !== 'Paid');
+    const paid = invoices.filter((i) => i.status === 'Paid');
     replace(
       body,
       totals.map((t) =>
@@ -62,9 +65,11 @@ export function owedScreen(app: App, onSnapshot: (s: Snapshot) => void): { el: H
           ),
         ),
       ),
-      invoices.length === 0
+      unpaid.length === 0
         ? h('div', { class: 'card empty' }, h('p', null, 'No one owes you anything right now.'))
-        : h('ul', { class: 'invoice-list' }, invoices.map(invoiceRow)),
+        : h('ul', { class: 'invoice-list' }, unpaid.map(invoiceRow)),
+      paid.length > 0 ? h('h2', null, 'Recently paid') : null,
+      paid.length > 0 ? h('ul', { class: 'invoice-list is-paid' }, paid.map(invoiceRow)) : null,
     );
   }
 

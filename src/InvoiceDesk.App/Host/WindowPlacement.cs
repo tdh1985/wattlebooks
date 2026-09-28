@@ -10,6 +10,10 @@ public static class WindowPlacement
 {
     public static void Restore(Window window, AppPrefs prefs)
     {
+        // a first run on a small screen still opens fully on it
+        var work = SystemParameters.WorkArea;
+        window.Width = Math.Min(window.Width, work.Width * 0.92);
+        window.Height = Math.Min(window.Height, work.Height * 0.92);
         if (prefs is { Left: { } left, Top: { } top, Width: { } width, Height: { } height } && FitsOnScreen(left, top, width, height))
         {
             window.WindowStartupLocation = WindowStartupLocation.Manual;

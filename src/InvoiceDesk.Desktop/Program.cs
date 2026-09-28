@@ -141,10 +141,8 @@ static class Program
             .SetTitle(Title)
             .SetIconFile(IconFile(paths))
             .SetUseOsDefaultLocation(true)
-            .SetMinSize(960, 640)
-            .SetWidth((int)(prefs.Current.Width ?? 1360))
-            .SetHeight((int)(prefs.Current.Height ?? 860))
-            .SetMaximized(prefs.Current.Maximized);
+            .SetMaximized(prefs.Current.Maximized)
+            .RegisterWindowCreatedHandler((_, _) => FitWindow(app.MainWindow, prefs.Current));
 #if !DEBUG
         // browser keys and devtools would make this feel like a web page
         app.MainWindow.SetDevToolsEnabled(false);
@@ -184,13 +182,38 @@ static class Program
         return 0;
     }
 
+    // big enough for the side menu and a full width dashboard
+    const int OpenWidth = 1520;
+    const int OpenHeight = 960;
+    const int SmallestWidth = 960;
+    const int SmallestHeight = 640;
+
+    // on windows photino works in device pixels, so scaled screens need this
+    static double Scale(Photino.NET.PhotinoWindow window) =>
+        OperatingSystem.IsWindows() && window.ScreenDpi > 0 ? window.ScreenDpi / 96.0 : 1;
+
+    // sizes are kept in screen points so they mean the same at any scaling
+    static void FitWindow(Photino.NET.PhotinoWindow window, AppPrefs prefs)
+    {
+        var scale = Scale(window);
+        var work = window.MainMonitor.WorkArea;
+        var roomW = work.Width / scale * 0.92;
+        var roomH = work.Height / scale * 0.92;
+        var width = Math.Min(prefs.Width ?? OpenWidth, roomW);
+        var height = Math.Min(prefs.Height ?? OpenHeight, roomH);
+        window.SetMinSize((int)(Math.Min(SmallestWidth, roomW) * scale), (int)(Math.Min(SmallestHeight, roomH) * scale));
+        window.SetSize((int)(width * scale), (int)(height * scale));
+        if (prefs.Width is null) window.Center();
+    }
+
     // the position is left to the os so a missing monitor can't hide the window
     static void SavePlacement(Photino.NET.PhotinoWindow window, AppPrefs prefs)
     {
         prefs.Maximized = window.Maximized;
         if (window.Maximized || window.Minimized) return;
-        prefs.Width = window.Width;
-        prefs.Height = window.Height;
+        var scale = Scale(window);
+        prefs.Width = Math.Round(window.Width / scale);
+        prefs.Height = Math.Round(window.Height / scale);
     }
 
     // photino wants the icon as a file on disk

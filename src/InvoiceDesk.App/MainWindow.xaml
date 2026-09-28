@@ -6,7 +6,7 @@
         xmlns:host="clr-namespace:InvoiceDesk.App.Host"
         xmlns:ui="clr-namespace:InvoiceDesk.Ui;assembly=InvoiceDesk.Ui"
         Title="InvoiceDesk"
-        Width="1360" Height="860" MinWidth="1024" MinHeight="660"
+        Width="1520" Height="960" MinWidth="1024" MinHeight="660"
         WindowStartupLocation="CenterScreen">
     <Window.TaskbarItemInfo>
         <TaskbarItemInfo x:Name="Taskbar" />

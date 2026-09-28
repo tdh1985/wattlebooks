@@ -1048,17 +1048,14 @@ a.ledger-label:hover { color: var(--accent-text); }
     width: 8px;
     background: radial-gradient(circle, var(--desk) 2.2px, transparent 2.6px) 0 3px / 8px 9px repeat-y;
 }
-.table.quotes td.stub { background: var(--canary); }
 .table tr.link:hover td.stub { background: var(--paper-3); }
-.table.quotes tr.link:hover td.stub { background: color-mix(in oklab, var(--canary) 85%, var(--canary-ink)); }
 .stub .primary { color: var(--sent); font: 700 15px/1.1 var(--font-display); letter-spacing: .01em; }
-.table.quotes .stub .primary { color: var(--canary-ink); }
 .table tr.settled td:not(.stub) { color: var(--ink-3); }
 
 /* the ticket rail runs four weeks either side of today */
 .rail-scroll { overflow: auto hidden; margin: 0 -6px 30px; padding: 0 6px; }
 .ticket-rail { position: relative; min-width: 760px; height: 256px; }
-.rail-late { position: absolute; top: 40px; bottom: 0; left: 0; right: 50%; border-radius: 0 0 0 10px; background: linear-gradient(180deg, var(--stamp-soft), transparent 85%); }
+.rail-late { position: absolute; top: 40px; bottom: 0; left: 0; right: 50%; }
 .rail-late span, .rail-soon { position: absolute; bottom: 8px; font-size: 12.5px; }
 .rail-late span { left: 10px; color: var(--stamp); font-weight: 600; }
 .rail-soon { right: 10px; color: var(--ink-3); }

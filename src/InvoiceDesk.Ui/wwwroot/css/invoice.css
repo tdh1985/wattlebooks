@@ -127,9 +127,6 @@
 .doc-total .n { font-size: 18px; font-weight: 600; }
 .doc-balance { font-weight: 600; color: var(--doc-ink); }
 
-/* on screen a quote is the canary duplicate, the pdf stays white */
-.sheet .doc-quote { background: #FFF6C7; }
-
 /* a rubber stamp over the totals once the money is in */
 .doc-stamp {
     position: absolute;

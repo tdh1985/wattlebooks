@@ -9,6 +9,8 @@ title = 'InvoiceDesk: free invoice app for sole traders, GST and BAS'
 og_alt = 'InvoiceDesk: tax invoices, GST and your BAS with no monthly fee, beside the invoice editor'
 # bing and other indexnow engines fetch this file to trust our pings
 indexnow_key = 'd7f1989c9676aa3d101197f4be473fc2'
+# search console looks for this file to prove we own the site
+google_file = 'google071558514d1d4664.html'
 today = datetime.date.today().isoformat()
 version = re.search(r'<Version>([^<]+)', (here.parent / 'Directory.Build.props').read_text()).group(1)
 img = lambda name: url + 'img/' + name
@@ -113,6 +115,7 @@ pictures = ''.join(f'<image:image><image:loc>{img(n)}</image:loc></image:image>\
 (out / 'llms.txt').write_text((site / 'llms.txt').read_text(encoding='utf-8').replace('{version}', version),
                               encoding='utf-8', newline='\n')
 (out / f'{indexnow_key}.txt').write_text(indexnow_key, encoding='utf-8')
+(out / google_file).write_text(f'google-site-verification: {google_file}', encoding='utf-8')
 
 (out / 'img').mkdir(exist_ok=True)
 for f in (site / 'img').iterdir():

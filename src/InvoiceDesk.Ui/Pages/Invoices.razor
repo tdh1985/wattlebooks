@@ -133,10 +133,10 @@
         }
         else
         {
-        <table class="table">
+        <table class="table @(_quotes ? "quotes" : null)">
             <thead>
                 <tr>
-                    <th>@(_quotes ? "Quote" : "Invoice")</th>
+                    <th class="stub">@(_quotes ? "Quote" : "Invoice")</th>
                     <th>Client</th>
                     <th>Issued</th>
                     <th>@(_quotes ? "Valid until" : "Due")</th>
@@ -151,10 +151,10 @@
             <tbody>
                 @foreach (var s in Rows)
                 {
-                    <tr class="link @(s.Status == DisplayStatus.Void ? "strike" : null)" tabindex="0" @key="s.Id"
+                    <tr class="link @(s.Status switch { DisplayStatus.Void => "strike", DisplayStatus.Paid => "settled", _ => null })" tabindex="0" @key="s.Id"
                         @onclick="() => Open(s)" @onkeydown="e => OnRowKey(e, s)">
-                        <td>
-                            <span class="primary num">@s.Number</span>
+                        <td class="stub">
+                            <span class="primary">@s.Number</span>
                             @if (!_quotes)
                             {
                                 <span class="secondary">@(s.IsTaxInvoice ? Format.Country.TaxedSubject : "Invoice")</span>

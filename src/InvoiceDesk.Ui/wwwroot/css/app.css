@@ -1026,7 +1026,34 @@ a.ledger-label:hover { color: var(--accent-text); }
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='60'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2.2 1.9'/%3E%3C/filter%3E%3Crect width='120' height='60' filter='url(%23n)'/%3E%3C/svg%3E");
     pointer-events: none;
 }
-.stamp-sent { --c: var(--sent); --stamp-r: 2deg; }
+.stamp-sent, .stamp-partpaid { --c: var(--sent); --stamp-r: 2deg; }
+.stamp-partpaid { --stamp-r: -1.5deg; }
+.stamp-paid, .stamp-accepted { --c: var(--paid); --stamp-r: -4deg; }
+.stamp-overdue, .stamp-declined { --stamp-r: -2deg; }
+.stamp-void { --c: var(--ink-3); --stamp-r: -5deg; }
+.stamp-expired { --c: var(--ink-2); --stamp-r: 1deg; }
+/* a draft hasn't been stamped yet, only pencilled in */
+.stamp-draft { --c: var(--ink-3); --stamp-r: 0deg; border-style: dashed; box-shadow: none; mask-image: none; opacity: 1; }
+.table .stamp { font-size: 12px; }
+
+/* the invoice number on a tear-off stub, perforated where it would rip */
+.table td.stub { position: relative; padding-left: 12px; background: var(--paper-2); }
+.table th.stub { padding-left: 12px; }
+.table td.stub::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: -4px;
+    width: 8px;
+    background: radial-gradient(circle, var(--desk) 2.2px, transparent 2.6px) 0 3px / 8px 9px repeat-y;
+}
+.table.quotes td.stub { background: var(--canary); }
+.table tr.link:hover td.stub { background: var(--paper-3); }
+.table.quotes tr.link:hover td.stub { background: color-mix(in oklab, var(--canary) 85%, var(--canary-ink)); }
+.stub .primary { color: var(--sent); font: 700 15px/1.1 var(--font-display); letter-spacing: .01em; }
+.table.quotes .stub .primary { color: var(--canary-ink); }
+.table tr.settled td:not(.stub) { color: var(--ink-3); }
 
 /* the ticket rail runs four weeks either side of today */
 .rail-scroll { overflow: auto hidden; margin: 0 -6px 30px; padding: 0 6px; }

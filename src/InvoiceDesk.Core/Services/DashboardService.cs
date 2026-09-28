@@ -60,7 +60,11 @@ public sealed class DashboardService(IDbContextFactory<AppDbContext> factory, Ti
             Months: months,
             Overdue: overdue,
             Recent: Recent(invoices, txs),
-            OtherOutstanding: other);
+            OtherOutstanding: other,
+            Open: open.OrderBy(s => s.DueDate).ThenBy(s => s.Number, StringComparer.Ordinal).ToList(),
+            MonthEntries: txs.Where(t => month.Contains(t.Date)).OrderBy(t => t.Date).ThenBy(t => t.Id)
+                .Select(t => new CashEntry(t.Id, t.Date, t.Direction, t.Party.Length > 0 ? t.Party : t.Description, t.Invoice?.Number ?? "", t.AmountCents))
+                .ToList());
     }
 
     static List<ActivityItem> Recent(List<Invoice> invoices, List<Transaction> txs)

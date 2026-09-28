@@ -62,12 +62,15 @@ public enum ActivityKind { InvoiceCreated, InvoiceSent, PaymentReceived, Income,
 // empty currency means the home currency, since most activity is home money
 public sealed record ActivityItem(DateTime At, ActivityKind Kind, int EntityId, string Title, string Detail, long AmountCents, string Currency = "");
 
+// one line of this month's cash book on the dashboard
+public sealed record CashEntry(int Id, DateOnly Date, Direction Direction, string Label, string InvoiceNumber, long AmountCents);
+
 public sealed record DashboardData(
     long OutstandingCents, int OutstandingCount, long OverdueCents, int OverdueCount,
     long ReceivedMonthCents, long SpentMonthCents, long ProfitYearCents,
     long TaxCollectedPeriodCents, long TaxPaidPeriodCents, string YearLabel, string PeriodLabel,
     IReadOnlyList<MonthBar> Months, IReadOnlyList<InvoiceSummary> Overdue, IReadOnlyList<ActivityItem> Recent,
-    IReadOnlyList<CurrencyAmount> OtherOutstanding)
+    IReadOnlyList<CurrencyAmount> OtherOutstanding, IReadOnlyList<InvoiceSummary> Open, IReadOnlyList<CashEntry> MonthEntries)
 {
     public long TaxNetPeriodCents => TaxCollectedPeriodCents - TaxPaidPeriodCents;
 }

@@ -1,0 +1,113 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@* unpaid invoices hang like order tickets at their due date, today in the middle *@
+<div class="rail-scroll">
+    <div class="ticket-rail">
+        <div class="rail-late" aria-hidden="true"><span>Late</span></div>
+        <span class="rail-soon" aria-hidden="true">Coming up</span>
+        <div class="rail-scale" aria-hidden="true">
+            @foreach (var week in Weeks)
+            {
+                <span style="left: @F(X(week))%">@Format.DateShort(Today.AddDays(week))</span>
+            }
+        </div>
+        <div class="rail-today" aria-hidden="true"><b>Today</b></div>
+        <div class="rail-bar" aria-hidden="true"></div>
+
+        @if (Open.Count == 0)
+        {
+            <p class="rail-empty">Nothing waiting on clients. Invoices you send hang here until they're paid.</p>
+        }
+        else
+        {
+            <ol class="tickets" aria-label="Unpaid invoices by due date">
+                @foreach (var pile in Piles())
+                {
+                    var s = pile.Front;
+                    var late = Today.DayNumber - s.DueDate.DayNumber;
+                    <li @key="s.Id" class="ticket @(pile.Rest.Count switch { 0 => null, 1 => "pile-2", _ => "pile-3" })"
+                        style="--x: @F(pile.X)%; --r: @F(Tilt(s.Id))deg">
+                        <span class="ticket-clip" aria-hidden="true"></span>
+                        <div class="ticket-slip">
+                            <a class="ticket-no" href="invoices/@s.Id">@s.Number</a>
+                            <span class="ticket-who">@s.ClientName</span>
+                            <span class="ticket-amt num">@Format.Money(s.BalanceCents, s.Currency)</span>
+                            @if (s.PaidCents > 0)
+                            {
+                                <span class="ticket-note">@Format.Money(s.PaidCents, s.Currency) of @Format.Money(s.TotalCents, s.Currency) paid</span>
+                            }
+                            <span class="ticket-note">@DueNote(s)</span>
+                            @if (late == 0)
+                            {
+                                <span class="stamp stamp-sent">Due today</span>
+                            }
+                            @if (late > 0)
+                            {
+                                <span class="ticket-late">
+                                    <span class="stamp">@late @(late == 1 ? "day" : "days") late</span>
+                                    <button type="button" class="btn btn-sm btn-icon ticket-remind" aria-label="Remind @s.ClientName" title="Email @s.ClientName a reminder"
+                                            @onclick="() => OnRemind.InvokeAsync(s.Id)"><Icon Name="bell" Size="14" /></button>
+                                </span>
+                            }
+                            @if (pile.Rest.Count > 0)
+                            {
+                                <a class="ticket-more" href="invoices" title="@pile.Rest.Count more close by, @Format.MoneyList(Totals(pile)) in all">
+                                    +@pile.Rest.Count more, @Format.MoneyList(Totals(pile))
+                                </a>
+                            }
+                        </div>
+                    </li>
+                }
+            </ol>
+        }
+    </div>
+</div>
+
+@code {
+    // four weeks either side of today fits a month of terms on one rail
+    const int Span = 28;
+    // a ticket is about this share of the narrowest rail, closer ones share a pile
+    const double TicketShare = 19;
+    const double Edge = 9;
+
+    [Parameter, EditorRequired] public IReadOnlyList<InvoiceSummary> Open { get; set; } = [];
+    [Parameter] public IReadOnlyDictionary<int, DateOnly> Expected { get; set; } = new Dictionary<int, DateOnly>();
+    [Parameter, EditorRequired] public DateOnly Today { get; set; }
+    [Parameter] public EventCallback<int> OnRemind { get; set; }
+
+    sealed record Pile(double X, InvoiceSummary Front, List<InvoiceSummary> Rest);
+
+    static IEnumerable<int> Weeks => [-21, -14, -7, 7, 14, 21];
+
+    static double X(int days) => 50 + Math.Clamp(days, -Span, Span) / (double)Span * 50;
+
+    // the most overdue ticket of a pile sits in front
+    List<Pile> Piles()
+    {
+        var piles = new List<Pile>();
+        foreach (var s in Open.OrderBy(s => s.DueDate).ThenBy(s => s.Number, StringComparer.Ordinal))
+        {
+            var x = Math.Clamp(X(s.DueDate.DayNumber - Today.DayNumber), Edge, 100 - Edge);
+            if (piles.Count > 0 && x - piles[^1].X < TicketShare)
+                piles[^1].Rest.Add(s);
+            else
+                piles.Add(new Pile(x, s, []));
+        }
+        return piles;
+    }
+
+    static IEnumerable<CurrencyAmount> Totals(Pile pile) =>
+        pile.Rest.Prepend(pile.Front).GroupBy(s => s.Currency).Select(g => new CurrencyAmount(g.Key, g.Sum(s => s.BalanceCents)));
+
+    string DueNote(InvoiceSummary s)
+    {
+        var due = $"Due {Format.DateShort(s.DueDate)}";
+        return Expected.TryGetValue(s.Id, out var expected) && expected > s.DueDate && s.DueDate >= Today
+            ? $"{due}, likely {Format.DateShort(expected)}"
+            : due;
+    }
+
+    // a slight hang that stays put between renders
+    static double Tilt(int id) => (id * 37 % 7 - 3) * 0.7;
+
+    static string F(double v) => v.ToString("0.##", CultureInfo.InvariantCulture);
+}

@@ -10,12 +10,37 @@
 @inject TimeProvider Clock
 
 <div class="page">
-    <PageHeader Title="@Greeting">
-        <Subtitle>@Clock.Today().ToString("dddd d MMMM yyyy", CultureInfo.InvariantCulture)</Subtitle>
-    </PageHeader>
-
     @if (_data is not null && _profile is not null)
     {
+        <header class="owed-head">
+            <div class="owed-title">
+                <p class="owed-date">@Clock.Today().ToString("dddd d MMMM yyyy", CultureInfo.InvariantCulture)</p>
+                <h1 tabindex="-1">
+                    @if (_data.OutstandingCount > 0)
+                    {
+                        <span class="owed-lead">Clients owe you</span>
+                        <span class="owed-figure num">@Format.Money(_data.OutstandingCents)</span>
+                    }
+                    else
+                    {
+                        <span class="owed-lead">@(_invoiceCount == 0 ? "Nothing sent yet" : "Nothing waiting on clients")</span>
+                    }
+                </h1>
+                @if (_data.OverdueCount > 0)
+                {
+                    <span class="owed-late">@Format.Money(_data.OverdueCents) of it is late</span>
+                }
+                @if (_data.OtherOutstanding.Count > 0)
+                {
+                    <span class="small muted">plus @Format.MoneyList(_data.OtherOutstanding) in other currencies</span>
+                }
+            </div>
+            <div class="page-actions">
+                <a class="btn" href="money?new=out"><Icon Name="receipt" Size="16" /> Add expense</a>
+                <a class="btn btn-primary" href="invoices/new"><Icon Name="plus" Size="16" /> New invoice</a>
+            </div>
+        </header>
+
         @if (!SetupDone)
         {
             <section class="checklist" aria-label="Getting started">
@@ -55,156 +80,43 @@
             }
         }
 
-        <section class="hero">
-            <div>
-                @if (_data.OutstandingCount > 0)
-                {
-                    <p class="hero-lead">Clients owe you</p>
-                    <p class="hero-figure">@Format.Money(_data.OutstandingCents)</p>
-                    <p class="hero-sub">
-                        <span>across @_data.OutstandingCount invoice@(_data.OutstandingCount == 1 ? "" : "s").</span>
-                        @if (_data.OverdueCount > 0)
-                        {
-                            <a class="danger-text" href="invoices"><Icon Name="alert" Size="15" /> @Format.Money(_data.OverdueCents) overdue</a>
-                        }
-                        else
-                        {
-                            <span>Nothing is overdue.</span>
-                        }
-                    </p>
-                }
-                else
-                {
-                    <p class="hero-lead">@(_invoiceCount == 0 ? "Nothing sent yet" : "Nothing waiting on clients")</p>
-                    <p class="hero-figure">@Format.Money(0)</p>
-                    <p class="hero-sub">@(_invoiceCount == 0 ? "Invoices you send and haven't been paid for will add up here." : "Every invoice you've sent has been paid.")</p>
-                }
-                @if (_data.OtherOutstanding.Count > 0)
-                {
-                    <div class="small muted">plus @Format.MoneyList(_data.OtherOutstanding) in other currencies</div>
-                }
-            </div>
-            <div class="page-actions">
-                <a class="btn" href="money?new=out"><Icon Name="receipt" Size="16" /> Add expense</a>
-                <a class="btn btn-primary" href="invoices/new"><Icon Name="plus" Size="16" /> New invoice</a>
-            </div>
-        </section>
-
-        <div class="ledger-strip">
-            <div class="ledger-cell">
-                <div class="ledger-label">Received this month</div>
-                <div class="ledger-value">@Format.Money(_data.ReceivedMonthCents)</div>
-                <div class="ledger-note">Including @Format.Country.TaxWord</div>
-            </div>
-            <div class="ledger-cell">
-                <div class="ledger-label">Spent this month</div>
-                <div class="ledger-value">@Format.Money(_data.SpentMonthCents)</div>
-                <div class="ledger-note">Including @Format.Country.TaxWord</div>
-            </div>
-            <div class="ledger-cell" title="Profit for this @FinancialPeriods.YearNoun(Countries.For(_profile!.Country))">
-                <div class="ledger-label">Profit, @_data.YearLabel</div>
-                <div class="ledger-value">@Format.Money(_data.ProfitYearCents)</div>
-                <div class="ledger-note">Money in less money out, excluding @Format.Country.TaxWord</div>
-            </div>
-            <div class="ledger-cell">
-                <a class="ledger-label" href="reports" title="Open the @Format.Country.ReturnTitle">@Format.Country.TaxName for @_data.PeriodLabel <Icon Name="chevron-down" Size="13" Class="rot-270" /></a>
-                @if (Format.Country.ExpensesCarryTax)
-                {
-                    <div class="ledger-value">@Format.Money(Math.Abs(_data.TaxNetPeriodCents))</div>
-                    <div class="ledger-note">
-                        @(_data.TaxNetPeriodCents >= 0 ? "To pay" : "Refund due"): collected @Format.Money(_data.TaxCollectedPeriodCents), paid @Format.Money(_data.TaxPaidPeriodCents)
-                    </div>
-                }
-                else
-                {
-                    <div class="ledger-value">@Format.Money(_data.TaxCollectedPeriodCents)</div>
-                    <div class="ledger-note">Collected</div>
-                }
-            </div>
-        </div>
+        <TicketRail Open="_data.Open" Expected="_expected" Today="Clock.Today()" OnRemind="id => _remindId = id" />
 
         <div class="dash-grid">
             <section>
                 <div class="section-head">
-                    <h2>Money in and out</h2>
-                    <span class="soft">Last 12 months</span>
+                    <h2>@Clock.Today().ToString("MMMM", CultureInfo.InvariantCulture) so far</h2>
+                    <a class="small" href="money">Money in &amp; out</a>
                 </div>
-                <BarChart Months="_data.Months" />
+                <CashBook Entries="_data.MonthEntries" InCents="_data.ReceivedMonthCents" OutCents="_data.SpentMonthCents" />
             </section>
 
             <div class="col gap-32">
-                @if (_forecast is { Items.Count: > 0 } forecast)
-                {
-                    <section>
-                        <div class="section-head">
-                            <h2>Coming in</h2>
-                            <span class="soft">Next @forecast.Days days</span>
-                        </div>
-                        @{
-                            var overdueCents = forecast.HomeOverdueCents;
-                            var upcoming = forecast.Items.Where(e => e.Invoice.Status != DisplayStatus.Overdue).ToList();
-                        }
-                        <div class="forecast">
-                            <span class="forecast-figure num">@Format.Money(forecast.TotalCents)</span>
-                            <span class="small muted">
-                                expected from @forecast.HomeCount invoice@(forecast.HomeCount == 1 ? "" : "s"), allowing for how late each client usually pays@(overdueCents > 0 ? $". {Format.Money(overdueCents)} of it is already overdue." : ".")
-                            </span>
-                        </div>
-                        @if (forecast.Other.Count > 0)
-                        {
-                            <div class="small muted">plus @Format.MoneyList(forecast.Other) in other currencies</div>
-                        }
-                        @* overdue ones are listed just below, so only the rest go here *@
-                        @if (upcoming.Count > 0)
-                        {
-                            <ul class="list-rows">
-                                @foreach (var e in upcoming.Take(3))
-                                {
-                                    <li @key="e.Invoice.Id">
-                                        <a href="invoices/@e.Invoice.Id">
-                                            <span class="list-main">
-                                                <span class="list-title">@e.Invoice.ClientName</span>
-                                                <span class="list-sub">@e.Invoice.Number, @ExpectedLabel(e)</span>
-                                            </span>
-                                            <span class="num">@Format.Money(e.Invoice.BalanceCents, e.Invoice.Currency)</span>
-                                        </a>
-                                    </li>
-                                }
-                            </ul>
-                        }
-                    </section>
-                }
-
                 <section>
-                    <div class="section-head">
-                        <h2>Overdue</h2>
-                        @if (_data.Overdue.Count > 0)
-                        {
-                            <a class="small" href="invoices">See all invoices</a>
-                        }
-                    </div>
-                    @if (_data.Overdue.Count == 0)
-                    {
-                        <p class="soft small">No overdue invoices. Anything past its due date shows up here.</p>
-                    }
-                    else
-                    {
-                        <ul class="list-rows">
-                            @foreach (var s in _data.Overdue.Take(5))
-                            {
-                                <li @key="s.Id" class="with-action">
-                                    <a href="invoices/@s.Id">
-                                        <span class="list-main">
-                                            <span class="list-title">@s.ClientName</span>
-                                            <span class="list-sub danger-text">@s.Number, @Format.Due(s.DueDate, Clock.Today())</span>
-                                        </span>
-                                        <span class="num">@Format.Money(s.BalanceCents, s.Currency)</span>
-                                    </a>
-                                    <button type="button" class="btn btn-sm" title="Email @s.ClientName a reminder" @onclick="() => _remindId = s.Id"><Icon Name="bell" Size="14" /> Remind</button>
-                                </li>
-                            }
-                        </ul>
-                    }
+                    <div class="section-head"><h2>The year</h2><span class="soft">Last 12 months</span></div>
+                    <BarChart Months="_data.Months" />
+                    <dl class="year-figures">
+                        <div title="Profit for this @FinancialPeriods.YearNoun(Countries.For(_profile!.Country))">
+                            <dt>Profit, @_data.YearLabel<small>Money in less money out, excluding @Format.Country.TaxWord</small></dt>
+                            <dd class="num">@Format.Money(_data.ProfitYearCents)</dd>
+                        </div>
+                        <div>
+                            <dt>
+                                <a href="reports" title="Open the @Format.Country.ReturnTitle">@Format.Country.TaxName for @_data.PeriodLabel</a>
+                                @if (Format.Country.ExpensesCarryTax)
+                                {
+                                    <small>@(_data.TaxNetPeriodCents >= 0 ? "To set aside" : "Refund due"): collected @Format.Money(_data.TaxCollectedPeriodCents), paid @Format.Money(_data.TaxPaidPeriodCents)</small>
+                                }
+                                else
+                                {
+                                    <small>Collected</small>
+                                }
+                            </dt>
+                            <dd class="num @(Format.Country.ExpensesCarryTax && _data.TaxNetPeriodCents > 0 ? "danger-text" : null)">
+                                @Format.Money(Format.Country.ExpensesCarryTax ? Math.Abs(_data.TaxNetPeriodCents) : _data.TaxCollectedPeriodCents)
+                            </dd>
+                        </div>
+                    </dl>
                 </section>
 
                 <section>
@@ -216,7 +128,7 @@
                     else
                     {
                         <ul class="list-rows">
-                            @foreach (var item in _data.Recent)
+                            @foreach (var item in _data.Recent.Take(5))
                             {
                                 <li>
                                     <a href="@Href(item)">
@@ -245,20 +157,13 @@
 @code {
     int? _remindId;
     DashboardData? _data;
-    CashForecast? _forecast;
+    IReadOnlyDictionary<int, DateOnly> _expected = new Dictionary<int, DateOnly>();
     BusinessProfile? _profile;
     int _clientCount;
     int _invoiceCount;
 
     bool HasBusiness => _profile is not null && _profile.Name.Length > 0;
     bool SetupDone => HasBusiness && _clientCount > 0 && _invoiceCount > 0;
-
-    string Greeting => Clock.GetLocalNow().Hour switch
-    {
-        < 12 => "Good morning",
-        < 17 => "Good afternoon",
-        _ => "Good evening",
-    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -273,20 +178,9 @@
     {
         _profile = await Profiles.GetAsync();
         _data = await DashboardStore.GetAsync();
-        _forecast = await Insights.GetForecastAsync();
+        _expected = (await Insights.GetForecastAsync()).Items.ToDictionary(e => e.Invoice.Id, e => e.ExpectedDate);
         _clientCount = (await ClientStore.ListAsync()).Count;
         _invoiceCount = (await InvoiceStore.ListAsync()).Count;
-    }
-
-    string ExpectedLabel(ExpectedPayment e)
-    {
-        var days = e.ExpectedDate.DayNumber - Clock.Today().DayNumber;
-        return days switch
-        {
-            0 => "expected today",
-            1 => "expected tomorrow",
-            _ => $"expected {Format.DateShort(e.ExpectedDate)}",
-        };
     }
 
     static string Href(ActivityItem item) => item.Kind switch

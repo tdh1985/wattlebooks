@@ -1,0 +1,67 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@* this month written up on ruled ledger paper, totals double underlined *@
+<div class="cashbook">
+    <div class="cashbook-scroll">
+        <table>
+            <thead>
+                <tr><th class="cb-date">Date</th><th>Details</th><th class="cb-money">In</th><th class="cb-money">Out</th></tr>
+            </thead>
+            <tbody>
+                @if (Earlier > 0)
+                {
+                    <tr>
+                        <td class="cb-date"></td>
+                        <td colspan="3"><a class="cb-earlier" href="money">@Earlier earlier @(Earlier == 1 ? "entry" : "entries") this month</a></td>
+                    </tr>
+                }
+                @foreach (var e in Shown)
+                {
+                    <tr @key="e.Id">
+                        <td class="cb-date num">@Format.DateShort(e.Date)</td>
+                        <td class="cb-detail">
+                            <a href="money?open=@e.Id">@(e.Label.Length > 0 ? e.Label : e.Direction == Direction.In ? "Money in" : "Money out")</a>
+                            @if (e.InvoiceNumber.Length > 0)
+                            {
+                                <span class="cb-ref">@e.InvoiceNumber</span>
+                            }
+                        </td>
+                        <td class="cb-money cb-in">@(e.Direction == Direction.In ? Format.Amount(e.AmountCents) : null)</td>
+                        <td class="cb-money cb-out">@(e.Direction == Direction.Out ? Format.Amount(e.AmountCents) : null)</td>
+                    </tr>
+                }
+                @if (Entries.Count == 0)
+                {
+                    <tr><td class="cb-date"></td><td class="cb-quiet">Nothing in or out yet this month.</td><td class="cb-money"></td><td class="cb-money"></td></tr>
+                }
+                @for (var i = Math.Max(1, Shown.Count) + (Earlier > 0 ? 1 : 0); i < MinRows; i++)
+                {
+                    <tr aria-hidden="true"><td class="cb-date"></td><td></td><td class="cb-money"></td><td class="cb-money"></td></tr>
+                }
+                <tr class="cb-total">
+                    <td class="cb-date"></td>
+                    <td>Totals</td>
+                    <td class="cb-money"><span>@Format.Amount(InCents)</span></td>
+                    <td class="cb-money"><span>@Format.Amount(OutCents)</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="cb-net">
+        <span>@(InCents >= OutCents ? "Left over" : "Spent more than came in") this month, including @Format.Country.TaxWord</span>
+        <b class="num">@Format.Money(Math.Abs(InCents - OutCents))</b>
+    </div>
+</div>
+
+@code {
+    // a busy month would push the page down, so older lines fold away
+    const int MaxRows = 12;
+    // a short month still looks like a page of the book
+    const int MinRows = 6;
+
+    [Parameter, EditorRequired] public IReadOnlyList<CashEntry> Entries { get; set; } = [];
+    [Parameter, EditorRequired] public long InCents { get; set; }
+    [Parameter, EditorRequired] public long OutCents { get; set; }
+
+    int Earlier => Math.Max(0, Entries.Count - MaxRows);
+    IReadOnlyList<CashEntry> Shown => Entries.Skip(Earlier).ToList();
+}

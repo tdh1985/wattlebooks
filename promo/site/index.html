@@ -15,6 +15,8 @@
   --accent-soft: #E3EEE8;
   --amber: #E3A13A;
   --amber-ink: #3A2606;
+  --focus: var(--ink);
+  --stamp: #9A5B00;
   --shade: rgba(23, 32, 56, 0.10);
   --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
   --body: "Barlow", "Segoe UI", system-ui, sans-serif;
@@ -35,6 +37,8 @@
     --accent-soft: #17302A;
     --amber: #F0B64E;
     --amber-ink: #2A1B03;
+    --focus: var(--amber);
+    --stamp: var(--amber);
     --shade: rgba(0, 0, 0, 0.45);
     --logo-light: none;
     --logo-dark: block;
@@ -52,6 +56,8 @@
   --accent-soft: #17302A;
   --amber: #F0B64E;
   --amber-ink: #2A1B03;
+  --focus: var(--amber);
+  --stamp: var(--amber);
   --shade: rgba(0, 0, 0, 0.45);
   --logo-light: none;
   --logo-dark: block;
@@ -73,7 +79,10 @@ h2 { font-size: clamp(34px, 4.6vw, 54px); text-transform: uppercase; }
 h3 { font-size: 26px; text-transform: uppercase; letter-spacing: 0.02em; }
 p { margin: 0; }
 a { color: var(--accent); }
-a:focus-visible, .btn:focus-visible, summary:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; border-radius: 6px; }
+/* amber on light paper is only 2:1, so light mode rings in ink */
+a:focus-visible, .btn:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 6px; }
+.skip { position: absolute; left: 12px; top: -80px; z-index: 40; background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 6px; font-weight: 600; text-decoration: none; }
+.skip:focus-visible { top: 12px; outline-color: var(--accent); }
 .eyebrow { font: 600 14px/1 var(--body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
 .lede { font-size: 21px; color: var(--muted); max-width: 34em; }
 .shot { display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); box-shadow: 0 30px 60px -30px var(--shade), 0 2px 6px var(--shade); background: var(--surface); }
@@ -91,17 +100,20 @@ a:focus-visible, .btn:focus-visible, summary:focus-visible { outline: 3px solid 
 .btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 8px; font: 600 18px/1 var(--body); text-decoration: none; border: 2px solid transparent; }
 .btn.primary { background: var(--accent); color: var(--accent-ink); }
 .btn.primary:hover { filter: brightness(1.08); }
-.btn.ghost { border-color: var(--line); color: var(--ink); }
+.btn.ghost { border-color: var(--muted); color: var(--ink); }
 .btn.ghost:hover { border-color: var(--accent); }
 .btn svg { width: 20px; height: 20px; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px; }
 .fine { font-size: 15px; color: var(--muted); }
+.nowrap { white-space: nowrap; }
 
 /* hero */
 .hero { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 6fr); gap: 48px; align-items: center; padding-block: 40px 72px; }
 .hero-copy { display: grid; gap: 26px; }
 .hero h1 .dim { color: var(--accent); display: block; }
 .hero-visual { position: relative; }
+.hero-visual .shot { max-width: 626px; margin-inline: auto; }
+.phone-note { display: none; font-weight: 600; }
 
 /* the price, as a tax invoice */
 .bill-section { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 56px; align-items: center; padding-block: 72px; border-top: 1px solid var(--line); }
@@ -125,8 +137,8 @@ a:focus-visible, .btn:focus-visible, summary:focus-visible { outline: 3px solid 
 .bill .total td { border-top: 2px solid var(--ink); border-bottom: 0; padding-top: 12px; font-weight: 600; font-size: 18px; color: var(--ink); }
 .stamp {
   position: absolute; left: 44%; bottom: 20px; transform: rotate(-12deg);
-  font: 700 30px/1 var(--display); letter-spacing: 0.12em; color: var(--amber);
-  border: 3px solid var(--amber); border-radius: 6px; padding: 6px 12px 4px; opacity: 0.9;
+  font: 700 30px/1 var(--display); letter-spacing: 0.12em; color: var(--stamp);
+  border: 3px solid var(--stamp); border-radius: 6px; padding: 6px 12px 4px; opacity: 0.9;
 }
 
 /* features */
@@ -134,6 +146,10 @@ a:focus-visible, .btn:focus-visible, summary:focus-visible { outline: 3px solid 
 .feature.flip { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
 .feature.flip .feature-copy { order: 2; }
 .feature-copy { display: grid; gap: 18px; align-content: start; }
+.feature.wide { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+.feature.wide .shot { order: -1; }
+.feature.wide .feature-copy { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-rows: auto 1fr; column-gap: 56px; }
+.feature.wide .feature-copy h2 { grid-row: span 2; }
 .ticks { list-style: none; padding: 0; margin: 4px 0 0; display: grid; gap: 10px; }
 .ticks li { padding-left: 30px; position: relative; }
 .ticks li::before { content: ""; position: absolute; left: 2px; top: 0.5em; width: 14px; height: 8px; border-left: 3px solid var(--accent); border-bottom: 3px solid var(--accent); transform: rotate(-45deg); }
@@ -143,15 +159,15 @@ a:focus-visible, .btn:focus-visible, summary:focus-visible { outline: 3px solid 
 .bas b { display: block; font: 600 20px/1.1 var(--mono); color: var(--accent); }
 .bas span { font-size: 14px; color: var(--muted); line-height: 1.3; display: block; margin-top: 4px; }
 
-.phones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.phones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: start; border-radius: 22px; }
 .phones img { width: 100%; height: auto; border-radius: 22px; box-shadow: 0 24px 50px -26px var(--shade); border: 1px solid var(--line); }
 .phones img:nth-child(2) { margin-top: 36px; }
 
 /* also included */
 .more { padding-block: 72px; border-top: 1px solid var(--line); display: grid; gap: 36px; }
-.more-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 28px 32px; }
-.more-grid h3 { font-size: 22px; margin-bottom: 6px; }
-.more-grid p { font-size: 16px; color: var(--muted); line-height: 1.5; }
+.more-list { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 56px; }
+.more-list li { break-inside: avoid; padding-block: 14px; border-bottom: 1px solid var(--line); color: var(--muted); }
+.more-list strong { display: block; color: var(--ink); font-weight: 600; }
 
 /* questions */
 .faq { padding-block: 72px; border-top: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 56px; }
@@ -177,18 +193,7 @@ a:focus-visible, .btn:focus-visible, summary:focus-visible { outline: 3px solid 
 
 /* sticky frosted header */
 .top-bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; margin-inline: -20px; padding-inline: 20px; background: color-mix(in oklab, var(--paper) 82%, transparent); backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4); border-bottom: 1px solid transparent; }
-.top .logo { transform-origin: left center; }
 
-/* reading progress along the top */
-.progress { position: fixed; inset: 0 0 auto 0; height: 3px; background: var(--amber); transform: scaleX(0); transform-origin: 0 50%; z-index: 30; pointer-events: none; }
-
-/* back to top, shown once you've scrolled */
-html { container-type: scroll-state; }
-.to-top { position: fixed; right: 20px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 25; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: var(--ink); color: var(--paper); text-decoration: none; box-shadow: 0 10px 30px -10px var(--shade); visibility: hidden; opacity: 0; translate: 0 16px; transition: visibility .3s, opacity .3s ease, translate .3s ease, background .2s; }
-.to-top:hover { background: var(--accent); color: var(--accent-ink); }
-.to-top svg { width: 22px; height: 22px; }
-@container scroll-state(scrollable: top) { .to-top { visibility: visible; opacity: 1; translate: 0 0; } }
-.scrolled .to-top { visibility: visible; opacity: 1; translate: 0 0; }
 [id] { scroll-margin-top: 96px; }
 #top { scroll-margin-top: 240px; }
 
@@ -206,21 +211,17 @@ html { container-type: scroll-state; }
   .btn:hover { translate: 0 -2px; }
 }
 html { scroll-behavior: smooth; }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .to-top { transition: none; } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
 /* scroll-driven effects, decorative so no fallback */
 @media (prefers-reduced-motion: no-preference) {
   @supports (animation-timeline: scroll()) {
-    @keyframes fill-up { to { transform: scaleX(1); } }
-    .progress { animation: fill-up auto linear both; animation-timeline: scroll(root); }
     @keyframes settle-bar { to { border-bottom-color: var(--line); box-shadow: 0 8px 24px -18px var(--shade); } }
     .top-bar { animation: settle-bar linear both; animation-timeline: scroll(root); animation-range: 0 120px; }
-    @keyframes shrink-logo { to { scale: 0.78; } }
-    .top .logo { animation: shrink-logo linear both; animation-timeline: scroll(root); animation-range: 0 120px; }
   }
   @supports ((animation-timeline: view()) and (animation-range: entry)) {
-    @keyframes rise-in { from { opacity: 0.15; translate: 0 48px; scale: 0.97; } }
-    .feature > .shot, .feature .phones, .countries .ledger, .more-grid > div, .watch .player, .bas > div {
+    @keyframes rise-in { from { opacity: 0.4; translate: 0 20px; } }
+    .feature > .shot, .feature .phones, .countries .ledger, .watch .player {
       animation: rise-in auto cubic-bezier(.2,.7,.2,1) backwards;
       animation-timeline: view();
       animation-range: entry 0% entry 90%;
@@ -236,7 +237,8 @@ html { scroll-behavior: smooth; }
 .closer h2 { color: var(--paper); }
 .closer p { color: color-mix(in oklab, var(--paper) 72%, var(--ink)); margin-top: 12px; }
 .closer .btn.primary { background: var(--amber); color: var(--amber-ink); }
-.closer .btn.ghost { color: var(--paper); border-color: color-mix(in oklab, var(--paper) 35%, var(--ink)); }
+.closer .btn.ghost { color: var(--paper); border-color: color-mix(in oklab, var(--paper) 60%, var(--ink)); }
+.closer .btn:focus-visible { outline-color: var(--paper); }
 
 footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; font-size: 15px; color: var(--muted); }
 
@@ -244,7 +246,8 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
   .hero, .bill-section, .feature, .faq, .closer, .countries, .watch { grid-template-columns: minmax(0, 1fr); gap: 32px; }
   .feature.flip { grid-template-columns: minmax(0, 1fr); }
   .feature.flip .feature-copy { order: 0; }
-  .more-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .feature.wide .feature-copy { grid-template-columns: minmax(0, 1fr); }
+  .feature.wide .feature-copy h2 { grid-row: auto; }
   .hero { padding-top: 16px; }
   .bill { transform: none; }
   .closer { padding: 40px 28px; }
@@ -252,14 +255,23 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
 @media (max-width: 560px) {
   body { font-size: 17px; }
   .top nav { display: none; }
-  .more-grid { grid-template-columns: minmax(0, 1fr); }
+  .more-list { columns: 1; }
+  .phone-note { display: block; }
+  .ledger table { min-width: 0; }
+  .ledger thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .ledger tr { display: grid; gap: 4px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .ledger tr:last-child { border-bottom: 0; }
+  .ledger td { display: block; padding: 0; border: 0; }
+  .ledger td[data-label]::before { content: attr(data-label) ": "; color: var(--muted); }
   .bill { padding: 24px 20px; }
   .bill-head { flex-direction: column; }
   .bill-meta { text-align: left; }
   .stamp { font-size: 22px; left: 40%; bottom: 16px; }
   .bas { grid-template-columns: minmax(0, 1fr); }
-  .phones { gap: 10px; }
-  .phones img { border-radius: 14px; }
+  /* one phone at a time, big enough to read */
+  .phones { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px 4px 16px; margin-inline: -4px; }
+  .phones img { flex: 0 0 74%; width: 74%; min-width: 0; scroll-snap-align: center; border-radius: 18px; }
+  .phones img:nth-child(2) { margin-top: 0; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .hero-visual .shot { animation: rise 0.9s cubic-bezier(.2,.7,.2,1) both; }
@@ -267,7 +279,7 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
 }
 </style>
 
-<div class="progress" aria-hidden="true"></div>
+<a class="skip" href="#top">Skip to content</a>
 <div class="top-bar"><div class="wrap"><header class="top">
     <a href="#top" aria-label="InvoiceDesk home">
       <img class="logo light" src="img/logo.png" alt="InvoiceDesk" width="480" height="315">
@@ -289,7 +301,8 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
       <div class="hero-copy">
         <span class="eyebrow">For Australian sole traders</span>
         <h1>Tax invoices, GST and your BAS. <span class="dim">No monthly fee.</span></h1>
-        <p class="lede">InvoiceDesk is a free invoicing app for tradies, freelancers and contractors. It runs on your own computer, so your books stay with you.</p>
+        <p class="lede">InvoiceDesk is a free invoicing app for tradies and freelancers. It runs on your own computer, so your books stay with you.</p>
+        <p class="phone-note">InvoiceDesk runs on your computer. Open this page on it to download.</p>
         <div class="actions">
           <a class="btn primary" href="https://github.com/tdh1985/invoicedesk/releases/latest/download/InvoiceDesk.exe">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
@@ -300,13 +313,12 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
         <p class="fine">Free and open source. One file, nothing to install. Also set up for <a href="#countries">NZ, the UK, Canada and the US</a>.</p>
       </div>
       <div class="hero-visual">
-        <img class="shot" src="img/invoice-editor.webp" width="1800" height="1090" alt="The invoice editor with a live preview of a tax invoice showing ABN, GST and a total of $4,444.00">
+        <img class="shot" src="img/invoice-preview.webp" width="626" height="626" alt="A tax invoice made in InvoiceDesk for Blue Gum Physio, with the ABN, three lines of work, GST of $404.00 and a total of $4,444.00">
       </div>
     </section>
 
     <section class="bill-section" id="price">
       <div class="bill-copy">
-        <span class="eyebrow">The price</span>
         <h2>Here's our invoice to you</h2>
         <p class="lede">No subscription, no per-invoice fee and no limit on clients. The code is MIT licensed, so it stays free.</p>
       </div>
@@ -334,14 +346,14 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
 
     <section class="watch" id="watch">
       <div class="watch-copy">
-        <span class="eyebrow">Watch</span>
         <h2>See it in 30 seconds</h2>
-        <p class="lede">Tax invoices, receipts from your phone and your BAS figures, start to finish.</p>
-        <p class="fine">Press play for sound.</p>
+        <p class="lede">What it does, from a tax invoice to your BAS figures.</p>
+        <p class="fine">It has a voiceover, and captions are on so you can watch it with the sound off.</p>
       </div>
       <div class="player">
-        <video controls playsinline preload="none" poster="img/promo-poster.webp" width="720" height="1280">
+        <video controls playsinline preload="metadata" poster="img/promo-poster.webp" width="720" height="1280">
           <source src="img/promo.mp4" type="video/mp4">
+          <track kind="captions" srclang="en-AU" label="English" src="img/promo.vtt" default>
           <a href="img/promo.mp4">Watch the InvoiceDesk video</a>
         </video>
       </div>
@@ -361,10 +373,9 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
       <img class="shot" src="img/dashboard.webp" width="1470" height="1295" alt="The dashboard showing $2,992.50 owed by clients, two invoices stamped late on a rail of due dates, and September's cash book">
     </section>
 
-    <section class="feature flip">
+    <section class="feature wide">
       <div class="feature-copy">
-        <span class="eyebrow">Receipts</span>
-        <h2>Drop in a receipt. The expense fills itself in.</h2>
+        <h2>Drop in a receipt and it fills in the expense for you</h2>
         <p>Drag a photo or PDF of a receipt onto the Money page. InvoiceDesk reads the supplier, date, amount and GST, and highlights what it filled so you can check it.</p>
         <p class="fine">Uses the text reader built into Windows, so the receipt never leaves your computer.</p>
       </div>
@@ -373,10 +384,9 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
 
     <section class="feature">
       <div class="feature-copy">
-        <span class="eyebrow">Tax time</span>
         <h2>Your BAS figures, ready when the quarter ends</h2>
         <p>Reports work out the boxes you fill in on your BAS for any quarter or financial year, plus a profit and loss. Save them as PDF or CSV for your accountant.</p>
-        <div class="bas" aria-label="BAS boxes InvoiceDesk works out">
+        <div class="bas">
           <div><b>G1</b><span>Total sales, including GST</span></div>
           <div><b>1A</b><span>GST on sales</span></div>
           <div><b>1B</b><span>GST on purchases</span></div>
@@ -390,17 +400,17 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
         <span class="eyebrow">Not in Australia?</span>
         <h2>Also set up for four more countries</h2>
         <p>Pick your country and the tax, tax number, bank details, financial year and tax return follow. Clients can be anywhere in the world, billed in their own currency.</p>
-        <p class="currencies" aria-label="Currencies you can bill in">AUD NZD GBP CAD USD EUR SGD HKD CHF SEK NOK DKK ZAR</p>
+        <p class="currencies">AUD NZD GBP CAD USD EUR SGD HKD CHF SEK NOK DKK ZAR</p>
       </div>
       <div class="ledger">
         <table>
           <thead><tr><th>Country</th><th>Tax</th><th>Tax return</th></tr></thead>
           <tbody>
-            <tr><td><span class="code">AU</span>Australia</td><td>GST 10%, ABN</td><td>BAS worksheet (G1, 1A, 1B)</td></tr>
-            <tr><td><span class="code">NZ</span>New Zealand</td><td>GST 15%</td><td>GST return (boxes 5 to 15)</td></tr>
-            <tr><td><span class="code">UK</span>United Kingdom</td><td>VAT at 20%, 5%, 0% or exempt</td><td>VAT return (boxes 1 to 9)</td></tr>
-            <tr><td><span class="code">CA</span>Canada</td><td>GST or HST by province</td><td>GST/HST return</td></tr>
-            <tr><td><span class="code">US</span>United States</td><td>Sales tax at your rate</td><td>Sales tax summary</td></tr>
+            <tr><td><span class="code">AU</span>Australia</td><td data-label="Tax">GST 10%, ABN</td><td data-label="Tax return">BAS worksheet (G1, 1A, 1B)</td></tr>
+            <tr><td><span class="code">NZ</span>New Zealand</td><td data-label="Tax">GST 15%</td><td data-label="Tax return">GST return (boxes 5 to 15)</td></tr>
+            <tr><td><span class="code">UK</span>United Kingdom</td><td data-label="Tax">VAT at 20%, 5%, 0% or exempt</td><td data-label="Tax return">VAT return (boxes 1 to 9)</td></tr>
+            <tr><td><span class="code">CA</span>Canada</td><td data-label="Tax">GST or HST by province</td><td data-label="Tax return">GST/HST return</td></tr>
+            <tr><td><span class="code">US</span>United States</td><td data-label="Tax">Sales tax at your rate</td><td data-label="Tax return">Sales tax summary</td></tr>
           </tbody>
         </table>
       </div>
@@ -411,9 +421,10 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
         <span class="tag">New · free pilot</span>
         <h2>Snap receipts on site with your phone</h2>
         <p>The optional phone app sends receipt photos and quick invoices back to your computer, and shows who still owes you. It works offline and catches up when you have signal.</p>
+        <p>To set it up, sign in under Settings &gt; Phone in InvoiceDesk on your computer. Then open <a class="nowrap" href="https://invoicedesk-phone.vercel.app">invoicedesk-phone.vercel.app</a> on your phone, sign in with the same email and add it to your home screen.</p>
         <p class="fine">Works in the browser on iPhone and Android. Your computer stays the only full copy of your books.</p>
       </div>
-      <div class="phones">
+      <div class="phones" tabindex="0" role="region" aria-label="Phone app screens">
         <img src="img/phone-owes.webp" width="527" height="1136" alt="Phone screen listing who owes you: $2,992.50 owed, $2,233.50 overdue">
         <img src="img/phone-snap.webp" width="525" height="1136" alt="Phone screen with a photo of a fuel receipt and a note">
         <img src="img/phone-quick.webp" width="528" height="1136" alt="Phone screen starting a quick invoice for Salt and Pine Bakery">
@@ -422,16 +433,16 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
 
     <section class="more">
       <h2>Also in the box</h2>
-      <div class="more-grid">
-        <div><h3>Statements</h3><p>Send a client everything they owe, aged into 30, 60 and 90 days.</p></div>
-        <div><h3>Late payer radar</h3><p>See how late each client usually pays, and what's likely to land in the next 30 days.</p></div>
-        <div><h3>Remembers for you</h3><p>Lines suggest what you last charged that client. Expenses pick last time's category.</p></div>
-        <div><h3>Three layouts</h3><p>Classic, modern or minimal, with your logo and colour.</p></div>
-        <div><h3>CSV export</h3><p>Hand your accountant invoices or money in and out as a spreadsheet.</p></div>
-        <div><h3>Search everything</h3><p>Ctrl+K finds any client or invoice and runs commands.</p></div>
-        <div><h3>Light and dark</h3><p>Follows your Windows theme, or pick one.</p></div>
-        <div><h3>Backed up your way</h3><p>Keep your data in a OneDrive, Dropbox or Google Drive folder.</p></div>
-      </div>
+      <ul class="more-list">
+        <li><strong>Statements</strong>Send a client everything they owe, aged into 30, 60 and 90 days.</li>
+        <li><strong>How late each client pays</strong>See each client's usual delay, and what's likely to land in the next 30 days.</li>
+        <li><strong>Remembers what you charged last time</strong>Lines suggest that client's last price. Expenses pick last time's category.</li>
+        <li><strong>Invoice layouts</strong>Classic, modern or minimal, with your logo and colour.</li>
+        <li><strong>CSV export</strong>Hand your accountant invoices or money in and out as a spreadsheet.</li>
+        <li><strong>Search with Ctrl+K</strong>Find any client or invoice, or run a command.</li>
+        <li><strong>Light and dark themes</strong>Follows your Windows theme, or pick one.</li>
+        <li><strong>Back up to your cloud drive</strong>Keep your data in a OneDrive, Dropbox or Google Drive folder.</li>
+      </ul>
     </section>
 
     <section class="faq" id="questions">
@@ -451,7 +462,7 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
         </details>
         <details>
           <summary>Do I need the phone app?</summary>
-          <p>No. It's an optional extra and the desktop app does everything on its own. The phone app is free while it's a pilot.</p>
+          <p>No. It's an optional extra and the desktop app does everything on its own. If you want it, sign in under Settings &gt; Phone on your computer, then open <a class="nowrap" href="https://invoicedesk-phone.vercel.app">invoicedesk-phone.vercel.app</a> on your phone and sign in with the same email. It's free while it's a pilot.</p>
         </details>
         <details>
           <summary>Does it work on a Mac?</summary>
@@ -482,15 +493,3 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
   </footer>
 </div>
 
-<a class="to-top" href="#top" aria-label="Back to top">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V6m0 0l-6 6m6-6l6 6"/></svg>
-</a>
-<script>
-// safari and firefox can't query scroll state yet
-if (!CSS.supports('container-type', 'scroll-state') && 'IntersectionObserver' in window) {
-  const mark = document.createElement('div');
-  mark.style.cssText = 'position:absolute;top:400px;height:1px;width:1px';
-  document.body.prepend(mark);
-  new IntersectionObserver(([e]) => document.documentElement.classList.toggle('scrolled', !e.isIntersecting && e.boundingClientRect.top < 0)).observe(mark);
-}
-</script>

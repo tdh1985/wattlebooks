@@ -11,6 +11,7 @@ og_alt = 'InvoiceDesk: tax invoices, GST and your BAS with no monthly fee, besid
 indexnow_key = 'd7f1989c9676aa3d101197f4be473fc2'
 # search console looks for this file to prove we own the site
 google_file = 'google071558514d1d4664.html'
+bing_code = '77C5D8499272D6A84A16324C05F488DB'
 today = datetime.date.today().isoformat()
 version = re.search(r'<Version>([^<]+)', (here.parent / 'Directory.Build.props').read_text()).group(1)
 img = lambda name: url + 'img/' + name
@@ -81,7 +82,8 @@ graph = [
 ]
 ld = json.dumps({'@context': 'https://schema.org', '@graph': graph}, ensure_ascii=False, indent=1)
 meta = (common(url)
-        + '<meta property="og:type" content="website">\n'
+        + f'<meta name="msvalidate.01" content="{bing_code}">\n'
+        '<meta property="og:type" content="website">\n'
         '<meta property="og:site_name" content="InvoiceDesk">\n'
         '<meta property="og:locale" content="en_AU">\n'
         f'<meta property="og:url" content="{url}">\n'

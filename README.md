@@ -14,7 +14,7 @@ country's GST, VAT or sales tax rules. It's a single file with nothing to
 install, and your data stays on your own computer. An optional
 [phone app](#phone-pilot) lets you snap receipts and start invoices on the go.
 
-![The dashboard, showing what clients owe, money in and out, and recent activity](docs/screenshots/dashboard.png)
+![The dashboard, with unpaid invoices hanging on a rail by due date above this month's cash book](docs/screenshots/dashboard.png)
 
 ## Download
 
@@ -81,24 +81,29 @@ The full notes for each version are on the [releases page](https://github.com/td
 - Drop a receipt photo or PDF onto the Money page and it fills in the amount,
   tax, date and supplier for you. It uses the text reader built into Windows,
   so nothing leaves your PC, and it only fills fields you haven't typed in.
-- Dashboard with outstanding and overdue totals, money in and out, profit for
-  the tax year, tax for the current return period and a 12-month chart.
+- A dashboard where each unpaid invoice hangs on a rail at its due date,
+  stamped with how many days late it is and with a button to send a reminder.
+  Below it are this month's money in and out on a cash book page, a 12-month
+  chart, profit for the tax year and tax for the current return period.
+- A side menu that shows what's late, what's left over this month and the tax
+  for the period, with your recent invoices and clients one click away. Press
+  [ to fold it down to icons.
 - Reports with your country's tax return worksheet and a profit and loss for
   any period or tax year, saved as PDF or CSV.
 - Your business details, logo (JPG, PNG or WebP up to 5 MB), bank details,
   accent colour, invoice numbering and payment terms, and a choice of three
   invoice layouts: classic, modern and minimal.
 - Clients with their own notes, website and a note printed on every invoice.
-- Each client shows how late they usually pay, and the dashboard shows what's
-  likely to come in over the next 30 days based on those habits.
+- Each client shows how late they usually pay, and the dashboard shows when
+  each unpaid invoice is likely to be paid based on those habits.
 - It learns from what you've already entered. Line items suggest what you last
   charged that client, and an expense picks the category you used last time
   for the same supplier.
 - Export invoices, or money in and out, as a CSV file for your accountant or
   Excel.
 - Search everything with Ctrl+K, which also runs commands like recording a
-  payment or switching theme. Ctrl+N starts a new invoice, Ctrl+S saves, and
-  ? lists every shortcut.
+  payment or switching theme. Ctrl+N starts a new invoice, Ctrl+S saves, [
+  folds the side menu and ? lists every shortcut.
 - Light and dark themes. On Windows 11 the window edges pick up your desktop
   colours, which you can turn off in Settings.
 - Right-click the taskbar icon to start a new invoice or add an expense or
@@ -162,9 +167,9 @@ The business and clients in these are made up.
 
 ![The GST return with boxes 5 to 15](docs/screenshots/gst-return.png)
 
-**Invoices, with drafts, overdue and repeating ones picked out**
+**Invoices, each stamped paid, sent, overdue or draft**
 
-![The invoice list with status filters](docs/screenshots/invoices.png)
+![The invoice list with status stamps and filters](docs/screenshots/invoices.png)
 
 **Quotes, and whether each client said yes**
 

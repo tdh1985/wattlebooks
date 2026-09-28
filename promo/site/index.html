@@ -240,10 +240,29 @@ html { scroll-behavior: smooth; }
 .closer .btn.ghost { color: var(--paper); border-color: color-mix(in oklab, var(--paper) 60%, var(--ink)); }
 .closer .btn:focus-visible { outline-color: var(--paper); }
 
+/* contact */
+.contact { padding-block: 72px; border-top: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 56px; }
+.contact-copy p { margin-top: 12px; color: var(--muted); max-width: 26em; }
+.contact form { display: grid; gap: 18px; max-width: 560px; }
+.contact .pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+.contact label { display: grid; gap: 6px; font-weight: 600; font-size: 16px; }
+.contact input, .contact textarea { font: 400 17px/1.4 var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--muted); border-radius: 6px; padding: 11px 12px; width: 100%; }
+.contact textarea { min-height: 150px; resize: vertical; }
+.contact input:focus-visible, .contact textarea:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+.contact .trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.contact .send { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 20px; }
+.contact button.btn { cursor: pointer; }
+.contact button.btn:disabled { opacity: 0.6; cursor: default; }
+.contact .status { min-height: 1.5em; font-size: 16px; color: var(--muted); }
+.contact .status.bad { color: #B3261E; }
+.contact .status.good { color: var(--accent); font-weight: 600; }
+[data-theme="dark"] .contact .status.bad { color: #FF9C94; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .contact .status.bad { color: #FF9C94; } }
+
 footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; font-size: 15px; color: var(--muted); }
 
 @media (max-width: 900px) {
-  .hero, .bill-section, .feature, .faq, .closer, .countries, .watch { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .hero, .bill-section, .feature, .faq, .contact, .closer, .countries, .watch { grid-template-columns: minmax(0, 1fr); gap: 32px; }
   .feature.flip { grid-template-columns: minmax(0, 1fr); }
   .feature.flip .feature-copy { order: 0; }
   .feature.wide .feature-copy { grid-template-columns: minmax(0, 1fr); }
@@ -256,6 +275,7 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
   body { font-size: 17px; }
   .top nav { display: none; }
   .more-list { columns: 1; }
+  .contact .pair { grid-template-columns: minmax(0, 1fr); }
   .phone-note { display: block; }
   .ledger table { min-width: 0; }
   .ledger thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
@@ -475,6 +495,34 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
       </div>
     </section>
 
+    <section class="contact" id="contact" aria-labelledby="contact-title">
+      <div class="contact-copy">
+        <h2 id="contact-title">Get in touch</h2>
+        <p>Found a bug, or want your country's tax rules added? Send a message and you'll get a reply by email.</p>
+      </div>
+      <form id="contact-form" novalidate>
+        <div class="pair">
+          <label>Name
+            <input name="name" autocomplete="name" maxlength="100" required>
+          </label>
+          <label>Email
+            <input name="email" type="email" autocomplete="email" maxlength="200" required>
+          </label>
+        </div>
+        <label>Message
+          <textarea name="message" maxlength="5000" required></textarea>
+        </label>
+        <label class="trap" aria-hidden="true">Website
+          <input name="website" tabindex="-1" autocomplete="off">
+        </label>
+        <div id="contact-check"></div>
+        <div class="send">
+          <button class="btn primary" type="submit">Send message</button>
+          <p class="status" id="contact-status" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+    </section>
+
     <section class="closer">
       <div>
         <h2>Send your next invoice from InvoiceDesk</h2>
@@ -489,7 +537,58 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
 
   <footer>
     <span>InvoiceDesk is free software under the MIT licence.</span>
-    <a href="https://github.com/tdh1985/invoicedesk/releases">All releases</a>
+    <span><a href="#contact">Contact</a> · <a href="https://github.com/tdh1985/invoicedesk/releases">All releases</a></span>
   </footer>
 </div>
+
+<script>
+// github pages can't check turnstile tokens, so the form posts to a worker
+(() => {
+  const endpoint = 'https://invoicedesk-contact.tdh1985.workers.dev/';
+  const form = document.getElementById('contact-form');
+  const status = document.getElementById('contact-status');
+  const button = form.querySelector('button[type="submit"]');
+  let widget = null;
+
+  const say = (text, tone = '') => { status.textContent = text; status.className = 'status ' + tone; };
+
+  window.onContactCheckReady = () => {
+    widget = turnstile.render('#contact-check', {
+      sitekey: '0x4AAAAAAFF7fbsd-sVitRgJ',
+      action: 'contact',
+      theme: 'auto',
+      size: 'flexible',
+    });
+  };
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const empty = [...form.querySelectorAll('[required]')].find((f) => !f.value.trim());
+    if (empty) { say('Fill in your name, email and message.', 'bad'); empty.focus(); return; }
+    if (!form.email.validity.valid) { say('Check your email address.', 'bad'); form.email.focus(); return; }
+    const data = new FormData(form);
+    if (!data.get('cf-turnstile-response')) { say('Wait for the check above to finish, then send again.', 'bad'); return; }
+
+    button.disabled = true;
+    say('Sending…');
+    try {
+      const r = await fetch(endpoint, { method: 'POST', body: data });
+      const body = await r.json().catch(() => ({}));
+      if (r.ok && body.ok) {
+        form.reset();
+        say("Thanks, your message is on its way.", 'good');
+      } else {
+        say(body.message || "Your message didn't send. Try again in a minute.", 'bad');
+      }
+    } catch {
+      say("Your message didn't send. Check your connection and try again.", 'bad');
+    } finally {
+      button.disabled = false;
+      // each token works once, so get a fresh one for the next send
+      if (widget !== null) turnstile.reset(widget);
+    }
+  });
+})();
+</script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onContactCheckReady" async defer></script>
 

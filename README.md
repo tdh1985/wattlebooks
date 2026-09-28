@@ -45,6 +45,7 @@ please report anything that goes wrong. A few things work differently on both:
 
 | Version | Date | What changed |
 |---|---|---|
+| [1.6.1](https://github.com/tdh1985/invoicedesk/releases/tag/v1.6.1) | 28 Sep 2026 | Works better with a keyboard and a screen reader. Drawers and pop-ups keep your place, focus outlines are easier to see, and on/off buttons say whether they're on. |
 | [1.6.0](https://github.com/tdh1985/invoicedesk/releases/tag/v1.6.0) | 28 Sep 2026 | A new dashboard where unpaid invoices hang on a rail by due date, rubber-stamp statuses, and a dark side menu with live figures and recent items. The window now opens at the right size on scaled screens. |
 | [1.5.1](https://github.com/tdh1985/invoicedesk/releases/tag/v1.5.1) | 27 Sep 2026 | A [phone app](#phone-pilot) as a pilot, for snapping receipts, seeing who owes you and starting a quick invoice. Also fixes scanned amounts over $999 being misread and a bank fee being deleted with the wrong payment. |
 | [1.4.0](https://github.com/tdh1985/invoicedesk/releases/tag/v1.4.0) | 25 Sep 2026 | Runs on Linux and, as a preview, on macOS. |

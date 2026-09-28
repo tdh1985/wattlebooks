@@ -1,0 +1,210 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@* the graphite desk down the left, each tab says one thing worth knowing *@
+@implements IDisposable
+@inject DashboardService DashboardStore
+@inject InvoiceService InvoiceStore
+@inject ClientService ClientStore
+@inject TransactionService Ledger
+@inject ProfileService Profiles
+@inject ThemeService Theme
+@inject NavigationManager Nav
+@inject TimeProvider Clock
+
+<nav class="rail @(Folded ? "folded" : null)" aria-label="Main">
+    <div class="rail-head">
+        <a class="brand" href="settings" title="Business details">
+            @if (LogoUrl is not null)
+            {
+                <img class="brand-logo" src="@LogoUrl" alt="" />
+            }
+            else
+            {
+                <span class="brand-mark" aria-hidden="true">@Format.Initials(BusinessName)</span>
+            }
+            <span class="brand-name">@BusinessName</span>
+        </a>
+        <button type="button" class="rail-fold" title="@(Folded ? "Show the full menu" : "Fold the menu") ( [ )" aria-pressed="@Folded" @onclick="OnToggleFold">
+            <Icon Name="panel" Size="16" />
+        </button>
+    </div>
+
+    <div class="rail-tools">
+        <button type="button" class="rail-search" title="Search (Ctrl K)" @onclick="OnSearch">
+            <Icon Name="search" Size="16" />
+            <span class="rail-label">Search</span>
+            <kbd>Ctrl K</kbd>
+        </button>
+        <a class="rail-new" href="invoices/new" title="New invoice (Ctrl N)" aria-label="New invoice"><Icon Name="plus" Size="18" /></a>
+    </div>
+
+    <div class="tabs">
+        <NavLink class="tab" href="" Match="NavLinkMatch.All" title="Dashboard"><Icon Name="dashboard" /><span class="rail-label">Dashboard</span></NavLink>
+        <NavLink class="tab" href="invoices" title="@Tip("Invoices", _invoicesNote)">
+            <Icon Name="invoice" /><span class="rail-label">Invoices</span>
+            @if (_invoicesNote is not null)
+            {
+                <small class="tab-note @(_late > 0 ? "hot" : null)">@_invoicesNote</small>
+            }
+            @if (_late > 0)
+            {
+                <span class="tab-count" aria-label="@_late late">@_late</span>
+            }
+        </NavLink>
+        <NavLink class="tab" href="clients" title="Clients"><Icon Name="users" /><span class="rail-label">Clients</span></NavLink>
+        <NavLink class="tab" href="money" title="@Tip("Money in & out", _moneyNote)">
+            <Icon Name="wallet" /><span class="rail-label">Money in &amp; out</span>
+            @if (_moneyNote is not null)
+            {
+                <small class="tab-note">@_moneyNote</small>
+            }
+        </NavLink>
+        <NavLink class="tab" href="reports" title="@Tip("Reports", _taxNote)">
+            <Icon Name="chart" /><span class="rail-label">Reports</span>
+            @if (_taxNote is not null)
+            {
+                <small class="tab-note">@_taxNote</small>
+            }
+        </NavLink>
+    </div>
+
+    @if (_recent.Count > 0)
+    {
+        <div class="rail-recent" aria-labelledby="rail-recent-head">
+            <div class="rail-group" id="rail-recent-head">Recent</div>
+            @foreach (var r in _recent)
+            {
+                <a class="recent-item" href="@r.Href" @key="r.Href" title="@r.Title">
+                    @if (r.Number.Length > 0)
+                    {
+                        <b>@r.Number</b>
+                    }
+                    <span>@r.Title</span>
+                </a>
+            }
+        </div>
+    }
+
+    <div class="rail-foot">
+        <NavLink class="tab" href="settings" title="Settings"><Icon Name="sliders" /><span class="rail-label">Settings</span></NavLink>
+        <div class="theme-switch" role="group" aria-label="Theme">
+            @foreach (var choice in ThemeService.Choices)
+            {
+                <button type="button" class="@(Theme.Theme == choice ? "on" : null)" aria-pressed="@(Theme.Theme == choice)"
+                        title="@Theme.Label(choice)" @onclick="() => Theme.Set(choice)">
+                    <Icon Name="@ThemeIcon(choice)" Size="14" />
+                </button>
+            }
+        </div>
+    </div>
+</nav>
+
+@code {
+    // a handful is enough to get back to what you were just doing
+    const int RecentCount = 4;
+
+    [Parameter] public string BusinessName { get; set; } = "";
+    [Parameter] public string? LogoUrl { get; set; }
+    [Parameter] public bool Folded { get; set; }
+    [Parameter] public EventCallback OnToggleFold { get; set; }
+    [Parameter] public EventCallback OnSearch { get; set; }
+
+    sealed record Recent(string Href, string Number, string Title);
+
+    readonly List<Recent> _recent = [];
+    string? _invoicesNote;
+    string? _moneyNote;
+    string? _taxNote;
+    int _late;
+
+    protected override async Task OnInitializedAsync()
+    {
+        InvoiceStore.Changed += OnDataChanged;
+        ClientStore.Changed += OnDataChanged;
+        Ledger.Changed += OnDataChanged;
+        Profiles.Changed += OnDataChanged;
+        Theme.Changed += OnThemeChanged;
+        Nav.LocationChanged += OnLocationChanged;
+        await LoadFiguresAsync();
+    }
+
+    async Task LoadFiguresAsync()
+    {
+        var d = await DashboardStore.GetAsync();
+        _late = d.OverdueCount;
+        _invoicesNote = d.OverdueCount > 0
+            ? $"{d.OverdueCount} late, {Format.Money(d.OverdueCents)}"
+            : d.OutstandingCount > 0 ? $"{Format.Money(d.OutstandingCents)} to come in" : null;
+
+        var net = d.ReceivedMonthCents - d.SpentMonthCents;
+        var month = Clock.Today().ToString("MMM", CultureInfo.InvariantCulture);
+        _moneyNote = d.MonthEntries.Count == 0 ? null
+            : net >= 0 ? $"{Format.Money(net)} left over in {month}"
+            : $"{Format.Money(-net)} more out than in, {month}";
+
+        var owed = Format.Country.ExpensesCarryTax ? d.TaxNetPeriodCents : d.TaxCollectedPeriodCents;
+        _taxNote = owed > 0 ? $"{Format.Country.TaxName} {Format.Money(owed)} for {d.PeriodLabel}" : null;
+    }
+
+    // remembers invoices and clients as you open them, newest first
+    async Task RememberAsync(string url)
+    {
+        var path = Nav.ToBaseRelativePath(url).Split('?', '#')[0];
+        var parts = path.Split('/');
+        if (parts.Length != 2 || !int.TryParse(parts[1], out var id)) return;
+
+        Recent? item = parts[0] switch
+        {
+            "invoices" when await InvoiceStore.GetAsync(id) is { } inv => new($"invoices/{id}", inv.Number, inv.Client?.Name ?? ""),
+            "clients" when await ClientStore.GetAsync(id) is { } client => new($"clients/{id}", "", client.Name),
+            _ => null,
+        };
+        if (item is null) return;
+        _recent.RemoveAll(r => r.Href == item.Href);
+        _recent.Insert(0, item);
+        if (_recent.Count > RecentCount) _recent.RemoveRange(RecentCount, _recent.Count - RecentCount);
+    }
+
+    // a renamed client or deleted invoice shouldn't linger with its old label
+    async Task RefreshRecentAsync()
+    {
+        foreach (var r in _recent.ToList())
+        {
+            var id = int.Parse(r.Href.Split('/')[1], CultureInfo.InvariantCulture);
+            Recent? fresh = r.Href.StartsWith("invoices/", StringComparison.Ordinal)
+                ? await InvoiceStore.GetAsync(id) is { } inv ? r with { Number = inv.Number, Title = inv.Client?.Name ?? "" } : null
+                : await ClientStore.GetAsync(id) is { } client ? r with { Title = client.Name } : null;
+            var at = _recent.IndexOf(r);
+            if (fresh is null) _recent.RemoveAt(at);
+            else _recent[at] = fresh;
+        }
+    }
+
+    static string Tip(string label, string? note) => note is null ? label : $"{label}: {note}";
+
+    static string ThemeIcon(string choice) => choice switch { "light" => "sun", "dark" => "moon", _ => "monitor" };
+
+    void OnDataChanged() => InvokeAsync(async () =>
+    {
+        await LoadFiguresAsync();
+        await RefreshRecentAsync();
+        StateHasChanged();
+    });
+
+    void OnThemeChanged() => InvokeAsync(StateHasChanged);
+
+    void OnLocationChanged(object? sender, LocationChangedEventArgs e) => InvokeAsync(async () =>
+    {
+        await RememberAsync(e.Location);
+        StateHasChanged();
+    });
+
+    public void Dispose()
+    {
+        InvoiceStore.Changed -= OnDataChanged;
+        ClientStore.Changed -= OnDataChanged;
+        Ledger.Changed -= OnDataChanged;
+        Profiles.Changed -= OnDataChanged;
+        Theme.Changed -= OnThemeChanged;
+        Nav.LocationChanged -= OnLocationChanged;
+    }
+}

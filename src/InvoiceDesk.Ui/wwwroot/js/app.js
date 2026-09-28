@@ -11,6 +11,9 @@ window.invoicedesk = {
             if (mod && !e.shiftKey && !e.altKey && (key === 'k' || key === 'n' || key === 's')) {
                 e.preventDefault();
                 ref.invokeMethodAsync('OnShortcut', key);
+            } else if (e.key === '[' && !mod && !e.altKey && !typing(e.target)) {
+                e.preventDefault();
+                ref.invokeMethodAsync('OnShortcut', 'fold');
             } else if (e.key === '?' && !mod && !e.altKey && !typing(e.target)) {
                 e.preventDefault();
                 ref.invokeMethodAsync('OnShortcut', 'help');

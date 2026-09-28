@@ -9,50 +9,10 @@
 @inject RecurringRunner Recurring
 @inject ToastService Toasts
 @inject IJSRuntime JS
+@inject PrefsStore Prefs
 
-<div class="shell" style="--accent: @_accent">
-    <nav class="rail" aria-label="Main">
-        <a class="brand" href="settings" title="Business details">
-            @if (_logoUrl is not null)
-            {
-                <img class="brand-logo" src="@_logoUrl" alt="" />
-            }
-            else
-            {
-                <span class="brand-mark" aria-hidden="true">@Format.Initials(BusinessName)</span>
-            }
-            <span class="brand-name">@BusinessName</span>
-        </a>
-
-        <button type="button" class="rail-search" @onclick="OpenPalette">
-            <Icon Name="search" Size="16" />
-            <span>Search</span>
-            <kbd>Ctrl K</kbd>
-        </button>
-
-        <a class="btn btn-primary rail-new" href="invoices/new"><Icon Name="plus" Size="16" /> New invoice</a>
-
-        <div class="tabs">
-            <NavLink class="tab" href="" Match="NavLinkMatch.All"><Icon Name="dashboard" /> Dashboard</NavLink>
-            <NavLink class="tab" href="invoices"><Icon Name="invoice" /> Invoices</NavLink>
-            <NavLink class="tab" href="clients"><Icon Name="users" /> Clients</NavLink>
-            <NavLink class="tab" href="money"><Icon Name="wallet" /> Money in &amp; out</NavLink>
-            <NavLink class="tab" href="reports"><Icon Name="chart" /> Reports</NavLink>
-        </div>
-
-        <div class="rail-foot">
-            <NavLink class="tab" href="settings"><Icon Name="sliders" /> Settings</NavLink>
-            <div class="theme-switch" role="group" aria-label="Theme">
-                @foreach (var choice in ThemeService.Choices)
-                {
-                    <button type="button" class="@(Theme.Theme == choice ? "on" : null)" aria-pressed="@(Theme.Theme == choice)"
-                            title="@Theme.Label(choice)" @onclick="() => SetTheme(choice)">
-                        <Icon Name="@ThemeIcon(choice)" Size="15" />
-                    </button>
-                }
-            </div>
-        </div>
-    </nav>
+<div class="shell @(Prefs.Current.RailFolded ? "rail-folded" : null)" style="--accent: @_accent">
+    <SideRail BusinessName="@BusinessName" LogoUrl="@_logoUrl" Folded="Prefs.Current.RailFolded" OnToggleFold="ToggleFold" OnSearch="OpenPalette" />
 
     <div class="main">
         <main class="sheet" id="sheet">
@@ -129,6 +89,9 @@
             case "n":
                 Nav.NavigateTo("invoices/new");
                 break;
+            case "fold":
+                _ = InvokeAsync(ToggleFold);
+                break;
             case "help":
                 _ = InvokeAsync(() =>
                 {
@@ -147,11 +110,15 @@
 
     void OpenPalette() => _palette?.Open();
 
-    void SetTheme(string choice) => Theme.Set(choice);
+    // folding is per pc like the window size, so it lives in prefs
+    void ToggleFold()
+    {
+        Prefs.Current.RailFolded = !Prefs.Current.RailFolded;
+        Prefs.Save();
+        StateHasChanged();
+    }
 
     void Recover() => _boundary?.Recover();
-
-    static string ThemeIcon(string choice) => choice switch { "light" => "sun", "dark" => "moon", _ => "monitor" };
 
     void OnProfileChanged() => InvokeAsync(async () =>
     {

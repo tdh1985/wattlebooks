@@ -15,6 +15,7 @@ public sealed class AppPrefs
     public double? Height { get; set; }
     public bool Maximized { get; set; }
     public bool Translucent { get; set; } = true;
+    public bool RailFolded { get; set; }
 }
 
 // window size and theme live outside the database since they belong to this pc

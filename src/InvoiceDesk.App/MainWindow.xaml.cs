@@ -106,7 +106,8 @@ public partial class MainWindow : Window
         if (_hwnd == IntPtr.Zero) return;
         if (HwndSource.FromHwnd(_hwnd)?.CompositionTarget is { } target)
             target.BackgroundColor = mica ? Colors.Transparent : desk;
-        WindowChrome.Apply(_hwnd, dark, desk, ThemeColours.Ink(dark), mica);
+        // the desk is graphite either way, so the caption always takes light text
+        WindowChrome.Apply(_hwnd, true, desk, ThemeColours.Ink(true), mica);
     }
 
     void OnClosing(object? sender, CancelEventArgs e)

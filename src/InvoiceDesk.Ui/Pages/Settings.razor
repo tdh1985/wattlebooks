@@ -186,7 +186,7 @@
                             <label for="inv-default-notes">Default notes for new invoices</label>
                             <textarea id="inv-default-notes" class="textarea" rows="3" placeholder="For example: Payment within 14 days, thanks!"
                                       @bind="_profile.DefaultInvoiceNotes" @bind:event="oninput" @bind:after="MarkDirty"></textarea>
-                            <span class="hint">Fills in the notes box on each new invoice. You can still change it on any invoice.</span>
+                            <span class="hint">Starts each new invoice's notes.</span>
                         </div>
                     </div>
                 </section>
@@ -304,7 +304,7 @@
                                 @foreach (var (name, hex) in Swatches)
                                 {
                                     <button type="button" class="swatch @(Same(hex) ? "on" : null)" style="background:@hex"
-                                            title="@name" aria-label="@name" aria-pressed="@Same(hex)" @onclick="() => PickAccent(hex)"></button>
+                                            title="@name" aria-label="@name" aria-pressed="@Aria.Bool(Same(hex))" @onclick="() => PickAccent(hex)"></button>
                                 }
                                 <input type="color" aria-label="Custom colour" value="@_profile.AccentColour.ToLowerInvariant()"
                                        @onchange="e => PickAccent(e.Value?.ToString() ?? _profile.AccentColour)" />
@@ -317,9 +317,9 @@
                                 @foreach (var t in InvoiceTemplates.All)
                                 {
                                     var on = InvoiceTemplates.Normalise(_profile.InvoiceTemplate) == t;
-                                    <button type="button" role="radio" aria-checked="@on" class="template @(on ? "on" : null)" @onclick="() => PickTemplate(t)">
-                                        <span class="template-page" aria-hidden="true">
-                                            <InvoiceDocument Invoice="_sample" Profile="_profile" LogoUrl="@FilesUrl.Logo(_profile)" Today="_sample.IssueDate" Template="@t" />
+                                    <button type="button" role="radio" aria-checked="@Aria.Bool(on)" class="template @(on ? "on" : null)" @onclick="() => PickTemplate(t)">
+                                        <span class="template-page" aria-hidden="true" inert>
+                                            <InvoiceDocument Invoice="_sample" Profile="_profile" LogoUrl="@FilesUrl.Logo(_profile)" Today="_sample.IssueDate" Template="@t" Preview="true" />
                                         </span>
                                         <span class="template-name">@TemplateLabel(t)</span>
                                     </button>
@@ -331,7 +331,7 @@
                             <div class="seg" role="group" aria-label="Theme">
                                 @foreach (var choice in ThemeService.Choices)
                                 {
-                                    <button type="button" class="@(Theme.Theme == choice ? "on" : null)" aria-pressed="@(Theme.Theme == choice)"
+                                    <button type="button" class="@(Theme.Theme == choice ? "on" : null)" aria-pressed="@Aria.Bool(Theme.Theme == choice)"
                                             @onclick="() => Theme.Set(choice)">@Theme.Label(choice)</button>
                                 }
                             </div>
@@ -402,17 +402,17 @@
                                         <g mask="url(#idsk-behind-both)"><path d="M88 150V18H188V150" transform="rotate(-10.8 138 400)"/></g>
                                         <g mask="url(#idsk-behind-front)"><path d="M88 150V18H188V150" transform="rotate(-5.4 138 400)"/></g>
                                         <path d="M88 160V18H156L188 50V160"/>
-                                        <path d="M156 18V50H188" fill="#DE9F32"/>
+                                        <path class="about-mark" d="M156 18V50H188"/>
                                     </g>
                                     <!-- neutral invoice: heading, three lines and a paid tick with a total -->
-                                    <g fill="#DE9F32">
+                                    <g class="about-mark">
                                         <rect x="104" y="34" width="32" height="9"/>
                                         <rect x="104" y="58" width="68" height="9"/>
                                         <rect x="104" y="75" width="68" height="9"/>
                                         <rect x="104" y="92" width="68" height="9"/>
                                         <rect x="146" y="124.5" width="26" height="9"/>
                                     </g>
-                                    <path d="M106 124.5L115 133.5L133 115.5" fill="none" stroke="#DE9F32" stroke-width="9" stroke-linejoin="miter"/>
+                                    <path d="M106 124.5L115 133.5L133 115.5" class="about-tick" fill="none" stroke-width="9" stroke-linejoin="miter"/>
                                     <!-- desk: top, stretcher and two splayed legs -->
                                     <g fill="currentColor">
                                         <rect x="0" y="150" width="240" height="18"/>

@@ -44,12 +44,19 @@
                 }
                 @if (Profile.Website.Length > 0)
                 {
-                    <div class="doc-small"><a class="doc-link" href="@WebAddress.Href(Profile.Website)">@WebAddress.Display(Profile.Website)</a></div>
+                    <div class="doc-small">@Link(Profile.Website)</div>
                 }
             </div>
         </div>
         <div class="doc-title">
-            <h1>@Invoice.Heading(Countries.For(Profile.Country))</h1>
+            @if (Preview)
+            {
+                <div class="doc-h1">@Invoice.Heading(Countries.For(Profile.Country))</div>
+            }
+            else
+            {
+                <h1>@Invoice.Heading(Countries.For(Profile.Country))</h1>
+            }
             <div class="doc-number">@(Invoice.Number.Length > 0 ? Invoice.Number : NumberPreview)</div>
         </div>
     </header>
@@ -83,7 +90,7 @@
                 }
                 @if (client.Website.Length > 0)
                 {
-                    <div class="doc-small"><a class="doc-link" href="@WebAddress.Href(client.Website)">@WebAddress.Display(client.Website)</a></div>
+                    <div class="doc-small">@Link(client.Website)</div>
                 }
                 @if (client.InvoiceNote.Length > 0)
                 {
@@ -236,6 +243,8 @@
     [Parameter] public DateOnly Today { get; set; } = DateOnly.FromDateTime(DateTime.Today);
     [Parameter] public string NumberPreview { get; set; } = "";
     [Parameter] public bool AnimateStamp { get; set; }
+    // on screen the page sits inside the app, so no page heading or tab stops
+    [Parameter] public bool Preview { get; set; }
     // lets settings show every layout side by side before one is saved
     [Parameter] public string? Template { get; set; }
 
@@ -246,4 +255,9 @@
         TaxCode.Exempt => Countries.For(Profile.Country).ExemptLabel,
         _ => "0%",
     };
+
+    // a live link in the pdf but plain text in an on-screen preview
+    RenderFragment Link(string website) => Preview
+        ? @<span class="doc-link">@WebAddress.Display(website)</span>
+        : @<a class="doc-link" href="@WebAddress.Href(website)">@WebAddress.Display(website)</a>;
 }

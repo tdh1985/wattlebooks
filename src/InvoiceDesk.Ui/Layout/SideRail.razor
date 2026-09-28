@@ -23,7 +23,7 @@
             }
             <span class="brand-name">@BusinessName</span>
         </a>
-        <button type="button" class="rail-fold" title="@(Folded ? "Show the full menu" : "Fold the menu") ( [ )" aria-pressed="@Folded" @onclick="OnToggleFold">
+        <button type="button" class="rail-fold" title="@(Folded ? "Show the full menu" : "Fold the menu") ( [ )" aria-pressed="@Aria.Bool(Folded)" @onclick="OnToggleFold">
             <Icon Name="panel" Size="16" />
         </button>
     </div>
@@ -89,7 +89,7 @@
         <div class="theme-switch" role="group" aria-label="Theme">
             @foreach (var choice in ThemeService.Choices)
             {
-                <button type="button" class="@(Theme.Theme == choice ? "on" : null)" aria-pressed="@(Theme.Theme == choice)"
+                <button type="button" class="@(Theme.Theme == choice ? "on" : null)" aria-pressed="@Aria.Bool(Theme.Theme == choice)"
                         title="@Theme.Label(choice)" @onclick="() => Theme.Set(choice)">
                     <Icon Name="@ThemeIcon(choice)" Size="14" />
                 </button>

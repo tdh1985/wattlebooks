@@ -79,7 +79,7 @@
                 </div>
             </div>
             <div class="row gap-8">
-                <button type="button" class="btn btn-primary btn-sm" disabled="@_busy" @onclick="SendCodeAsync">@(_busy ? "Sending…" : "Email me a code")</button>
+                <button type="button" class="btn btn-primary" disabled="@_busy" @onclick="SendCodeAsync">@(_busy ? "Sending…" : "Email me a code")</button>
             </div>
         }
         else
@@ -92,7 +92,7 @@
                 </div>
             </div>
             <div class="row gap-8 wrap">
-                <button type="button" class="btn btn-primary btn-sm" disabled="@_busy" @onclick="VerifyAsync">@(_busy ? "Signing in…" : "Sign in")</button>
+                <button type="button" class="btn btn-primary" disabled="@_busy" @onclick="VerifyAsync">@(_busy ? "Signing in…" : "Sign in")</button>
                 <button type="button" class="btn btn-ghost btn-sm" disabled="@_busy" @onclick="() => _codeSent = false">Use a different email</button>
             </div>
         }

@@ -5,8 +5,7 @@
 
 @if (Open)
 {
-    <div class="scrim" @onclick="CloseAsync"></div>
-    <aside class="drawer @(Wide ? "wide" : null)" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+    <dialog @ref="_dialog" class="drawer @(Wide ? "wide" : null)" aria-labelledby="drawer-title">
         <header class="drawer-head">
             <h2 id="drawer-title">@Title</h2>
             <button type="button" class="btn btn-ghost btn-icon" aria-label="Close" @onclick="CloseAsync"><Icon Name="x" /></button>
@@ -16,7 +15,7 @@
         {
             <footer class="drawer-foot">@Footer</footer>
         }
-    </aside>
+    </dialog>
 }
 
 @code {
@@ -27,7 +26,10 @@
     [Parameter] public RenderFragment? Footer { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
-    bool _focused;
+    readonly string _key = Guid.NewGuid().ToString("n");
+    ElementReference _dialog;
+    DotNetObjectReference<Drawer>? _ref;
+    bool _shown;
 
     IDisposable? _overlay;
 
@@ -40,15 +42,23 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (Open && !_focused)
+        if (Open && !_shown)
         {
-            _focused = true;
-            await JS.InvokeVoidAsync("invoicedesk.focus", ".drawer-body input:not([type=file]):not([type=checkbox]), .drawer-body textarea, .drawer-body select");
+            _shown = true;
+            _ref ??= DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("invoicedesk.showDialog", _dialog, _key, _ref, ".drawer-body input:not([type=file]):not([type=checkbox]), .drawer-body textarea, .drawer-body select");
         }
-        if (!Open) _focused = false;
+        else if (!Open && _shown)
+        {
+            _shown = false;
+            await JS.InvokeVoidAsync("invoicedesk.closeDialog", _key);
+        }
     }
 
     Task CloseAsync() => OnClose.InvokeAsync();
+
+    [JSInvokable]
+    public Task CloseFromBackdrop() => InvokeAsync(CloseAsync);
 
     void ReleaseOverlay()
     {
@@ -56,5 +66,9 @@
         _overlay = null;
     }
 
-    public void Dispose() => ReleaseOverlay();
+    public void Dispose()
+    {
+        ReleaseOverlay();
+        _ref?.Dispose();
+    }
 }

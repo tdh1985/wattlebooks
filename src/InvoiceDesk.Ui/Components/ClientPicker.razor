@@ -3,7 +3,7 @@
 
 <div class="picker">
     <button type="button" id="@Id" class="input picker-button @(Invalid ? "invalid" : null)" disabled="@Disabled"
-            aria-haspopup="listbox" aria-expanded="@_open" @onclick="ToggleAsync">
+            aria-haspopup="listbox" aria-expanded="@Aria.Bool(_open)" @onclick="ToggleAsync">
         @if (Selected is { } client)
         {
             <span class="truncate">@client.Name</span>
@@ -29,7 +29,7 @@
                 {
                     var index = i;
                     var option = Matches[i];
-                    <li role="option" aria-selected="@(option.Id == ClientId)" class="@(index == _active ? "active" : null)"
+                    <li role="option" aria-selected="@Aria.Bool(option.Id == ClientId)" class="@(index == _active ? "active" : null)"
                         @onmouseenter="() => _active = index" @onclick="() => PickAsync(option)">
                         <span class="truncate">@option.Name</span>
                         @if (option.Id == ClientId)

@@ -20,6 +20,8 @@ window.invoicedesk = {
             } else if (e.key === 'Escape') {
                 // esc in a field with a suggestion list closes the list, not the drawer
                 if (e.target instanceof Element && e.target.matches('input[list]')) return;
+                // the shortcut service closes the dialog so the native close must not
+                if (document.querySelector('dialog[open]')) e.preventDefault();
                 ref.invokeMethodAsync('OnShortcut', 'escape');
             }
         });
@@ -32,6 +34,17 @@ window.invoicedesk = {
             }
         });
         document.addEventListener('drop', (e) => { if (outsideDropZone(e)) e.preventDefault(); });
+        this.liftToasts();
+    },
+
+    // the top layer stacks in opening order, so reopening puts toasts on top
+    liftToasts() {
+        const toasts = document.querySelector('.toasts[popover]');
+        if (!toasts) return;
+        try {
+            if (toasts.matches(':popover-open')) toasts.hidePopover();
+            toasts.showPopover();
+        } catch (e) { }
     },
 
     // lets the windows 11 backdrop show through the desk around the sheet
@@ -90,6 +103,43 @@ window.invoicedesk = {
 
     unwatchFileDrag() {
         this.fileDragRef = null;
+    },
+
+    // a native modal dialog traps focus and makes the page behind it inert
+    dialogs: new Map(),
+
+    showDialog(el, key, ref, fields) {
+        if (!el || el.open) return;
+        for (const [k, d] of this.dialogs) if (!d.el.isConnected) this.dialogs.delete(k);
+        this.dialogs.set(key, { el, opener: document.activeElement });
+        // esc already reaches the shortcut service, one close is enough
+        el.addEventListener('cancel', (e) => e.preventDefault());
+        const outside = (e) => {
+            const r = el.getBoundingClientRect();
+            return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+        };
+        // a drag that starts inside and ends on the backdrop must not close it
+        let fromBackdrop = false;
+        el.addEventListener('pointerdown', (e) => { fromBackdrop = e.target === el && outside(e); });
+        el.addEventListener('click', (e) => {
+            if (fromBackdrop && e.target === el && outside(e)) ref.invokeMethodAsync('CloseFromBackdrop').catch(() => { });
+            fromBackdrop = false;
+        });
+        el.showModal();
+        this.liftToasts();
+        const first = el.querySelector('[autofocus], [data-first]') ?? (fields ? el.querySelector(fields) : null);
+        if (!first) return;
+        first.focus();
+        if (first.tagName === 'INPUT' && typeof first.select === 'function') first.select();
+    },
+
+    // runs after blazor has removed the dialog, so it goes by key
+    closeDialog(key) {
+        const d = this.dialogs.get(key);
+        if (!d) return;
+        this.dialogs.delete(key);
+        if (d.el.open) d.el.close();
+        if (d.opener instanceof HTMLElement && d.opener.isConnected) d.opener.focus();
     },
 
     focus(selector) {

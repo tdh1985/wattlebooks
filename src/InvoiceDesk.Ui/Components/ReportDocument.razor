@@ -21,7 +21,14 @@
             </div>
         </div>
         <div class="doc-title">
-            <h1>@(Return is not null ? Return.Title.ToUpperInvariant() : "PROFIT & LOSS")</h1>
+            @if (Preview)
+            {
+                <div class="doc-h1">@(Return is not null ? Return.Title.ToUpperInvariant() : "PROFIT & LOSS")</div>
+            }
+            else
+            {
+                <h1>@(Return is not null ? Return.Title.ToUpperInvariant() : "PROFIT & LOSS")</h1>
+            }
             <div class="doc-number">@PeriodLabel</div>
         </div>
     </header>
@@ -131,4 +138,6 @@
     [Parameter] public string? LogoUrl { get; set; }
     [Parameter] public string PeriodLabel { get; set; } = "";
     [Parameter] public DateOnly Today { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+    // on screen the page sits inside the app, so no page heading
+    [Parameter] public bool Preview { get; set; }
 }

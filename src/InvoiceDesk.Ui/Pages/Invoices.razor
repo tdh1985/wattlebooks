@@ -25,22 +25,22 @@
 
     <div class="toolbar">
         <div class="seg" role="group" aria-label="Invoices or quotes">
-            <button type="button" class="@(_quotes ? null : "on")" aria-pressed="@(!_quotes)" @onclick="@(() => Nav.NavigateTo("invoices"))">Invoices</button>
-            <button type="button" class="@(_quotes ? "on" : null)" aria-pressed="@_quotes" @onclick="@(() => Nav.NavigateTo("invoices?kind=quote"))">Quotes</button>
+            <button type="button" class="@(_quotes ? null : "on")" aria-pressed="@Aria.Bool(!_quotes)" @onclick="@(() => Nav.NavigateTo("invoices"))">Invoices</button>
+            <button type="button" class="@(_quotes ? "on" : null)" aria-pressed="@Aria.Bool(_quotes)" @onclick="@(() => Nav.NavigateTo("invoices?kind=quote"))">Quotes</button>
         </div>
         @if (_all is { Count: > 0 })
         {
             <div class="chips" role="group" aria-label="Show">
                 @foreach (var (filter, label) in _quotes ? QuoteFilters : Filters)
                 {
-                    <button type="button" class="chip @(_filter == filter && !_showRepeating ? "on" : null)" aria-pressed="@(_filter == filter && !_showRepeating)"
+                    <button type="button" class="chip @(_filter == filter && !_showRepeating ? "on" : null)" aria-pressed="@Aria.Bool(_filter == filter && !_showRepeating)"
                             @onclick="() => { _filter = filter; _showRepeating = false; }">
                         @label <span class="chip-count">@_all.Count(s => s.Matches(filter))</span>
                     </button>
                 }
                 @if (!_quotes && (_repeats.Count > 0 || _showRepeating))
                 {
-                    <button type="button" class="chip @(_showRepeating ? "on" : null)" aria-pressed="@_showRepeating" @onclick="() => _showRepeating = true">
+                    <button type="button" class="chip @(_showRepeating ? "on" : null)" aria-pressed="@Aria.Bool(_showRepeating)" @onclick="() => _showRepeating = true">
                         <Icon Name="refresh" Size="13" /> Repeating <span class="chip-count">@_repeats.Count</span>
                     </button>
                 }
@@ -60,7 +60,7 @@
     else if (_all.Count == 0 && _quotes)
     {
         <EmptyState Title="No quotes yet" IconName="invoice"
-                    Text="Send a price before the work starts. When your client says yes, turn the quote into an invoice in one click.">
+                    Text="Send a price before the work starts. When your client says yes, turn the quote into an invoice.">
             <a class="btn btn-primary" href="invoices/new?kind=quote"><Icon Name="plus" Size="16" /> New quote</a>
         </EmptyState>
     }
@@ -195,7 +195,7 @@
         </table>
         @if (!Rows.Any())
         {
-            <EmptyState Compact Title="Nothing here" IconName="search" Text="@($"No {(_quotes ? "quotes" : "invoices")} match this filter.")" />
+            <EmptyState Compact Title="@EmptyTitle" IconName="search" Text="@EmptyHint" />
         }
         }
     }
@@ -217,7 +217,7 @@
         <div class="seg mt-16" role="group" aria-label="Period">
             @foreach (var (key, label, _) in ExportPeriods())
             {
-                <button type="button" class="@(_exportPeriod == key ? "on" : null)" aria-pressed="@(_exportPeriod == key)" @onclick="() => _exportPeriod = key">@label</button>
+                <button type="button" class="@(_exportPeriod == key ? "on" : null)" aria-pressed="@Aria.Bool(_exportPeriod == key)" @onclick="() => _exportPeriod = key">@label</button>
             }
         </div>
     </ChildContent>
@@ -301,6 +301,34 @@
         yield return ("last-fy", FinancialPeriods.TaxYearLabel(lastFy.Start, country), lastFy);
         yield return ("all", "All time", new DateRange(DateOnly.MinValue, DateOnly.MaxValue));
     }
+
+    string Noun => _quotes ? "quotes" : "invoices";
+
+    // names the chip and search that emptied the list
+    string EmptyTitle
+    {
+        get
+        {
+            var kind = _filter switch
+            {
+                InvoiceFilter.Draft => "draft ",
+                InvoiceFilter.Sent => _quotes ? "sent " : "unpaid ",
+                InvoiceFilter.Overdue => "overdue ",
+                InvoiceFilter.Paid => "paid ",
+                InvoiceFilter.Void => "void ",
+                InvoiceFilter.Accepted => "accepted ",
+                InvoiceFilter.Declined => "declined ",
+                InvoiceFilter.Expired => "expired ",
+                _ => "",
+            };
+            var search = _search.Trim();
+            return $"No {kind}{Noun}{(search.Length > 0 ? $" matching \"{search}\"" : "")}";
+        }
+    }
+
+    string EmptyHint => _search.Trim().Length > 0
+        ? (_filter == InvoiceFilter.All ? "Check the number or client name, or clear the search." : "Choose All, or clear the search.")
+        : $"Choose All to see every one of your {Noun}.";
 
     IEnumerable<InvoiceSummary> Rows => (_all ?? [])
         .Where(s => s.Matches(_filter))

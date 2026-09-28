@@ -13,19 +13,20 @@
 
 @if (_open)
 {
-    <div class="scrim" @onclick="Close"></div>
-    <div class="palette" role="dialog" aria-modal="true" aria-label="Search and go">
+    <dialog @ref="_dialog" class="palette" aria-label="Search and go">
         <div class="palette-input">
             <Icon Name="search" Size="18" />
             <input id="palette-query" type="text" placeholder="Search invoices, quotes, clients and receipts, or type a command"
-                   autocomplete="off" spellcheck="false"
+                   autocomplete="off" spellcheck="false" role="combobox" aria-label="Search or type a command"
+                   aria-expanded="true" aria-controls="palette-list" aria-autocomplete="list"
+                   aria-activedescendant="@(_items.Count > 0 ? $"palette-option-{_active}" : null)"
                    value="@_query" @oninput="OnInput" @onkeydown="OnKeyDown" />
             <kbd>Esc</kbd>
         </div>
-        <ul class="palette-list" role="listbox">
+        <ul id="palette-list" class="palette-list" role="listbox" aria-label="Results" tabindex="-1">
             @if (_items.Count == 0)
             {
-                <li class="palette-empty">Nothing matches "@_query". Try a client name or an invoice number.</li>
+                <li class="palette-empty" role="presentation">Nothing matches "@_query". Try a client name or an invoice number.</li>
             }
             @for (var i = 0; i < _items.Count; i++)
             {
@@ -35,7 +36,7 @@
                 {
                     <li class="palette-group" role="presentation">@item.Group</li>
                 }
-                <li role="option" aria-selected="@(index == _active)" class="palette-item @(index == _active ? "active" : null)"
+                <li id="palette-option-@index" role="option" aria-selected="@Aria.Bool(index == _active)" class="palette-item @(index == _active ? "active" : null)"
                     @onmouseenter="() => _active = index" @onclick="() => Go(item)">
                     <Icon Name="@item.Icon" Size="16" />
                     <span class="palette-title">@item.Title</span>
@@ -43,7 +44,7 @@
                 </li>
             }
         </ul>
-    </div>
+    </dialog>
 }
 
 @code {
@@ -85,19 +86,43 @@
     List<Item> _items = [];
     CancellationTokenSource? _debounce;
     IDisposable? _overlay;
+    readonly string _key = Guid.NewGuid().ToString("n");
+    ElementReference _dialog;
+    DotNetObjectReference<CommandPalette>? _ref;
+    bool _shown;
 
-    public void Open() => InvokeAsync(async () =>
+    public void Open() => InvokeAsync(() =>
     {
         SetOpen(true);
         _query = "";
         _active = 0;
         _items = Actions();
         StateHasChanged();
-        await Task.Yield();
-        await JS.InvokeVoidAsync("invoicedesk.focus", "#palette-query");
     });
 
     void Close() => SetOpen(false);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_open && !_shown)
+        {
+            _shown = true;
+            _ref ??= DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("invoicedesk.showDialog", _dialog, _key, _ref, "#palette-query");
+        }
+        else if (!_open && _shown)
+        {
+            _shown = false;
+            await JS.InvokeVoidAsync("invoicedesk.closeDialog", _key);
+        }
+    }
+
+    [JSInvokable]
+    public Task CloseFromBackdrop() => InvokeAsync(() =>
+    {
+        Close();
+        StateHasChanged();
+    });
 
     void SetOpen(bool open)
     {
@@ -228,5 +253,6 @@
     {
         _overlay?.Dispose();
         _debounce?.Cancel();
+        _ref?.Dispose();
     }
 }

@@ -32,13 +32,13 @@
         <div class="seg" role="group" aria-label="Direction">
             @foreach (var (tab, label) in Tabs)
             {
-                <button type="button" class="@(_tab == tab ? "on" : null)" aria-pressed="@(_tab == tab)" @onclick="() => SetTabAsync(tab)">@label</button>
+                <button type="button" class="@(_tab == tab ? "on" : null)" aria-pressed="@Aria.Bool(_tab == tab)" @onclick="() => SetTabAsync(tab)">@label</button>
             }
         </div>
         <div class="seg" role="group" aria-label="Period">
             @foreach (var period in VisiblePeriods)
             {
-                <button type="button" class="@(_period == period ? "on" : null)" aria-pressed="@(_period == period)" @onclick="() => SetPeriodAsync(period)">@PeriodLabel(period)</button>
+                <button type="button" class="@(_period == period ? "on" : null)" aria-pressed="@Aria.Bool(_period == period)" @onclick="() => SetPeriodAsync(period)">@PeriodLabel(period)</button>
             }
         </div>
         <select class="select" style="width:auto; min-width:170px" aria-label="Category" value="@(_categoryId?.ToString() ?? "")" @onchange="SetCategoryAsync">
@@ -112,7 +112,7 @@
             }
             else
             {
-                <EmptyState Compact Title="Nothing in this view" IconName="search" Text="Try a longer period or clear the filters." />
+                <EmptyState Compact Title="@EmptyTitle" IconName="search" Text="@EmptyHint" />
             }
         }
         else
@@ -123,7 +123,7 @@
                         <th>Date</th>
                         <th>Who and what</th>
                         <th>Category</th>
-                        <th class="num" aria-label="Receipts"><Icon Name="paperclip" Size="14" /></th>
+                        <th class="num"><Icon Name="paperclip" Size="14" /><span class="sr-only">Receipts</span></th>
                         <th class="num">@Format.Country.TaxName</th>
                         <th class="num">Amount</th>
                     </tr>
@@ -277,6 +277,37 @@
             "fy" => FinancialPeriods.TaxYearLabel(today, country),
             _ => "All time",
         };
+    }
+
+    // says exactly which filters hid everything, so the fix is obvious
+    string EmptyTitle
+    {
+        get
+        {
+            var what = _tab switch { "in" => "income", "out" => "expenses", _ => "money in or out" };
+            var category = _categories.FirstOrDefault(c => c.Id == _categoryId)?.Name;
+            var when = _period switch
+            {
+                "month" => "this month",
+                "all" => "so far",
+                _ => "in " + PeriodLabel(_period).Replace("Tax year", "tax year"),
+            };
+            var search = _search.Trim();
+            return $"No {what}{(category is null ? "" : $" in {category}")} {when}{(search.Length > 0 ? $" matching \"{search}\"" : "")}";
+        }
+    }
+
+    string? EmptyHint
+    {
+        get
+        {
+            var filters = new List<string>();
+            if (_search.Trim().Length > 0) filters.Add("the search");
+            if (_categoryId is not null) filters.Add("the category filter");
+            var clear = filters.Count == 0 ? null : "clear " + string.Join(" and ", filters);
+            if (_period != "all") return clear is null ? "Try All time." : $"Try All time, or {clear}.";
+            return clear is null ? null : "C" + clear[1..] + ".";
+        }
     }
 
     async Task SetTabAsync(string tab)

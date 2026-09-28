@@ -1,11 +1,11 @@
 @* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
 @implements IDisposable
 @inject ShortcutService Shortcuts
+@inject IJSRuntime JS
 
 @if (Open)
 {
-    <div class="scrim" @onclick="CloseAsync"></div>
-    <div class="modal @Class" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <dialog @ref="_dialog" class="modal @Class" aria-labelledby="modal-title">
         <header class="modal-head">
             <h2 id="modal-title" class="truncate">@Title</h2>
             @HeadExtra
@@ -16,7 +16,7 @@
         {
             <footer class="modal-foot">@Footer</footer>
         }
-    </div>
+    </dialog>
 }
 
 @code {
@@ -28,6 +28,10 @@
     [Parameter] public RenderFragment? HeadExtra { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
+    readonly string _key = Guid.NewGuid().ToString("n");
+    ElementReference _dialog;
+    DotNetObjectReference<Modal>? _ref;
+    bool _shown;
     IDisposable? _overlay;
 
     // esc goes to whichever overlay opened last
@@ -37,7 +41,25 @@
         else ReleaseOverlay();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Open && !_shown)
+        {
+            _shown = true;
+            _ref ??= DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("invoicedesk.showDialog", _dialog, _key, _ref, null);
+        }
+        else if (!Open && _shown)
+        {
+            _shown = false;
+            await JS.InvokeVoidAsync("invoicedesk.closeDialog", _key);
+        }
+    }
+
     Task CloseAsync() => OnClose.InvokeAsync();
+
+    [JSInvokable]
+    public Task CloseFromBackdrop() => InvokeAsync(CloseAsync);
 
     void ReleaseOverlay()
     {
@@ -45,5 +67,9 @@
         _overlay = null;
     }
 
-    public void Dispose() => ReleaseOverlay();
+    public void Dispose()
+    {
+        ReleaseOverlay();
+        _ref?.Dispose();
+    }
 }

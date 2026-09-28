@@ -38,7 +38,7 @@
                 <a class="btn btn-primary" href="invoices/new/@c.Id"><Icon Name="plus" Size="16" /> New invoice</a>
                 <button type="button" class="btn" @onclick="() => _editing = true"><Icon Name="edit" Size="16" /> Edit</button>
                 <div class="menu">
-                    <button type="button" class="btn btn-icon" aria-label="More actions" aria-expanded="@_menu" @onclick="() => _menu = !_menu"><Icon Name="more" /></button>
+                    <button type="button" class="btn btn-icon" aria-label="More actions" aria-expanded="@Aria.Bool(_menu)" @onclick="() => _menu = !_menu"><Icon Name="more" /></button>
                     @if (_menu)
                     {
                         <div class="picker-scrim" @onclick="() => _menu = false"></div>

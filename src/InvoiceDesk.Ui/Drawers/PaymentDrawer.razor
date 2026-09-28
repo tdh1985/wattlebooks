@@ -21,7 +21,7 @@
                 {
                     <div class="field @FieldState("amount")">
                         <label for="payment-amount">Amount paid (@Invoice!.Currency)</label>
-                        <MoneyInput Id="payment-amount" Currency="@Invoice.Currency" Cents="_amount" CentsChanged="SetAmount" />
+                        <MoneyInput Id="payment-amount" Currency="@Invoice.Currency" Cents="_amount" CentsChanged="SetAmount" data-first="true" />
                     </div>
                     <div class="field @FieldState("home")">
                         <label for="payment-home">Amount that reached your bank (@Home)</label>
@@ -44,7 +44,7 @@
                     {
                         <div class="field @FieldState("sent")">
                             <label for="payment-sent">Amount they sent (@_paidIn)</label>
-                            <MoneyInput Id="payment-sent" Currency="@_paidIn" Cents="_sent" CentsChanged="SetSent" />
+                            <MoneyInput Id="payment-sent" Currency="@_paidIn" Cents="_sent" CentsChanged="SetSent" data-first="true" />
                         </div>
                         <div class="field @FieldState("amount")">
                             <label for="payment-amount">Amount that reached your bank (@Home)</label>
@@ -56,7 +56,7 @@
                     {
                         <div class="field @FieldState("amount")">
                             <label for="payment-amount">Amount received</label>
-                            <MoneyInput Id="payment-amount" Cents="_amount" CentsChanged="SetAmount" />
+                            <MoneyInput Id="payment-amount" Cents="_amount" CentsChanged="SetAmount" data-first="true" />
                         </div>
                     }
                 }

@@ -13,7 +13,7 @@
             <div class="seg mt-16" role="group" aria-label="Tone">
                 @foreach (var tone in Enum.GetValues<ReminderTone>())
                 {
-                    <button type="button" class="@(_tone == tone ? "on" : null)" aria-pressed="@(_tone == tone)" @onclick="() => SetTone(tone)">@ToneLabel(tone)</button>
+                    <button type="button" class="@(_tone == tone ? "on" : null)" aria-pressed="@Aria.Bool(_tone == tone)" @onclick="() => SetTone(tone)">@ToneLabel(tone)</button>
                 }
             </div>
             <div class="col gap-12 mt-16">

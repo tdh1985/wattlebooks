@@ -2,7 +2,7 @@
 @implements IDisposable
 @inject ToastService Toasts
 
-<div class="toasts" role="status" aria-live="polite">
+<div class="toasts" popover="manual" role="status" aria-live="polite">
     @foreach (var toast in Toasts.Items)
     {
         <div class="toast toast-@toast.Kind.ToString().ToLowerInvariant()" @key="toast.Id">

@@ -21,10 +21,10 @@
     {
         <div class="detail">
             <div class="detail-preview">
-                <div class="doc-stage" @ref="_stage">
+                <div class="doc-stage" @ref="_stage" tabindex="0" role="region" aria-label="@(_kind == "pl" ? "Profit and loss preview" : $"{Countries.For(_profile.Country).ReturnTitle} preview")">
                     <div class="doc-frame">
                         <ReportDocument Return="@(_kind == "return" ? _return : null)" Pl="@(_kind == "pl" ? _pl : null)" Profile="_profile"
-                                        LogoUrl="@FilesUrl.Logo(_profile)" PeriodLabel="@Period.Label" Today="_today" />
+                                        LogoUrl="@FilesUrl.Logo(_profile)" PeriodLabel="@Period.Label" Today="_today" Preview="true" />
                     </div>
                 </div>
             </div>
@@ -32,15 +32,15 @@
             <aside class="side">
                 <section class="panel panel-pad col gap-16">
                     <div class="seg" role="group" aria-label="Report">
-                        <button type="button" class="@(_kind == "return" ? "on" : null)" aria-pressed="@(_kind == "return")" @onclick="@(() => SetKindAsync("return"))">@Countries.For(_profile.Country).ReturnTitle</button>
-                        <button type="button" class="@(_kind == "pl" ? "on" : null)" aria-pressed="@(_kind == "pl")" @onclick="@(() => SetKindAsync("pl"))">Profit &amp; loss</button>
+                        <button type="button" class="@(_kind == "return" ? "on" : null)" aria-pressed="@Aria.Bool(_kind == "return")" @onclick="@(() => SetKindAsync("return"))">@Countries.For(_profile.Country).ReturnTitle</button>
+                        <button type="button" class="@(_kind == "pl" ? "on" : null)" aria-pressed="@Aria.Bool(_kind == "pl")" @onclick="@(() => SetKindAsync("pl"))">Profit &amp; loss</button>
                     </div>
                     <div class="field">
                         <span class="label">Period</span>
                         <div class="period-list" role="group" aria-label="Period">
                             @foreach (var p in Periods())
                             {
-                                <button type="button" class="@(_period == p.Key ? "on" : null)" aria-pressed="@(_period == p.Key)" @onclick="() => SetPeriodAsync(p.Key)">
+                                <button type="button" class="@(_period == p.Key ? "on" : null)" aria-pressed="@Aria.Bool(_period == p.Key)" @onclick="() => SetPeriodAsync(p.Key)">
                                     <span>@p.Label</span>
                                     <span class="muted small">@p.Hint</span>
                                 </button>

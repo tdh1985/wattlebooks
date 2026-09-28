@@ -53,7 +53,7 @@
 .doc-from-text { min-width: 0; }
 .doc-biz { margin-bottom: 4px; font: 600 19px/1.2 var(--doc-num); }
 .doc-title { flex: none; text-align: right; }
-.doc-title h1 {
+.doc-title h1, .doc-title .doc-h1 {
     margin: 0;
     font: 700 36px/1 var(--doc-display);
     letter-spacing: .07em;
@@ -183,7 +183,7 @@
     color: #FFFFFF;
 }
 .doc-modern .doc-head .doc-small, .doc-modern .doc-head .doc-link { color: rgb(255 255 255 / .82); }
-.doc-modern .doc-title h1 { color: #FFFFFF; }
+.doc-modern .doc-title h1, .doc-modern .doc-title .doc-h1 { color: #FFFFFF; }
 .doc-modern .doc-logo { padding: 6px; border-radius: 6px; background: #FFFFFF; }
 .doc-modern { padding-left: 60px; }
 .doc-modern .doc-parties { border-top: 0; }

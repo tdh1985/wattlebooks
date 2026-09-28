@@ -11,7 +11,7 @@
             <div class="seg" role="group" aria-label="How often">
                 @foreach (var every in Enum.GetValues<RepeatEvery>())
                 {
-                    <button type="button" class="@(_every == every ? "on" : null)" aria-pressed="@(_every == every)" @onclick="() => _every = every">@Label(every)</button>
+                    <button type="button" class="@(_every == every ? "on" : null)" aria-pressed="@Aria.Bool(_every == every)" @onclick="() => _every = every">@Label(every)</button>
                 }
             </div>
         </div>

@@ -79,7 +79,7 @@
                     <button type="button" class="btn btn-primary" @onclick="() => _paying = true"><Icon Name="plus" Size="16" /> Record payment</button>
                 }
                 <div class="menu">
-                    <button type="button" class="btn btn-icon" aria-label="More actions" aria-expanded="@_menu" @onclick="() => _menu = !_menu"><Icon Name="more" /></button>
+                    <button type="button" class="btn btn-icon" aria-label="More actions" aria-expanded="@Aria.Bool(_menu)" @onclick="() => _menu = !_menu"><Icon Name="more" /></button>
                     @if (_menu)
                     {
                         <div class="picker-scrim" @onclick="() => _menu = false"></div>
@@ -118,9 +118,9 @@
 
         <div class="detail">
             <div class="detail-preview">
-                <div class="doc-stage" @ref="_stage">
+                <div class="doc-stage" @ref="_stage" tabindex="0" role="region" aria-label="@(IsQuote ? "Quote preview" : "Invoice preview")">
                     <div class="doc-frame">
-                        <InvoiceDocument Invoice="_invoice" Profile="_profile" LogoUrl="@LogoUrl" Today="_today" AnimateStamp="_animateStamp" />
+                        <InvoiceDocument Invoice="_invoice" Profile="_profile" LogoUrl="@LogoUrl" Today="_today" AnimateStamp="_animateStamp" Preview="true" />
                     </div>
                 </div>
             </div>
@@ -152,7 +152,7 @@
                 @if (!IsQuote)
                 {
                 <section>
-                    <h3>Payments</h3>
+                    <h2 class="side-title">Payments</h2>
                     @if (_invoice.Payments.Count == 0)
                     {
                         <p class="soft small">No payments yet. When your client pays, record it here and attach the remittance.</p>
@@ -194,7 +194,7 @@
                 }
 
                 <section>
-                    <h3>Files</h3>
+                    <h2 class="side-title">Files</h2>
                     @if (_invoice.Attachments.Count == 0)
                     {
                         <p class="soft small">A copy of the PDF is kept here when you mark the @(IsQuote ? "quote" : "invoice") as sent.</p>
@@ -206,7 +206,7 @@
                 </section>
 
                 <section>
-                    <h3>History</h3>
+                    <h2 class="side-title">History</h2>
                     <ul class="timeline">
                         @foreach (var (when, icon, text) in History())
                         {

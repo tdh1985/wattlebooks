@@ -60,7 +60,7 @@
                         @if (_invoice.Id > 0)
                         {
                             <div class="menu">
-                                <button type="button" class="btn btn-icon" aria-label="More actions" aria-expanded="@_menu" @onclick="() => _menu = !_menu"><Icon Name="more" /></button>
+                                <button type="button" class="btn btn-icon" aria-label="More actions" aria-expanded="@Aria.Bool(_menu)" @onclick="() => _menu = !_menu"><Icon Name="more" /></button>
                                 @if (_menu)
                                 {
                                     <div class="picker-scrim" @onclick="() => _menu = false"></div>
@@ -202,7 +202,7 @@
                             <div class="line" @key="line">
                                 <div class="line-desc-cell">
                                     <textarea id="desc-@index" class="input line-desc" rows="1" placeholder="Description" aria-label="Description"
-                                              aria-autocomplete="list" aria-expanded="@suggesting" aria-controls="@(suggesting ? "line-suggest" : null)"
+                                              aria-autocomplete="list" aria-controls="@(suggesting ? "line-suggest" : null)"
                                               data-suggest-open="@(suggesting ? (_suggestActive >= 0 ? "active" : "open") : null)"
                                               value="@line.Description" @oninput="e => SetDescription(line, e)" @onblur="CloseSuggestions"></textarea>
                                     @if (suggesting)
@@ -212,7 +212,7 @@
                                             {
                                                 var option = j;
                                                 var s = _suggestions[j];
-                                                <li role="option" aria-selected="@(option == _suggestActive)" class="@(option == _suggestActive ? "active" : null)"
+                                                <li role="option" aria-selected="@Aria.Bool(option == _suggestActive)" class="@(option == _suggestActive ? "active" : null)"
                                                     @onmouseenter="() => _suggestActive = option"
                                                     @onmousedown="() => PickSuggestion(line, s)" @onmousedown:preventDefault>
                                                     <span class="suggest-main">
@@ -283,10 +283,10 @@
             </div>
         </div>
 
-        <div class="editor-preview" aria-label="@(IsQuote ? "Quote preview" : "Invoice preview")">
-            <div class="doc-stage" @ref="_stage">
+        <div class="editor-preview">
+            <div class="doc-stage" @ref="_stage" tabindex="0" role="region" aria-label="@(IsQuote ? "Quote preview" : "Invoice preview")">
                 <div class="doc-frame">
-                    <InvoiceDocument Invoice="_invoice" Profile="_profile" LogoUrl="@LogoUrl" Today="_today" NumberPreview="@NumberPreview" />
+                    <InvoiceDocument Invoice="_invoice" Profile="_profile" LogoUrl="@LogoUrl" Today="_today" NumberPreview="@NumberPreview" Preview="true" />
                 </div>
             </div>
         </div>

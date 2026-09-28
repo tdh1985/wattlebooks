@@ -57,8 +57,8 @@
                 else if (_tx.Id == 0)
                 {
                     <div class="seg" role="group" aria-label="Kind of entry">
-                        <button type="button" class="@(isOut ? "on" : null)" aria-pressed="@isOut" @onclick="() => SetDirection(Direction.Out)"><Icon Name="out" Size="14" /> Money out</button>
-                        <button type="button" class="@(!isOut ? "on" : null)" aria-pressed="@(!isOut)" @onclick="() => SetDirection(Direction.In)"><Icon Name="in" Size="14" /> Money in</button>
+                        <button type="button" class="@(isOut ? "on" : null)" aria-pressed="@Aria.Bool(isOut)" @onclick="() => SetDirection(Direction.Out)"><Icon Name="out" Size="14" /> Money out</button>
+                        <button type="button" class="@(!isOut ? "on" : null)" aria-pressed="@Aria.Bool(!isOut)" @onclick="() => SetDirection(Direction.In)"><Icon Name="in" Size="14" /> Money in</button>
                     </div>
                 }
 

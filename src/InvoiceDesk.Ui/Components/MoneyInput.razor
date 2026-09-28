@@ -3,7 +3,7 @@
     <span class="affix-text">@Format.Mark(Currency)</span>
     <input id="@Id" class="input num" inputmode="decimal" placeholder="0.00" autocomplete="off"
            aria-label="@AriaLabel" value="@_text"
-           @oninput="OnInputAsync" @onchange="OnChangeAsync" @onkeydown="OnKeyDown" />
+           @oninput="OnInputAsync" @onchange="OnChangeAsync" @onkeydown="OnKeyDown" @attributes="Attributes" />
 </div>
 
 @code {
@@ -14,6 +14,7 @@
     [Parameter] public string? Currency { get; set; }
     [Parameter] public string? AriaLabel { get; set; }
     [Parameter] public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public Dictionary<string, object>? Attributes { get; set; }
 
     string _text = "";
     long? _shown;

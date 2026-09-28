@@ -1,12 +1,13 @@
 @* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
 @* money in above the line and out below, with a table view twin for the exact figures *@
+@inject IJSRuntime JS
 <div class="viz">
     <div class="viz-head">
-        <div class="viz-legend" aria-hidden="@(!_table)">
+        <div class="viz-legend" aria-hidden="@Aria.Hidden(!_table)">
             <span class="key"><i class="key-in"></i>Money in</span>
             <span class="key"><i class="key-out"></i>Money out</span>
         </div>
-        <button type="button" class="btn btn-ghost btn-sm" aria-pressed="@_table" @onclick="() => _table = !_table">
+        <button type="button" class="btn btn-ghost btn-sm" aria-pressed="@Aria.Bool(_table)" @onclick="() => _table = !_table">
             <Icon Name="@(_table ? "dashboard" : "hash")" Size="14" /> @(_table ? "Show chart" : "Show as table")
         </button>
     </div>
@@ -31,7 +32,7 @@
     else
     {
         <div class="viz-plot" @onmouseleave="() => _hover = null">
-            <svg viewBox="0 0 @W @H" role="img" aria-label="Money in above the line and money out below it, for each of the last 12 months. Use Show as table for the figures.">
+            <svg viewBox="0 0 @W @H" role="group" aria-label="Money in above the line and money out below it, for each of the last 12 months. Use the arrow keys to move between months, or Show as table for the figures.">
                 @foreach (var tick in Ticks)
                 {
                     var y = Y(tick);
@@ -47,9 +48,9 @@
                     var m = Months[i];
                     var bandX = Left + index * Band;
                     var center = bandX + Band / 2;
-                    <g class="band @(_hover == index ? "on" : null)" tabindex="0"
+                    <g id="@_id-@index" class="band @(_hover == index ? "on" : null)" role="img" tabindex="@(index == Current ? 0 : -1)"
                        aria-label="@($"{m.Month.ToString("MMMM yyyy", CultureInfo.InvariantCulture)}: money in {Format.Money(m.InCents)}, money out {Format.Money(m.OutCents)}")"
-                       @onmouseenter="() => _hover = index" @onfocus="() => _hover = index" @onblur="() => _hover = null">
+                       @onmouseenter="() => _hover = index" @onfocus="() => Focused(index)" @onblur="() => _hover = null" @onkeydown="OnBandKey">
                         <rect class="hit" x="@F(bandX + 1)" y="@F(Top)" width="@F(Band - 2)" height="@F(PlotHeight)" rx="4" />
                         @if (m.InCents > 0)
                         {
@@ -96,6 +97,32 @@
 
     int? _hover;
     bool _table;
+    // one tab stop for the chart, the arrows move between months
+    int? _current;
+    readonly string _id = "band-" + Guid.NewGuid().ToString("n")[..8];
+
+    int Current => Math.Clamp(_current ?? Months.Count - 1, 0, Math.Max(0, Months.Count - 1));
+
+    void Focused(int index)
+    {
+        _hover = index;
+        _current = index;
+    }
+
+    async Task OnBandKey(KeyboardEventArgs e)
+    {
+        var next = e.Key switch
+        {
+            "ArrowLeft" => Current - 1,
+            "ArrowRight" => Current + 1,
+            "Home" => 0,
+            "End" => Months.Count - 1,
+            _ => -1,
+        };
+        if (next < 0 || next >= Months.Count || next == Current) return;
+        _current = next;
+        await JS.InvokeVoidAsync("invoicedesk.focus", $"#{_id}-{next}");
+    }
 
     double PlotHeight => H - Top - Bottom;
     double Band => (W - Left - Right) / Math.Max(1, Months.Count);

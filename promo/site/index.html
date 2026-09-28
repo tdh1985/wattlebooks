@@ -321,7 +321,7 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
       <div class="hero-copy">
         <span class="eyebrow">For Australian sole traders</span>
         <h1>Tax invoices, GST and your BAS. <span class="dim">No monthly fee.</span></h1>
-        <p class="lede">InvoiceDesk is a free invoicing app for tradies and freelancers. It runs on your own computer, so your books stay with you.</p>
+        <p class="lede">InvoiceDesk is a free, open-source invoicing app for tradies and freelancers on Windows, Mac and Linux. It runs on your own computer, so your books stay with you.</p>
         <p class="phone-note">InvoiceDesk runs on your computer. Open this page on it to download.</p>
         <div class="actions">
           <a class="btn primary" href="https://github.com/tdh1985/invoicedesk/releases/latest/download/InvoiceDesk.exe">
@@ -333,7 +333,7 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
         <p class="fine">Free and open source. One file, nothing to install. Also set up for <a href="#countries">NZ, the UK, Canada and the US</a>.</p>
       </div>
       <div class="hero-visual">
-        <img class="shot" src="img/invoice-preview.webp" width="626" height="626" alt="A tax invoice made in InvoiceDesk for Blue Gum Physio, with the ABN, three lines of work, GST of $404.00 and a total of $4,444.00">
+        <img class="shot" src="img/invoice-preview.webp" width="626" height="626" fetchpriority="high" alt="A tax invoice made in InvoiceDesk for Blue Gum Physio, with the ABN, three lines of work, GST of $404.00 and a total of $4,444.00">
       </div>
     </section>
 
@@ -390,7 +390,7 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
           <li>Quotes that turn into invoices, and invoices that repeat monthly</li>
         </ul>
       </div>
-      <img class="shot" src="img/dashboard.webp" width="1470" height="1295" alt="The dashboard showing $2,992.50 owed by clients, two invoices stamped late on a rail of due dates, and September's cash book">
+      <img class="shot" src="img/dashboard.webp" loading="lazy" width="1470" height="1295" alt="The dashboard showing $2,992.50 owed by clients, two invoices stamped late on a rail of due dates, and September's cash book">
     </section>
 
     <section class="feature wide">
@@ -399,7 +399,7 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
         <p>Drag a photo or PDF of a receipt onto the Money page. InvoiceDesk reads the supplier, date, amount and GST, and highlights what it filled so you can check it.</p>
         <p class="fine">Uses the text reader built into Windows, so the receipt never leaves your computer.</p>
       </div>
-      <img class="shot" src="img/receipt-scan.webp" width="1800" height="1090" alt="An Ampol fuel receipt dropped onto a new expense, with the amount, GST, date and supplier filled in">
+      <img class="shot" src="img/receipt-scan.webp" loading="lazy" width="1800" height="1090" alt="An Ampol fuel receipt dropped onto a new expense, with the amount, GST, date and supplier filled in">
     </section>
 
     <section class="feature">
@@ -412,7 +412,7 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
           <div><b>1B</b><span>GST on purchases</span></div>
         </div>
       </div>
-      <img class="shot" src="img/reports.webp" width="1500" height="1295" alt="The BAS worksheet for July to September 2026: G1 $5,681.84, 1A $515.36, 1B $93.95, GST to pay $421.41">
+      <img class="shot" src="img/reports.webp" loading="lazy" width="1500" height="1295" alt="The BAS worksheet for July to September 2026: G1 $5,681.84, 1A $515.36, 1B $93.95, GST to pay $421.41">
     </section>
 
     <section class="countries" id="countries">
@@ -445,9 +445,9 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
         <p class="fine">Works in the browser on iPhone and Android. Your computer stays the only full copy of your books.</p>
       </div>
       <div class="phones" tabindex="0" role="region" aria-label="Phone app screens">
-        <img src="img/phone-owes.webp" width="527" height="1136" alt="Phone screen listing who owes you: $2,992.50 owed, $2,233.50 overdue">
-        <img src="img/phone-snap.webp" width="525" height="1136" alt="Phone screen with a photo of a fuel receipt and a note">
-        <img src="img/phone-quick.webp" width="528" height="1136" alt="Phone screen starting a quick invoice for Salt and Pine Bakery">
+        <img src="img/phone-owes.webp" loading="lazy" width="527" height="1136" alt="Phone screen listing who owes you: $2,992.50 owed, $2,233.50 overdue">
+        <img src="img/phone-snap.webp" loading="lazy" width="525" height="1136" alt="Phone screen with a photo of a fuel receipt and a note">
+        <img src="img/phone-quick.webp" loading="lazy" width="528" height="1136" alt="Phone screen starting a quick invoice for Salt and Pine Bakery">
       </div>
     </section>
 
@@ -473,6 +473,10 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
           <p>Yes. There's no trial, no paid plan and no ads. It's open source under the MIT licence, and you can read every line on GitHub.</p>
         </details>
         <details>
+          <summary>How is it different from Xero, MYOB or QuickBooks?</summary>
+          <p>Those are monthly subscriptions that run online, with extras like bank feeds and payroll. InvoiceDesk is free, keeps your books on your own computer and sticks to invoices, quotes, expenses and your GST. If you need payroll or bank feeds, one of those is the better fit.</p>
+        </details>
+        <details>
           <summary>Where are my invoices kept?</summary>
           <p>In a folder on your own computer. Nothing goes online unless you sign in to the phone app, and then only your open invoices, recent payments and client names are shared with your phone.</p>
         </details>
@@ -489,6 +493,10 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
           <p>There's a Mac version marked as a preview, and a Linux version too. Receipt scanning is Windows only for now.</p>
         </details>
         <details>
+          <summary>Why does Windows warn me when I open it?</summary>
+          <p>The Windows download isn't code-signed yet, so SmartScreen may say it protected your PC. Click More info, then Run anyway. The code is on GitHub if you want to check it first.</p>
+        </details>
+        <details>
           <summary>Does it replace my accountant?</summary>
           <p>No. It keeps your records and works out your GST figures, but it isn't tax advice. Check your BAS with your accountant or the ATO if you're unsure.</p>
         </details>
@@ -499,6 +507,7 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
       <div class="contact-copy">
         <h2 id="contact-title">Get in touch</h2>
         <p>Found a bug, or want your country's tax rules added? Send a message and you'll get a reply by email.</p>
+        <p class="fine">Your name and email are only used to reply. See the <a href="privacy.html">privacy statement</a>.</p>
       </div>
       <form id="contact-form" novalidate>
         <div class="pair">
@@ -537,7 +546,7 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
 
   <footer>
     <span>InvoiceDesk is free software under the MIT licence.</span>
-    <span><a href="#contact">Contact</a> · <a href="https://github.com/tdh1985/invoicedesk/releases">All releases</a></span>
+    <span><a href="#contact">Contact</a> · <a href="privacy.html">Privacy</a> · <a href="https://github.com/tdh1985/invoicedesk/releases">All releases</a></span>
   </footer>
 </div>
 

@@ -1,0 +1,49 @@
+# InvoiceDesk
+
+> InvoiceDesk is a free, open-source invoicing app for sole traders and small businesses. It runs on Windows 10 and 11, Linux and macOS (as a preview), keeps your books in a folder on your own computer and follows the GST, VAT or sales tax rules of Australia, New Zealand, the UK, Canada and the US.
+
+- Price: free. No subscription, no per-invoice fee, no paid plan and no ads. MIT licence.
+- Made for: tradies, freelancers and other sole traders, first in Australia.
+- Install: a single file with nothing to install. The latest version is {version}.
+- Privacy: nothing goes online unless you sign in to the optional phone app. Then only open invoices, recent payments and client names are shared with your phone.
+
+## What it does
+
+- Tax invoices with the heading your country expects (TAX INVOICE, VAT INVOICE), your tax number and tax per line, on A4 or US Letter.
+- Quotes that turn into invoices, and invoices that repeat weekly, fortnightly, monthly, quarterly or yearly.
+- Email an invoice as a PDF, and chase late payers with a friendly, firm or final reminder.
+- Statements of everything a client owes, aged into 30, 60 and 90 days.
+- Payments, other income and expenses, with receipts attached.
+- Receipt scanning: drop a photo or PDF of a receipt and it fills in the supplier, date, amount and tax. Uses the text reader built into Windows, so the receipt never leaves the computer. Windows only.
+- A dashboard of unpaid invoices by due date, this month's cash book and profit for the tax year.
+- Reports with your country's tax return worksheet and a profit and loss for any period, saved as PDF or CSV.
+- Bill clients anywhere in 13 currencies: AUD, NZD, GBP, CAD, USD, EUR, SGD, HKD, CHF, SEK, NOK, DKK and ZAR.
+- An optional phone app (a free pilot) for snapping receipts, starting quick invoices and seeing who owes you.
+
+## Tax by country
+
+| Country | Tax | Tax return figures |
+|---|---|---|
+| Australia | GST 10%, ABN | BAS worksheet (G1, 1A, 1B) |
+| New Zealand | GST 15% | GST return (boxes 5 to 15) |
+| United Kingdom | VAT at 20%, 5%, 0% or exempt | VAT return (boxes 1 to 9) |
+| Canada | GST or HST by province | GST/HST return |
+| United States | Sales tax at your rate | Sales tax summary |
+
+## What it doesn't do
+
+- No payroll and no bank feeds. Xero, MYOB or QuickBooks are a better fit if you need those.
+- It doesn't lodge your BAS or tax return. It works out the figures for you to copy across.
+- Quebec QST and the provincial sales taxes in BC, Saskatchewan and Manitoba aren't covered yet.
+- It isn't tax advice. Check your figures with your accountant or tax office if you're unsure.
+- The Windows download isn't code-signed yet, so SmartScreen may warn about it. Click More info, then Run anyway.
+
+## Links
+
+- [Download for Windows](https://github.com/tdh1985/invoicedesk/releases/latest/download/InvoiceDesk.exe): InvoiceDesk.exe for Windows 10 and 11 (64-bit)
+- [Mac and Linux downloads](https://github.com/tdh1985/invoicedesk/releases/latest): the latest release, with every file
+- [Source code and README](https://github.com/tdh1985/invoicedesk): full feature list and setup notes
+- [Release notes](https://github.com/tdh1985/invoicedesk/releases): what changed in each version
+- [Phone app](https://invoicedesk-phone.vercel.app): open on a phone and sign in with the same email as the desktop app
+- [Website](https://tdh1985.github.io/invoicedesk/): screenshots, a 30-second video and a contact form
+- [Privacy statement](https://tdh1985.github.io/invoicedesk/privacy.html): what the app, phone app and website collect, and how to delete it

@@ -264,7 +264,9 @@ puts them in a draft release for you to add notes and publish.
 Everything is in `%LOCALAPPDATA%\InvoiceDesk\` on Windows,
 `~/Library/Application Support/InvoiceDesk/` on a Mac and
 `~/.local/share/InvoiceDesk/` on Linux, unless you move it in
-**Settings → Your data**:
+**Settings → Your data**. The Microsoft Store version keeps it in
+`Documents\InvoiceDesk\` instead, so uninstalling the app doesn't delete it
+(its logs and caches stay in the app's own storage and do go):
 
 | Path | What it is |
 |---|---|

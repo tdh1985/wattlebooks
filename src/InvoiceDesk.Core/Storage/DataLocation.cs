@@ -11,7 +11,8 @@ public static class DataLocation
 
     sealed record Pointer(string DataRoot);
 
-    public static AppPaths Resolve(string localRoot) => new(Read(localRoot) ?? localRoot, localRoot);
+    public static AppPaths Resolve(string localRoot, string? homeRoot = null) =>
+        new(Read(localRoot) ?? homeRoot ?? localRoot, localRoot, homeRoot);
 
     public static string? Read(string localRoot)
     {

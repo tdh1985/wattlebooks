@@ -7,10 +7,11 @@ public sealed class AppPaths
 {
     public const string DatabaseFileName = "invoicedesk.db";
 
-    public AppPaths(string dataRoot, string localRoot)
+    public AppPaths(string dataRoot, string localRoot, string? homeRoot = null)
     {
         DataRoot = Path.GetFullPath(dataRoot);
         LocalRoot = Path.GetFullPath(localRoot);
+        HomeRoot = Path.GetFullPath(homeRoot ?? localRoot);
     }
 
     public AppPaths(string root) : this(root, root)
@@ -19,7 +20,9 @@ public sealed class AppPaths
 
     public string DataRoot { get; }
     public string LocalRoot { get; }
-    public bool IsCustomLocation => !string.Equals(DataRoot, LocalRoot, StringComparison.OrdinalIgnoreCase);
+    // where the data lives until it's moved
+    public string HomeRoot { get; }
+    public bool IsCustomLocation => !string.Equals(DataRoot, HomeRoot, StringComparison.OrdinalIgnoreCase);
 
     public string Database => Path.Combine(DataRoot, DatabaseFileName);
     public string Attachments => Path.Combine(DataRoot, "attachments");
@@ -28,7 +31,7 @@ public sealed class AppPaths
     public string Exports => _exports ?? Path.Combine(DataRoot, "exports");
 
     // linux keeps exports where sandboxed apps such as snaps can open them
-    public AppPaths WithExports(string folder) => new(DataRoot, LocalRoot) { _exports = Path.GetFullPath(folder) };
+    public AppPaths WithExports(string folder) => new(DataRoot, LocalRoot, HomeRoot) { _exports = Path.GetFullPath(folder) };
     public string Backups => Path.Combine(DataRoot, "backups");
     public string LockFile => Path.Combine(DataRoot, "invoicedesk.lock");
 
@@ -48,8 +51,14 @@ public sealed class AppPaths
         if (!string.IsNullOrWhiteSpace(local)) return DataLocation.Resolve(local);
         var data = Environment.GetEnvironmentVariable("INVOICEDESK_DATA");
         if (!string.IsNullOrWhiteSpace(data)) return new AppPaths(data);
-        return DataLocation.Resolve(LocalDefault());
+        return DataLocation.Resolve(LocalDefault(), StoreHome());
     }
+
+    // the store virtualises appdata writes and wipes them on uninstall, so store installs keep the books in documents
+    static string? StoreHome() =>
+        File.Exists(Path.Combine(AppContext.BaseDirectory, "AppxManifest.xml"))
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "InvoiceDesk")
+            : null;
 
     public void EnsureCreated()
     {

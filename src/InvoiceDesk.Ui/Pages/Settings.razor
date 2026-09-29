@@ -805,7 +805,7 @@
         _dataAction = new DataAction(
             "Switch back to this PC's data?",
             "InvoiceDesk will restart using the data stored on this PC. Your synced folder isn't changed.",
-            Paths.LocalRoot, "Switch and restart", Mover.UseThisPc);
+            Paths.HomeRoot, "Switch and restart", Mover.UseThisPc);
 
     async Task ConfirmDataActionAsync()
     {

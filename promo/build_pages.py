@@ -74,10 +74,11 @@ graph = [
      ],
      'image': img('og.png'), 'screenshot': [img(n) for n in shots],
      'publisher': {'@id': url + '#org'}, 'sameAs': [repo]},
-    {'@type': 'VideoObject', '@id': url + '#video', 'name': 'InvoiceDesk in 30 seconds',
-     'description': 'What InvoiceDesk does, from a tax invoice to your BAS figures.',
+    {'@type': 'VideoObject', '@id': url + '#video', 'name': 'InvoiceDesk in under a minute',
+     'description': 'What InvoiceDesk does, from your first invoice to your GST, VAT or sales tax figures, '
+                    'for Australia, New Zealand, the UK, Canada and the US, on Windows, Mac and Linux.',
      'thumbnailUrl': img('promo-poster.webp'), 'contentUrl': img('promo.mp4'),
-     'uploadDate': '2026-09-27T12:00:00+10:00', 'duration': 'PT31S', 'inLanguage': 'en-AU',
+     'uploadDate': '2026-09-30T12:00:00+10:00', 'duration': 'PT54S', 'inLanguage': 'en-AU',
      'transcript': transcript},
 ]
 ld = json.dumps({'@context': 'https://schema.org', '@graph': graph}, ensure_ascii=False, indent=1)

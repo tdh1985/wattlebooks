@@ -197,11 +197,11 @@ a:focus-visible, .btn:focus-visible, summary:focus-visible, [tabindex]:focus-vis
 [id] { scroll-margin-top: 96px; }
 #top { scroll-margin-top: 240px; }
 
-/* the ad video */
-.watch { padding-block: 72px; border-top: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 56px; align-items: center; }
-.watch-copy { display: grid; gap: 18px; }
-.player { justify-self: center; width: min(340px, 100%); aspect-ratio: 9 / 16; border-radius: 30px; overflow: hidden; background: var(--ink); border: 8px solid var(--ink); box-shadow: 0 40px 80px -30px var(--shade), 0 0 0 1px var(--line); }
-.player video { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* the promo video, full width so the app on screen is readable */
+.watch { padding-block: 72px; border-top: 1px solid var(--line); display: grid; gap: 36px; }
+.watch-copy { display: grid; gap: 18px; max-width: 62ch; }
+.player { width: 100%; aspect-ratio: 16 / 9; border-radius: 18px; overflow: hidden; background: var(--ink); border: 6px solid var(--ink); box-shadow: 0 40px 80px -30px var(--shade), 0 0 0 1px var(--line); }
+.player video { display: block; width: 100%; height: 100%; object-fit: contain; }
 
 /* hover lift */
 .shot, .phones img, .bill, .player { transition: translate .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s ease; }
@@ -366,12 +366,13 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
 
     <section class="watch" id="watch">
       <div class="watch-copy">
-        <h2>See it in 30 seconds</h2>
-        <p class="lede">What it does, from a tax invoice to your BAS figures.</p>
+        <h2>See it in under a minute</h2>
+        <p class="lede">From your first invoice to your tax figures, in all five countries, on Windows, Mac and Linux.</p>
         <p class="fine">It has a voiceover, and captions are on so you can watch it with the sound off.</p>
       </div>
       <div class="player">
-        <video controls playsinline preload="metadata" poster="img/promo-poster.webp" width="720" height="1280">
+        <!-- nothing downloads until someone scrolls down and presses play -->
+        <video controls playsinline preload="none" loading="lazy" poster="img/promo-poster.webp" width="1920" height="1080">
           <source src="img/promo.mp4" type="video/mp4">
           <track kind="captions" srclang="en-AU" label="English" src="img/promo.vtt" default>
           <a href="img/promo.mp4">Watch the InvoiceDesk video</a>

@@ -45,5 +45,5 @@
 - [Source code and README](https://github.com/tdh1985/invoicedesk): full feature list and setup notes
 - [Release notes](https://github.com/tdh1985/invoicedesk/releases): what changed in each version
 - [Phone app](https://invoicedesk-phone.vercel.app): open on a phone and sign in with the same email as the desktop app
-- [Website](https://tdh1985.github.io/invoicedesk/): screenshots, a 30-second video and a contact form
+- [Website](https://tdh1985.github.io/invoicedesk/): screenshots, a one-minute video and a contact form
 - [Privacy statement](https://tdh1985.github.io/invoicedesk/privacy.html): what the app, phone app and website collect, and how to delete it

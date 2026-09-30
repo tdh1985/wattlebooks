@@ -1,6 +1,6 @@
 # draws the wattlebooks logo, dark logo and app icon as svg and png
 # needs fonttools and uharfbuzz, and chrome for the png renders
-import math, os, pathlib, re, subprocess, tempfile, urllib.request
+import os, pathlib, re, subprocess, tempfile, urllib.request
 import uharfbuzz as hb
 from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.svgPathPen import SVGPathPen
@@ -9,10 +9,7 @@ from fontTools.pens.transformPen import TransformPen
 here = pathlib.Path(__file__).parent
 work = pathlib.Path(tempfile.gettempdir()) / 'wattlebooks'
 chrome = os.environ.get('CHROME', r'C:\Program Files\Google\Chrome\Application\chrome.exe')
-font_urls = {
-    'lora': 'https://raw.githubusercontent.com/google/fonts/main/ofl/lora/Lora%5Bwght%5D.ttf',
-    'montserrat': 'https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/Montserrat%5Bwght%5D.ttf',
-}
+lora_url = 'https://raw.githubusercontent.com/google/fonts/main/ofl/lora/Lora%5Bwght%5D.ttf'
 navy = '#16325C'
 modes = {
     'light': dict(bg='#FFFFFF', text=navy, leaf='#5E8F3E', rib='#7FAE5A', stem='#4B6B2A', gold='#F2B233',
@@ -76,18 +73,17 @@ def mark(p):
         book(p),
     ])
 
-def font_file(name):
-    path = work / f'{name}.ttf'
-    if not path.exists():
+def lora():
+    font = work / 'Lora[wght].ttf'
+    if not font.exists():
         work.mkdir(parents=True, exist_ok=True)
-        urllib.request.urlretrieve(font_urls[name], path)
-    return path.read_bytes()
+        urllib.request.urlretrieve(lora_url, font)
+    return font.read_bytes()
 
-def wordmark(centre, baseline, size, runs=(('Wattle', 700), ('books', 500)), family='lora', tracking=0):
-    # outlined so the logo looks the same on machines without the font
-    face, glyphs, advance = hb.Face(font_file(family)), [], 0
-    scale = size / face.upem
-    for text, weight in runs:
+def wordmark(centre, baseline, size):
+    # outlined so the logo looks the same on machines without lora
+    face, glyphs, advance = hb.Face(lora()), [], 0
+    for text, weight in (('Wattle', 700), ('books', 500)):
         font = hb.Font(face)
         font.set_variations({'wght': weight})
         buf = hb.Buffer()
@@ -96,9 +92,9 @@ def wordmark(centre, baseline, size, runs=(('Wattle', 700), ('books', 500)), fam
         hb.shape(font, buf)
         for info, pos in zip(buf.glyph_infos, buf.glyph_positions):
             glyphs.append((font, info.codepoint, advance + pos.x_offset, pos.y_offset))
-            advance += pos.x_advance + tracking / scale
-    # trailing letter spacing would pull the centred text off to the left
-    left = centre - (advance - tracking / scale) * scale / 2
+            advance += pos.x_advance
+    scale = size / face.upem
+    left = centre - advance * scale / 2
     pen = SVGPathPen(None, ntos=lambda v: f'{v:.1f}'.rstrip('0').rstrip('.'))
     bounds = BoundsPen(None)
     for font, gid, x, y in glyphs:
@@ -137,81 +133,6 @@ def small_icon():
             f'<path d="{mirror(page)}" fill="{p["paper"]}"/><path d="M300,366 V506" stroke="{navy}" '
             f'stroke-width="14"/>{blooms}</svg>')
 
-line_modes = {
-    'light': dict(bg='#FFFFFF', book=navy, stem='#4F7F35', leaf='#5E8F3E', leaf2='#7FAE5A', rib='#9CC47A',
-                  gold='#F2B233', amber='#E6A52E', text=navy, tag='#4A5E80'),
-    'dark': dict(bg='#0F1524', book='#E6E9F1', stem='#79A052', leaf='#7FAE5A', leaf2='#9CC47A', rib='#B9DA98',
-                 gold='#F6C03F', amber='#F0B64E', text='#E6E9F1', tag='#A9B4C8'),
-    'icon': dict(bg=navy, book='#FFFFFF', stem='#8DBB63', leaf='#7FAE5A', leaf2='#9CC47A', rib='#B9DA98',
-                 gold='#F6C03F', amber='#F0B64E', text='#FFFFFF', tag='#A9B4C8'),
-}
-# the stem runs up the book's left side and arches over the top
-arc = [(104, 486), (8, 300), (196, 118), (486, 168)]
-
-def along(t):
-    (x0, y0), (x1, y1), (x2, y2), (x3, y3) = arc
-    u = 1 - t
-    return (u ** 3 * x0 + 3 * u * u * t * x1 + 3 * u * t * t * x2 + t ** 3 * x3,
-            u ** 3 * y0 + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t ** 3 * y3)
-
-def facing(t):
-    x, y = along(t)
-    return math.degrees(math.atan2(y - 370, x - 300))
-
-def line_book(p):
-    style = f'fill="none" stroke="{p["book"]}" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"'
-    page = 'M300,300 C255,272 190,265 130,278 L130,410 C190,398 255,405 300,432 Z'
-    # the stepped edges read as a thick stack of pages
-    stack = ('M300,450 C255,422 185,416 114,428 L114,300', 'M300,468 C255,440 180,434 98,446 L98,322')
-    return ''.join(f'<path d="{d}" {style}/><path d="{mirror(d)}" {style}/>' for d in (page, *stack))
-
-def spray(t, turn, length, count, p, r=21):
-    x, y = along(t)
-    a = math.radians(facing(t) + turn)
-    ends = [(x + math.cos(a) * length, y + math.sin(a) * length)]
-    s = [f'<path d="M{x:.1f},{y:.1f} L{ends[0][0]:.1f},{ends[0][1]:.1f}" stroke="{p["stem"]}" stroke-width="4" '
-         f'stroke-linecap="round"/>']
-    for i in range(1, count):
-        f, side = 1 - i * 0.3, (1 if i % 2 else -1)
-        bx, by = x + math.cos(a) * length * f, y + math.sin(a) * length * f
-        ex, ey = bx - math.sin(a) * side * r * 1.9, by + math.cos(a) * side * r * 1.9
-        s.append(f'<path d="M{bx:.1f},{by:.1f} L{ex:.1f},{ey:.1f}" stroke="{p["stem"]}" stroke-width="3.5" '
-                 f'stroke-linecap="round"/>')
-        ends.append((ex, ey))
-    s += [puff(bx, by, r, p['gold'] if (i + round(t * 10)) % 3 else p['amber']) for i, (bx, by) in enumerate(ends)]
-    return ''.join(s)
-
-def line_mark(p):
-    (x0, y0), (x1, y1), (x2, y2), (x3, y3) = arc
-    s = [line_book(p), f'<path d="M{x0},{y0} C{x1},{y1} {x2},{y2} {x3},{y3}" fill="none" stroke="{p["stem"]}" '
-         f'stroke-width="9" stroke-linecap="round"/>']
-    leaves = ((0.04, 48, 128, 36), (0.15, -48, 136, 38), (0.3, 46, 140, 38), (0.47, -140, 118, 32),
-              (0.62, 42, 132, 35), (0.8, -132, 112, 30), (0.95, 38, 108, 30))
-    for i, (t, turn, length, width) in enumerate(leaves):
-        x, y = along(t)
-        tone = dict(p, leaf=p['leaf'] if i % 2 == 0 else p['leaf2'])
-        s.append(leaf(round(x, 1), round(y, 1), length, width, round(facing(t) + turn, 1), tone, flip=turn < 0))
-    for t, turn, length, count in ((0.22, -4, 64, 3), (0.39, 8, 70, 3), (0.55, -8, 66, 3), (0.71, 10, 62, 3),
-                                   (0.88, -2, 56, 3), (0.56, 172, 36, 2)):
-        s.append(spray(t, turn, length, count, p))
-    return ''.join(s)
-
-def line_logo(mode):
-    p = line_modes[mode]
-    name, (x1, _, x2, _) = wordmark(350, 600, 70, (('WATTLE', 800), ('BOOKS', 500)), 'montserrat', 1.5)
-    tag, (t1, _, t2, ty) = wordmark(350, 650, 22, (('INVOICING FOR SOLE TRADERS', 600),), 'montserrat', 6)
-    # placed, the mark covers 19..602 across and 52..507 down
-    half = max(350 - min(x1, t1, 19), max(x2, t2, 602) - 350) + 30
-    box = (round(350 - half), 22, round(half * 2), round(ty + 30 - 22))
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{" ".join(map(str, box))}">'
-            f'<g transform="translate(44,-20) scale(1.02)">{line_mark(p)}</g><path d="{name}" fill="{p["text"]}"/>'
-            f'<path d="{tag}" fill="{p["tag"]}"/></svg>'), box[2:]
-
-def line_icon():
-    p = line_modes['icon']
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><rect width="600" height="600" rx="120" '
-            f'fill="{p["bg"]}"/><g transform="translate(70,43) scale(.88)">{line_mark(p)}</g></svg>'), (600, 600)
-
 def png(svg, size, bg, scale=2, out=None):
     w, h = size[0] * scale, size[1] * scale
     out = out or svg.with_suffix('.png')
@@ -225,10 +146,7 @@ def png(svg, size, bg, scale=2, out=None):
 work.mkdir(parents=True, exist_ok=True)
 for name, (svg, size), bg in (('wattlebooks-logo', logo('light'), modes['light']['bg']),
                               ('wattlebooks-logo-dark', logo('dark'), modes['dark']['bg']),
-                              ('wattlebooks-icon', icon(), 'transparent'),
-                              ('wattlebooks-line-logo', line_logo('light'), line_modes['light']['bg']),
-                              ('wattlebooks-line-logo-dark', line_logo('dark'), line_modes['dark']['bg']),
-                              ('wattlebooks-line-icon', line_icon(), 'transparent')):
+                              ('wattlebooks-icon', icon(), 'transparent')):
     out = here / f'{name}.svg'
     out.write_text(svg, encoding='utf-8')
     png(out, size, bg)

@@ -117,13 +117,30 @@ def icon():
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><rect width="600" height="600" rx="120" '
             f'fill="{p["bg"]}"/><g transform="translate(30,23) scale(.9)">{mark(p)}</g></svg>'), (600, 600)
 
-def png(svg, size, bg):
-    w, h = size[0] * 2, size[1] * 2
-    page = work / (svg.stem + '.html')
+def small_icon():
+    # for 16 to 48px, where the sprig's fine detail turns to mush
+    p = modes['icon']
+    cover = 'M300,380 C245,352 160,346 78,362 L78,514 C160,498 245,502 300,534 Z'
+    page = 'M300,360 C245,330 165,326 95,344 L95,492 C165,476 245,480 300,510 Z'
+    blooms = ''.join(f'<circle cx="{x}" cy="{y}" r="62" fill="{p[c]}" stroke="{navy}" stroke-width="12" paint-order="stroke"/>'
+                     for x, y, c in ((244, 222, 'amber'), (356, 222, 'gold'), (300, 128, 'gold')))
+    leaf_shape = 'M0,0 C40,-56 112,-42 160,0 C112,6.7 40,19.6 0,0Z'
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><rect width="600" height="600" rx="120" '
+            f'fill="{p["bg"]}"/><path d="M300,372 C300,320 302,280 300,232" fill="none" stroke="{p["leaf"]}" '
+            f'stroke-width="30" stroke-linecap="round"/><path transform="translate(300,330) rotate(-152)" '
+            f'd="{leaf_shape}" fill="{p["leaf"]}"/><path d="{cover}" fill="{p["cover"]}"/>'
+            f'<path d="{mirror(cover)}" fill="{p["cover"]}"/><path d="{page}" fill="{p["paper"]}"/>'
+            f'<path d="{mirror(page)}" fill="{p["paper"]}"/><path d="M300,366 V506" stroke="{navy}" '
+            f'stroke-width="14"/>{blooms}</svg>')
+
+def png(svg, size, bg, scale=2, out=None):
+    w, h = size[0] * scale, size[1] * scale
+    out = out or svg.with_suffix('.png')
+    page = work / (out.stem + '.html')
     page.write_text(f'<!doctype html><style>html,body{{margin:0;background:{bg}}}img{{display:block;width:{w}px;height:{h}px}}'
                     f'</style><img src="{svg.as_uri()}">')
     subprocess.run([chrome, '--headless=new', '--disable-gpu', '--hide-scrollbars', '--default-background-color=00000000',
-                    f'--window-size={w},{h}', f'--screenshot={svg.with_suffix(".png")}', page.as_uri()],
+                    f'--window-size={w},{h}', f'--screenshot={out}', page.as_uri()],
                    check=True, capture_output=True)
 
 work.mkdir(parents=True, exist_ok=True)
@@ -134,3 +151,10 @@ for name, (svg, size), bg in (('wattlebooks-logo', logo('light'), modes['light']
     out.write_text(svg, encoding='utf-8')
     png(out, size, bg)
     print(out.name, size)
+
+small_svg = here / 'wattlebooks-icon-small.svg'
+small_svg.write_text(small_icon(), encoding='utf-8')
+# rendered at true size since these are the pixels windows actually shows
+for px in (16, 24, 32, 48):
+    png(small_svg, (px, px), 'transparent', scale=1, out=here / f'wattlebooks-icon-small-{px}.png')
+print(small_svg.name, '16 24 32 48')

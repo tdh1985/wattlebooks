@@ -80,7 +80,13 @@ function showApp(session: Session) {
 
   replace(
     root,
-    h('header', { class: 'topbar' }, h('span', { class: 'wordmark' }, 'Wattlebooks'), pending),
+    h(
+      'header',
+      { class: 'topbar' },
+      h('span', { class: 'wordmark' }, 'Wattlebooks'),
+      pending,
+      h('img', { class: 'topbar-logo', src: '/icons/wattlebooks-icon-small.svg', alt: '', width: 30, height: 30 }),
+    ),
     main,
     h('footer', { class: 'account' }, h('span', null, app.email), ' · ', signOut),
     h('nav', { class: 'tabbar', 'aria-label': 'Sections' }, tabButtons),

@@ -239,7 +239,11 @@ button:disabled { opacity: .6; cursor: default; }
   mask: url("/icons/wattlebooks-wordmark.svg") center / contain no-repeat;
 }
 
+/* the wordmark already names the app, so the mark is decoration */
+.topbar-logo { flex: none; width: 30px; height: 30px; border-radius: 7px; }
+
 .pending {
+  margin-left: auto;
   min-height: 34px;
   padding: 0 12px;
   font-size: 13px;

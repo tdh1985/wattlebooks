@@ -10,7 +10,8 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>InvoiceDesk.App</RootNamespace>
     <AssemblyName>InvoiceDesk</AssemblyName>
-    <Product>InvoiceDesk</Product>
+    <Product>Wattlebooks</Product>
+    <AssemblyTitle>Wattlebooks</AssemblyTitle>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
   </PropertyGroup>
 

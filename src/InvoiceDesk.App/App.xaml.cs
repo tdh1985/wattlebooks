@@ -39,8 +39,8 @@ public partial class App : Application
         while (paths.IsCustomLocation && !DataLocation.HasData(paths.DataRoot))
         {
             var choice = MessageBox.Show(
-                $"InvoiceDesk keeps your data in:\n{paths.DataRoot}\n\nThat folder or its database can't be found right now. If it's in OneDrive, Dropbox or Google Drive, check that app is running and has finished syncing.\n\nYes: try again\nNo: switch back to this PC's own data\nCancel: close InvoiceDesk",
-                "InvoiceDesk", MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
+                $"Wattlebooks keeps your data in:\n{paths.DataRoot}\n\nThat folder or its database can't be found right now. If it's in OneDrive, Dropbox or Google Drive, check that app is running and has finished syncing.\n\nYes: try again\nNo: switch back to this PC's own data\nCancel: close Wattlebooks",
+                "Wattlebooks", MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
             if (choice == MessageBoxResult.No)
             {
                 DataLocation.Save(paths.LocalRoot, null);
@@ -75,8 +75,8 @@ public partial class App : Application
         if (!WebViewRuntimeInstalled())
         {
             var install = MessageBox.Show(
-                "InvoiceDesk needs the Microsoft Edge WebView2 Runtime, which isn't installed on this PC.\n\nOpen the download page now?",
-                "InvoiceDesk", MessageBoxButton.YesNo, MessageBoxImage.Information);
+                "Wattlebooks needs the Microsoft Edge WebView2 Runtime, which isn't installed on this PC.\n\nOpen the download page now?",
+                "Wattlebooks", MessageBoxButton.YesNo, MessageBoxImage.Information);
             if (install == MessageBoxResult.Yes) Process.Start(new ProcessStartInfo(WebViewDownload) { UseShellExecute = true });
             Shutdown(1);
             return;
@@ -127,8 +127,8 @@ public partial class App : Application
         {
             FileLog.Write(ex, "startup");
             MessageBox.Show(
-                $"InvoiceDesk couldn't open its data folder.\n\n{ex.Message}\n\nDetails were saved in {paths.Logs}.",
-                "InvoiceDesk", MessageBoxButton.OK, MessageBoxImage.Error);
+                $"Wattlebooks couldn't open its data folder.\n\n{ex.Message}\n\nDetails were saved in {paths.Logs}.",
+                "Wattlebooks", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
             return;
         }
@@ -154,8 +154,8 @@ public partial class App : Application
         {
             FileLog.Write(ex, "startup");
             MessageBox.Show(
-                $"InvoiceDesk couldn't open its window.\n\n{ex.Message}\n\nDetails were saved in {paths.Logs}.",
-                "InvoiceDesk", MessageBoxButton.OK, MessageBoxImage.Error);
+                $"Wattlebooks couldn't open its window.\n\n{ex.Message}\n\nDetails were saved in {paths.Logs}.",
+                "Wattlebooks", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
         }
     }
@@ -205,8 +205,8 @@ public partial class App : Application
     {
         var minutes = Math.Max(1, (int)Math.Round((DateTimeOffset.UtcNow - other.Heartbeat).TotalMinutes));
         var answer = MessageBox.Show(
-            $"InvoiceDesk looks like it's open on {other.Machine} (active {minutes} min ago).\n\nUsing the same data on two PCs at once can lose changes. If you can, close it on {other.Machine} first.\n\nOpen it here anyway?",
-            "InvoiceDesk", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+            $"Wattlebooks looks like it's open on {other.Machine} (active {minutes} min ago).\n\nUsing the same data on two PCs at once can lose changes. If you can, close it on {other.Machine} first.\n\nOpen it here anyway?",
+            "Wattlebooks", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
         return answer == MessageBoxResult.Yes;
     }
 
@@ -216,7 +216,7 @@ public partial class App : Application
         args.Handled = true;
         MessageBox.Show(
             $"Something went wrong: {args.Exception.Message}\n\nYour data is safe. Details were saved in {FileLog.Folder}.",
-            "InvoiceDesk", MessageBoxButton.OK, MessageBoxImage.Warning);
+            "Wattlebooks", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
     static bool WebViewRuntimeInstalled()

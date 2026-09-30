@@ -15,9 +15,9 @@ public static class MissingWebView
 
     public static string Message(DialogOs os) => os switch
     {
-        DialogOs.Linux => "InvoiceDesk needs WebKitGTK to show its window, and it isn't installed.\n\n" +
-                          "On Ubuntu or Debian, install it with:\nsudo apt install libwebkit2gtk-4.1-0\n\nThen open InvoiceDesk again.",
-        DialogOs.Mac => "InvoiceDesk couldn't open its window. It needs macOS 12 or later.",
-        _ => "InvoiceDesk couldn't open its window because its web view is missing.",
+        DialogOs.Linux => "Wattlebooks needs WebKitGTK to show its window, and it isn't installed.\n\n" +
+                          "On Ubuntu or Debian, install it with:\nsudo apt install libwebkit2gtk-4.1-0\n\nThen open Wattlebooks again.",
+        DialogOs.Mac => "Wattlebooks couldn't open its window. It needs macOS 12 or later.",
+        _ => "Wattlebooks couldn't open its window because its web view is missing.",
     };
 }

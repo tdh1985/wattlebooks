@@ -8,7 +8,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>InvoiceDesk.Desktop</RootNamespace>
     <AssemblyName>InvoiceDesk</AssemblyName>
-    <Product>InvoiceDesk</Product>
+    <Product>Wattlebooks</Product>
+    <AssemblyTitle>Wattlebooks</AssemblyTitle>
     <ApplicationIcon>..\InvoiceDesk.App\Assets\app.ico</ApplicationIcon>
     <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
     <!-- the messagebox import generates unsafe marshalling code -->

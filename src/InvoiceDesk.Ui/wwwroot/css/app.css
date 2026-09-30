@@ -1,18 +1,21 @@
 /* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. */
 
-/* paper sheets on a steel desk, colours from a carbon docket book */
+/* paper sheets on a navy desk, with wattle gold from the wattlebooks logo */
 
 :root {
     color-scheme: light;
-    --desk: #E9ECF0;
-    --desk-2: #DEE2E8;
-    --steel: #1D2331;
-    --steel-2: #283043;
-    --steel-3: #141925;
-    --steel-ink: #C3CAD7;
-    --steel-ink-2: #99A2B4;
+    --desk: #E8ECF2;
+    --desk-2: #DCE2EB;
+    --steel: #15294B;
+    --steel-2: #213C68;
+    --steel-3: #0E1F3A;
+    --steel-ink: #CDD6E6;
+    --steel-ink-2: #9EACC7;
     --steel-hot: #F29289;
-    --steel-link: #9DB2FF;
+    --steel-link: #F2C14E;
+    --wattle: #F2B233;
+    --wattle-deep: #E0A033;
+    --gum: #5E8F3E;
     --paper: #FFFFFF;
     --paper-2: #F6F7F9;
     --paper-3: #EEF1F4;
@@ -46,16 +49,16 @@
 
 [data-theme="dark"] {
     color-scheme: dark;
-    --desk: #10141F;
-    --desk-2: #0C0F18;
-    --steel: #0A0D15;
-    --steel-2: #1A2030;
-    --steel-3: #05070C;
-    --paper: #191E2C;
-    --paper-2: #1F2535;
-    --paper-3: #262D3F;
-    --rule: #2B3246;
-    --rule-strong: #3A4259;
+    --desk: #0F1524;
+    --desk-2: #0B111D;
+    --steel: #0A1220;
+    --steel-2: #182640;
+    --steel-3: #050A14;
+    --paper: #172033;
+    --paper-2: #1D273C;
+    --paper-3: #253046;
+    --rule: #2A3550;
+    --rule-strong: #3A4766;
     --ink: #E6E9F1;
     --ink-2: #A9B0C3;
     --ink-3: #8D94A8;
@@ -74,6 +77,12 @@
     --shadow-sheet: 0 0 0 1px rgb(255 255 255 / .045), 0 14px 34px -20px rgb(0 0 0 / .8);
     --shadow-float: 0 0 0 1px rgb(255 255 255 / .07), 0 22px 50px -14px rgb(0 0 0 / .8);
 }
+
+/* the splash in index.html, gone as soon as blazor paints */
+.boot { position: fixed; inset: 0; display: grid; place-items: center; background: var(--steel); }
+.boot img { width: 88px; height: 88px; animation: boot-in .5s var(--ease) both; }
+@keyframes boot-in { from { opacity: 0; transform: scale(.94); } }
+@media (prefers-reduced-motion: reduce) { .boot img { animation: none; } }
 
 /* base */
 
@@ -220,7 +229,7 @@ kbd {
     transition: background-color .12s, color .12s;
 }
 .tab:hover { color: #FFFFFF; background: var(--steel-2); }
-.tab.active { margin-right: -1px; background: var(--paper); color: var(--ink); }
+.tab.active { margin-right: -1px; background: var(--paper); color: var(--ink); box-shadow: inset 3px 0 0 var(--wattle); }
 .tab.active .icon { color: var(--accent-text); }
 /* the curved corners where the tab flows into the sheet */
 .tab.active::before, .tab.active::after {
@@ -270,11 +279,34 @@ kbd {
 .theme-switch button:hover { color: #FFFFFF; }
 .theme-switch button.on { background: var(--steel-2); color: #FFFFFF; }
 
+/* the app's own mark, kept quiet so the business name up top leads */
+.rail-brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: fit-content;
+    margin: 2px 14px 0 8px;
+    padding: 5px 8px 5px 5px;
+    border-radius: 8px;
+    color: var(--steel-ink-2);
+    text-decoration: none !important;
+}
+.rail-brand:hover { background: var(--steel-2); color: var(--steel-ink); }
+.rail-brand img { width: 22px; height: 22px; flex: none; }
+.rail-wordmark {
+    width: 104px;
+    height: 14px;
+    background: currentColor;
+    -webkit-mask: url("../img/wattlebooks-wordmark.svg") left center / contain no-repeat;
+    mask: url("../img/wattlebooks-wordmark.svg") left center / contain no-repeat;
+}
+
 /* folded down to an icon rail with short labels */
 .rail.folded { padding: 16px 0 14px 10px; }
 .rail.folded .rail-head { flex-direction: column; padding-right: 10px; }
 .rail.folded .brand { padding: 0; }
-.rail.folded .brand-name, .rail.folded .tab-note, .rail.folded .rail-recent, .rail.folded kbd, .rail.folded .rail-search .rail-label { display: none; }
+.rail.folded .brand-name, .rail.folded .tab-note, .rail.folded .rail-recent, .rail.folded kbd, .rail.folded .rail-search .rail-label, .rail.folded .rail-wordmark { display: none; }
+.rail.folded .rail-brand { margin: 2px auto 0; padding: 5px; transform: translateX(-5px); }
 .rail.folded .rail-fold { margin: 0; }
 .rail.folded .rail-tools { flex-direction: column; align-items: center; padding-right: 10px; }
 .rail.folded .rail-search { flex: none; width: 34px; justify-content: center; padding: 0; }
@@ -1383,10 +1415,11 @@ html.mica .shell { background: color-mix(in oklab, var(--steel) 86%, transparent
 .keys dt { display: flex; gap: 4px; }
 .keys dd { margin: 0; color: var(--ink); }
 
-.about-logo { width: 150px; height: auto; margin-bottom: 8px; }
-/* the brand marks take the accent, not an orange used nowhere else */
-.about-logo .about-mark { fill: var(--accent-text); }
-.about-logo .about-tick { stroke: var(--accent-text); }
+.about-logo { width: 170px; margin-bottom: 8px; }
+.about-logo img { display: block; width: 100%; height: auto; }
+/* the dark logo swaps in so the wordmark and book read on dark paper */
+.about-logo .dark, [data-theme="dark"] .about-logo .light { display: none; }
+[data-theme="dark"] .about-logo .dark { display: block; }
 .about-version { font: 600 16px var(--font-num); }
 
 /* how a client pays, worked out from their own history */

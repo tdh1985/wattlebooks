@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>InvoiceDesk</title>
+    <title>Wattlebooks</title>
     <base href="/" />
     <link rel="stylesheet" href="css/fonts.css" />
     <link rel="stylesheet" href="css/app.css" />
@@ -22,7 +22,10 @@
     </script>
 </head>
 <body>
-    <div id="app"></div>
+    <div id="app">
+        <!-- blazor replaces this once it paints, so the first thing seen is the brand -->
+        <div class="boot" aria-hidden="true"><img src="img/wattlebooks-icon.svg" alt="" /></div>
+    </div>
     <div id="blazor-error-ui">Something went wrong. <a href="" class="reload">Reload</a></div>
     <script src="_framework/blazor.webview.js"></script>
     <script src="js/app.js"></script>

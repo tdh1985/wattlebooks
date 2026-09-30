@@ -15,7 +15,7 @@ public sealed class DataMover(AppPaths paths)
         if (DataLocation.IsInside(destination, paths.DataRoot) || DataLocation.IsInside(paths.DataRoot, destination))
             throw new ValidationException("Choose a folder that isn't inside, or around, the current data folder.");
         if (DataLocation.HasData(destination))
-            throw new ValidationException("That folder already has InvoiceDesk data. Use \"Use data from another PC\" to switch to it instead.");
+            throw new ValidationException("That folder already has Wattlebooks data. Use \"Use data from another PC\" to switch to it instead.");
 
         Directory.CreateDirectory(destination);
         var copy = new AppPaths(destination, paths.LocalRoot);
@@ -43,7 +43,7 @@ public sealed class DataMover(AppPaths paths)
     public void UseExisting(string folder)
     {
         var found = FindDataFolder(folder)
-                    ?? throw new ValidationException("No InvoiceDesk data was found there. Pick the folder that contains invoicedesk.db.");
+                    ?? throw new ValidationException("No Wattlebooks data was found there. Pick the folder that contains invoicedesk.db.");
         DataLocation.Save(paths.LocalRoot, found);
     }
 

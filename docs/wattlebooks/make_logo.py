@@ -117,6 +117,20 @@ def icon():
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><rect width="600" height="600" rx="120" '
             f'fill="{p["bg"]}"/><g transform="translate(30,23) scale(.9)">{mark(p)}</g></svg>'), (600, 600)
 
+def tile(width):
+    # store tiles are full-bleed navy with the mark centred, like the old ones
+    p, s = modes['icon'], 0.62
+    tx, ty = width / 2 - 300 * s, 300 - 308 * s
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} 600"><rect width="{width}" height="600" '
+            f'fill="{p["bg"]}"/><g transform="translate({tx:.1f},{ty:.1f}) scale({s})">{mark(p)}</g></svg>')
+
+def wordmark_only():
+    # the app masks this with css so it takes whatever colour sits behind it
+    d, (x1, y1, x2, y2) = wordmark(0, 0, 100)
+    pad = 2
+    box = f'{x1 - pad:.1f} {y1 - pad:.1f} {x2 - x1 + pad * 2:.1f} {y2 - y1 + pad * 2:.1f}'
+    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{box}"><path d="{d}" fill="#16325C"/></svg>'
+
 def small_icon():
     # for 16 to 48px, where the sprig's fine detail turns to mush
     p = modes['icon']
@@ -151,6 +165,11 @@ for name, (svg, size), bg in (('wattlebooks-logo', logo('light'), modes['light']
     out.write_text(svg, encoding='utf-8')
     png(out, size, bg)
     print(out.name, size)
+
+for name, svg in (('wattlebooks-tile', tile(600)), ('wattlebooks-tile-wide', tile(1240)),
+                  ('wattlebooks-wordmark', wordmark_only())):
+    (here / f'{name}.svg').write_text(svg, encoding='utf-8')
+    print(f'{name}.svg')
 
 small_svg = here / 'wattlebooks-icon-small.svg'
 small_svg.write_text(small_icon(), encoding='utf-8')

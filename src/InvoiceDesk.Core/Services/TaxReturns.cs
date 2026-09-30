@@ -20,7 +20,7 @@ public sealed record TaxReturn(
 public static class TaxReturns
 {
     const string NorthernIreland = "Northern Ireland only";
-    const string NotTracked = "Not tracked by InvoiceDesk";
+    const string NotTracked = "Not tracked by Wattlebooks";
 
     public static TaxReturn Build(CountryRules country, DateRange period, IReadOnlyList<Transaction> txs, IReadOnlyList<CategoryTotal> salesByCategory)
     {

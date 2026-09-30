@@ -351,7 +351,7 @@
 
                 <section class="settings-group" id="data">
                     <h2>Your data</h2>
-                    <p class="soft">Everything is kept in one folder. Put it in OneDrive, Dropbox or Google Drive and you can use InvoiceDesk on another PC too, one PC at a time. A copy of the database is made each time the app starts, and the last 10 are kept.</p>
+                    <p class="soft">Everything is kept in one folder. Put it in OneDrive, Dropbox or Google Drive and you can use Wattlebooks on another PC too, one PC at a time. A copy of the database is made each time the app starts, and the last 10 are kept.</p>
                     <div class="data-card">
                         <div class="row gap-8 wrap">
                             <span class="pill @(SyncProvider is null ? "pill-plain" : "pill-paid")">@StorageLabel</span>
@@ -379,51 +379,11 @@
 
                 <section class="settings-group" id="about">
                     <h2>About</h2>
-                    <p class="soft">InvoiceDesk never goes online by itself. Checking for updates asks GitHub for the latest version, and only when you click the button. Phone sync goes online only after you sign in under Phone.</p>
+                    <p class="soft">Wattlebooks never goes online by itself. Checking for updates asks GitHub for the latest version, and only when you click the button. Phone sync goes online only after you sign in under Phone.</p>
                     <div class="data-card">
                         <div class="about-logo">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 330" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="InvoiceDesk">
-                                <title>InvoiceDesk</title>
-                                <!-- inline so currentColor can follow the theme, not an <img> -->
-                                <defs>
-                                    <mask id="idsk-behind-front" maskUnits="userSpaceOnUse" x="-100" y="-100" width="500" height="500">
-                                        <rect x="-100" y="-100" width="500" height="500" fill="#fff"/>
-                                        <rect x="77.5" y="7.5" width="121" height="160" fill="#000"/>
-                                    </mask>
-                                    <mask id="idsk-behind-both" maskUnits="userSpaceOnUse" x="-100" y="-100" width="500" height="500">
-                                        <rect x="-100" y="-100" width="500" height="500" fill="#fff"/>
-                                        <rect x="77.5" y="7.5" width="121" height="160" fill="#000"/>
-                                        <rect x="77.5" y="7.5" width="121" height="160" fill="#000" transform="rotate(-5.4 138 400)"/>
-                                    </mask>
-                                </defs>
-                                <g transform="translate(130 6.5)">
-                                    <!-- paper: two fanned pages behind, the front page with a folded corner -->
-                                    <g fill="none" stroke="currentColor" stroke-width="9" stroke-linejoin="miter">
-                                        <g mask="url(#idsk-behind-both)"><path d="M88 150V18H188V150" transform="rotate(-10.8 138 400)"/></g>
-                                        <g mask="url(#idsk-behind-front)"><path d="M88 150V18H188V150" transform="rotate(-5.4 138 400)"/></g>
-                                        <path d="M88 160V18H156L188 50V160"/>
-                                        <path class="about-mark" d="M156 18V50H188"/>
-                                    </g>
-                                    <!-- neutral invoice: heading, three lines and a paid tick with a total -->
-                                    <g class="about-mark">
-                                        <rect x="104" y="34" width="32" height="9"/>
-                                        <rect x="104" y="58" width="68" height="9"/>
-                                        <rect x="104" y="75" width="68" height="9"/>
-                                        <rect x="104" y="92" width="68" height="9"/>
-                                        <rect x="146" y="124.5" width="26" height="9"/>
-                                    </g>
-                                    <path d="M106 124.5L115 133.5L133 115.5" class="about-tick" fill="none" stroke-width="9" stroke-linejoin="miter"/>
-                                    <!-- desk: top, stretcher and two splayed legs -->
-                                    <g fill="currentColor">
-                                        <rect x="0" y="150" width="240" height="18"/>
-                                        <rect x="36" y="174" width="168" height="9"/>
-                                        <path d="M23.9 160H42.4L24.5 236H6Z"/>
-                                        <path d="M216.1 160H197.6L215.5 236H234Z"/>
-                                    </g>
-                                </g>
-                                <!-- wordmark -->
-                                <text x="25" y="310" fill="currentColor" font-family="Bahnschrift, 'Segoe UI', 'InvoiceDesk Numbers', sans-serif" font-size="60" letter-spacing="5.4"><tspan font-weight="700">INVOICE</tspan><tspan font-weight="300"> DESK</tspan></text>
-                            </svg>
+                            <img class="light" src="img/wattlebooks-logo.svg" alt="Wattlebooks" />
+                            <img class="dark" src="img/wattlebooks-logo-dark.svg" alt="Wattlebooks" />
                         </div>
                         <div class="row gap-12 wrap">
                             <span class="about-version">Version @UpdateChecker.CurrentVersion</span>
@@ -457,11 +417,11 @@
                             </div>
                         }
                         <div class="row gap-8 wrap">
-                            <button type="button" class="btn btn-ghost btn-sm" @onclick="@(() => Desktop.OpenUrl("https://github.com/tdh1985/invoicedesk"))"><Icon Name="external" Size="14" /> InvoiceDesk on GitHub</button>
+                            <button type="button" class="btn btn-ghost btn-sm" @onclick="@(() => Desktop.OpenUrl("https://github.com/tdh1985/invoicedesk"))"><Icon Name="external" Size="14" /> Wattlebooks on GitHub</button>
                             <button type="button" class="btn btn-ghost btn-sm" @onclick="@(() => Desktop.OpenUrl("https://paypal.me/timdowney"))"><Icon Name="external" Size="14" /> Buy me a coffee</button>
                             <button type="button" class="btn btn-ghost btn-sm" @onclick="@(() => Desktop.OpenUrl("https://github.com/tdh1985/invoicedesk/blob/main/LICENSE"))"><Icon Name="external" Size="14" /> MIT licence</button>
                         </div>
-                        <p class="soft small">If InvoiceDesk saves you time, feel free to buy me a coffee, or more.</p>
+                        <p class="soft small">If Wattlebooks saves you time, feel free to buy me a coffee, or more.</p>
                     </div>
                 </section>
             </div>
@@ -767,11 +727,11 @@
 
     void StartMove()
     {
-        var picked = Desktop.PickFolder("Choose a synced folder for your InvoiceDesk data", SuggestedFolder());
+        var picked = Desktop.PickFolder("Choose a synced folder for your Wattlebooks data", SuggestedFolder());
         if (picked is null) return;
         if (DataMover.FindDataFolder(picked) is { } existing)
         {
-            OfferSwitch(existing, "That folder already has InvoiceDesk data in it. ");
+            OfferSwitch(existing, "That folder already has Wattlebooks data in it. ");
             return;
         }
         var target = string.Equals(Path.GetFileName(picked.TrimEnd('\\')), "InvoiceDesk", StringComparison.OrdinalIgnoreCase)
@@ -779,17 +739,17 @@
             : Path.Combine(picked, "InvoiceDesk");
         _dataAction = new DataAction(
             "Move your data?",
-            "Your invoices, clients, receipts and backups will be copied to this folder, then InvoiceDesk will restart using it. The current copy stays where it is as a spare.",
+            "Your invoices, clients, receipts and backups will be copied to this folder, then Wattlebooks will restart using it. The current copy stays where it is as a spare.",
             target, "Move and restart", () => Mover.MoveTo(target));
     }
 
     void StartUseExisting()
     {
-        var picked = Desktop.PickFolder("Choose the InvoiceDesk folder from your other PC", SuggestedFolder());
+        var picked = Desktop.PickFolder("Choose the data folder from your other PC (it's named InvoiceDesk)", SuggestedFolder());
         if (picked is null) return;
         if (DataMover.FindDataFolder(picked) is not { } found)
         {
-            Toasts.Show("No InvoiceDesk data was found there. Pick the folder that contains invoicedesk.db.", ToastKind.Error);
+            Toasts.Show("No Wattlebooks data was found there. Pick the folder that contains invoicedesk.db.", ToastKind.Error);
             return;
         }
         OfferSwitch(found, "");
@@ -798,13 +758,13 @@
     void OfferSwitch(string folder, string lead) =>
         _dataAction = new DataAction(
             "Use this data?",
-            $"{lead}InvoiceDesk will restart using the data in this folder. The data it uses now stays where it is.",
+            $"{lead}Wattlebooks will restart using the data in this folder. The data it uses now stays where it is.",
             folder, "Switch and restart", () => Mover.UseExisting(folder));
 
     void StartUseLocal() =>
         _dataAction = new DataAction(
             "Switch back to this PC's data?",
-            "InvoiceDesk will restart using the data stored on this PC. Your synced folder isn't changed.",
+            "Wattlebooks will restart using the data stored on this PC. Your synced folder isn't changed.",
             Paths.HomeRoot, "Switch and restart", Mover.UseThisPc);
 
     async Task ConfirmDataActionAsync()
@@ -820,7 +780,7 @@
                 // unsaved settings would be lost in the restart
                 if (_dirty)
                 {
-                    Toasts.Show("Some settings need fixing before InvoiceDesk can restart.", ToastKind.Error);
+                    Toasts.Show("Some settings need fixing before Wattlebooks can restart.", ToastKind.Error);
                     return;
                 }
             }

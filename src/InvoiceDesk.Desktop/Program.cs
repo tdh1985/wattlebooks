@@ -20,7 +20,7 @@ namespace InvoiceDesk.Desktop;
 // the mac and linux host, the same startup steps as the windows app.xaml.cs
 static class Program
 {
-    const string Title = "InvoiceDesk";
+    const string Title = "Wattlebooks";
     const string FilesScheme = "idfiles";
     const string LocalScheme = "idlocal";
 
@@ -33,7 +33,7 @@ static class Program
         while (paths.IsCustomLocation && !DataLocation.HasData(paths.DataRoot))
         {
             var choice = SystemDialog.Ask(Title,
-                $"InvoiceDesk keeps your data in:\n{paths.DataRoot}\n\nThat folder or its database can't be found right now. If it's in a synced folder, check that its app is running and has finished syncing.\n\nYes: try again\nNo: switch back to this computer's own data\nCancel: close InvoiceDesk",
+                $"Wattlebooks keeps your data in:\n{paths.DataRoot}\n\nThat folder or its database can't be found right now. If it's in a synced folder, check that its app is running and has finished syncing.\n\nYes: try again\nNo: switch back to this computer's own data\nCancel: close Wattlebooks",
                 DialogButtons.YesNoCancel);
             if (choice == DialogChoice.No)
             {
@@ -123,7 +123,7 @@ static class Program
         catch (Exception ex)
         {
             FileLog.Write(ex, "startup");
-            SystemDialog.Ask(Title, $"InvoiceDesk couldn't open its data folder.\n\n{ex.Message}\n\nDetails were saved in {paths.Logs}.", DialogButtons.Ok);
+            SystemDialog.Ask(Title, $"Wattlebooks couldn't open its data folder.\n\n{ex.Message}\n\nDetails were saved in {paths.Logs}.", DialogButtons.Ok);
             return 1;
         }
 
@@ -234,7 +234,7 @@ static class Program
     {
         var minutes = Math.Max(1, (int)Math.Round((DateTimeOffset.UtcNow - other.Heartbeat).TotalMinutes));
         var answer = SystemDialog.Ask(Title,
-            $"InvoiceDesk looks like it's open on {other.Machine} (active {minutes} min ago).\n\nUsing the same data on two computers at once can lose changes. If you can, close it on {other.Machine} first.\n\nOpen it here anyway?",
+            $"Wattlebooks looks like it's open on {other.Machine} (active {minutes} min ago).\n\nUsing the same data on two computers at once can lose changes. If you can, close it on {other.Machine} first.\n\nOpen it here anyway?",
             DialogButtons.YesNo);
         return answer == DialogChoice.Yes;
     }

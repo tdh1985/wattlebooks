@@ -1,4 +1,4 @@
-# InvoiceDesk phone app
+# Wattlebooks phone app
 
 A small installable web app (PWA) for snapping receipts, seeing who owes you and starting a quick invoice. The desktop app stays the source of truth: the phone reads the `snap_*` tables and writes to `inbox` and the `receipts` bucket. See `docs/superpowers/specs/2026-09-25-phone-sync-design.md`.
 

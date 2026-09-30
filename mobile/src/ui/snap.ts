@@ -134,7 +134,7 @@ export function snapScreen(app: App): HTMLElement {
             'div',
             { class: 'stack' },
             h('h2', null, "Couldn't upload"),
-            h('p', { class: 'hint' }, 'InvoiceDesk sync turned these down, so trying again won’t help.'),
+            h('p', { class: 'hint' }, 'Wattlebooks sync turned these down, so trying again won’t help.'),
             h('ul', { class: 'failed-list' }, failed.map(failedRow)),
           ),
     );

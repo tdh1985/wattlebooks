@@ -39,7 +39,7 @@ export function owedScreen(app: App, onSnapshot: (s: Snapshot) => void): { el: H
           'div',
           { class: 'card empty' },
           h('p', null, 'Nothing here yet.'),
-          h('p', { class: 'hint' }, 'Open InvoiceDesk on your computer and sign in on Settings → Phone.'),
+          h('p', { class: 'hint' }, 'Open Wattlebooks on your computer and sign in on Settings → Phone.'),
         ),
       );
       return;
@@ -111,7 +111,7 @@ export function owedScreen(app: App, onSnapshot: (s: Snapshot) => void): { el: H
     } catch {
       const cached = cachedSnapshot();
       const when = cached ? ` Showing what it was at ${new Date(cached.fetched_at).toLocaleString('en-AU')}.` : '';
-      showBanner(`You're offline or InvoiceDesk sync can't be reached.${when}`);
+      showBanner(`You're offline or Wattlebooks sync can't be reached.${when}`);
       if (cached) render(cached);
       else replace(body);
     } finally {

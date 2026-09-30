@@ -1,7 +1,7 @@
 // the build swaps these two in so each release gets a fresh cache
 const VERSION = '__VERSION__';
 const SHELL = __SHELL__;
-const CACHE = `invoicedesk-${VERSION}`;
+const CACHE = `wattlebooks-${VERSION}`;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));

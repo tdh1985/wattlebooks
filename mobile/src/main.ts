@@ -80,7 +80,7 @@ function showApp(session: Session) {
 
   replace(
     root,
-    h('header', { class: 'topbar' }, h('span', { class: 'wordmark' }, 'InvoiceDesk'), pending),
+    h('header', { class: 'topbar' }, h('span', { class: 'wordmark' }, 'Wattlebooks'), pending),
     main,
     h('footer', { class: 'account' }, h('span', null, app.email), ' · ', signOut),
     h('nav', { class: 'tabbar', 'aria-label': 'Sections' }, tabButtons),
@@ -89,7 +89,7 @@ function showApp(session: Session) {
   function showTab(moveFocus: boolean) {
     const tab = tabFromHash();
     replace(main, screens[tab]);
-    document.title = `${TABS.find((t) => t.id === tab)!.label} · InvoiceDesk`;
+    document.title = `${TABS.find((t) => t.id === tab)!.label} · Wattlebooks`;
     for (const b of tabButtons) {
       const active = b.dataset.tab === tab;
       b.classList.toggle('active', active);
@@ -150,7 +150,7 @@ function render(session: Session | null) {
     showApp(session);
   } else {
     // drop the last tab's name so the title doesn't claim a signed in view
-    document.title = 'Sign in · InvoiceDesk';
+    document.title = 'Sign in · Wattlebooks';
     replace(root, signInScreen(supabase!));
   }
 }

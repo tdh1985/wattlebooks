@@ -77,6 +77,7 @@ export class Outbox {
   private again = false;
   private listeners = new Set<() => void>();
 
+  // a new name would strand unsent receipts on pre-rebrand phones
   constructor(private readonly name = 'invoicedesk-outbox') {}
 
   private open(): Promise<IDBPDatabase<OutboxSchema>> {

@@ -255,7 +255,7 @@ export function quickScreen(app: App): { el: HTMLElement; update: (s: Snapshot) 
       h(
         'p',
         { class: 'hint' },
-        profile ? 'Estimate. InvoiceDesk works out the final total.' : 'Estimate without tax. InvoiceDesk works out the final total.',
+        profile ? 'Estimate. Wattlebooks works out the final total.' : 'Estimate without tax. Wattlebooks works out the final total.',
       ),
     );
   }
@@ -316,7 +316,7 @@ export function quickScreen(app: App): { el: HTMLElement; update: (s: Snapshot) 
         'div',
         { class: 'card stack done' },
         h('p', { class: 'done-title' }, 'Saved.'),
-        h('p', null, "It'll be in InvoiceDesk as a draft next time it's open."),
+        h('p', null, "It'll be in Wattlebooks as a draft next time it's open."),
         h('button', { type: 'button', class: 'primary', onclick: showForm }, 'Start another'),
       ),
     );
@@ -335,7 +335,7 @@ export function quickScreen(app: App): { el: HTMLElement; update: (s: Snapshot) 
     replace(
       root,
       h('h1', null, 'Quick invoice'),
-      h('p', { class: 'muted' }, 'A draft for InvoiceDesk to number and send.'),
+      h('p', { class: 'muted' }, 'A draft for Wattlebooks to number and send.'),
       h(
         'form',
         { class: 'stack', onsubmit: onSubmit, novalidate: true },

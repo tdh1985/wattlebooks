@@ -9,7 +9,7 @@
 
 :root {
   color-scheme: light dark;
-  --desk: #E9ECF0;
+  --desk: #E8ECF2;
   --paper: #FFFFFF;
   --paper-2: #F6F7F9;
   --rule: #DCE1E7;
@@ -30,6 +30,11 @@
   --paid-soft: #E2F2E9;
   --stamp: #B5302A;
   --stamp-soft: #FBE8E6;
+  /* navy chrome and wattle gold from the wattlebooks logo */
+  --steel: #15294B;
+  --steel-ink-2: #9EACC7;
+  --wattle: #F2B233;
+  --focus: var(--accent-text);
   --shadow: 0 0 0 1px rgb(24 33 58 / .05), 0 1px 2px rgb(24 33 58 / .06), 0 10px 24px -18px rgb(24 33 58 / .3);
   --r-card: 14px;
   --r-control: 10px;
@@ -40,10 +45,10 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --desk: #10141F;
-    --paper: #191E2C;
-    --paper-2: #1F2535;
-    --rule: #2B3246;
+    --desk: #0F1524;
+    --paper: #172033;
+    --paper-2: #1D273C;
+    --rule: #2A3550;
     --rule-strong: #646E8C;
     --ink: #E6E9F1;
     --ink-2: #A9B0C3;
@@ -58,6 +63,9 @@
     --paid-soft: #16322A;
     --stamp: #F2766C;
     --stamp-soft: #3A1D1E;
+    --steel: #0A1220;
+    /* gold stands out more than the soft green on the navy darks */
+    --focus: var(--wattle);
     --shadow: 0 0 0 1px rgb(255 255 255 / .045), 0 10px 24px -18px rgb(0 0 0 / .8);
   }
 }
@@ -122,7 +130,7 @@ textarea { resize: vertical; }
 
 input:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible, label:focus-within {
   /* solid so the ring stays 3:1 or better on white, desk and dark cards */
-  outline: 3px solid var(--accent-text);
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -184,8 +192,18 @@ button:disabled { opacity: .6; cursor: default; }
   gap: 24px;
 }
 
+/* the ios status bar text is white here, so it needs navy behind it */
+.signin::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top);
+  background: var(--steel);
+}
+
 .signin-brand { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
 .signin-brand img { border-radius: 16px; }
+.signin-brand .wordmark { width: 196px; height: 34px; color: var(--ink); }
 
 .code-input { font-size: 24px; letter-spacing: .3em; text-align: center; font-variant-numeric: tabular-nums; }
 
@@ -202,12 +220,24 @@ button:disabled { opacity: .6; cursor: default; }
   justify-content: space-between;
   gap: 12px;
   padding: calc(env(safe-area-inset-top) + 10px) 16px 10px;
-  background: color-mix(in oklab, var(--desk) 88%, transparent);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  /* solid so it runs up under the ios status bar like the desktop's frame */
+  background: var(--steel);
+  --focus: var(--wattle);
 }
 
-.wordmark { font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--accent-text); }
+/* the logo's lora lettering as a mask so it can take any colour */
+.wordmark {
+  display: block;
+  width: 131px;
+  height: 30px;
+  overflow: hidden;
+  text-indent: 110%;
+  white-space: nowrap;
+  color: #FFFFFF;
+  background: currentColor;
+  -webkit-mask: url("/icons/wattlebooks-wordmark.svg") center / contain no-repeat;
+  mask: url("/icons/wattlebooks-wordmark.svg") center / contain no-repeat;
+}
 
 .pending {
   min-height: 34px;
@@ -246,19 +276,20 @@ button:disabled { opacity: .6; cursor: default; }
   z-index: 5;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  background: var(--paper);
-  border-top: 1px solid var(--rule);
+  background: var(--steel);
   padding-bottom: env(safe-area-inset-bottom);
+  --focus: var(--wattle);
 }
 
 .tab {
+  position: relative;
   min-height: var(--tabbar-h);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 3px;
-  color: var(--ink-3);
+  color: var(--steel-ink-2);
   text-decoration: none;
   font-size: 12px;
   font-weight: 600;
@@ -270,8 +301,20 @@ button:disabled { opacity: .6; cursor: default; }
   stroke-linecap: round; stroke-linejoin: round;
 }
 
-.tab.active { color: var(--accent-text); }
+.tab.active { color: #FFFFFF; }
 .tab.active svg { stroke-width: 2.1; }
+
+/* the gold bar marks the open tab without leaning on colour alone */
+.tab.active::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: calc(50% - 18px);
+  width: 36px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--wattle);
+}
 
 .screen { display: flex; flex-direction: column; gap: 16px; }
 

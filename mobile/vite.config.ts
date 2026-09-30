@@ -14,7 +14,7 @@ function publicFiles(dir: string): string[] {
 // writes sw.js with this build's file names so the shell works offline
 function serviceWorker(): Plugin {
   return {
-    name: 'invoicedesk-sw',
+    name: 'wattlebooks-sw',
     apply: 'build',
     generateBundle(_options, bundle) {
       const built = Object.keys(bundle).map((file) => '/' + file);

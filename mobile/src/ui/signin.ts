@@ -12,7 +12,7 @@ export function signInScreen(client: SupabaseClient): HTMLElement {
       'div',
       { class: 'signin-brand' },
       h('img', { src: '/icons/icon-192.png', alt: '', width: 72, height: 72 }),
-      h('h1', null, 'InvoiceDesk'),
+      h('h1', { class: 'wordmark' }, 'Wattlebooks'),
       h('p', { class: 'muted' }, 'Snap receipts and check who owes you, from your phone.'),
     );
 
@@ -53,7 +53,7 @@ export function signInScreen(client: SupabaseClient): HTMLElement {
       },
       h('label', { for: 'email' }, 'Email'),
       input,
-      h('p', { id: 'email-hint', class: 'hint' }, 'Use the same email you signed in with on Settings → Phone in InvoiceDesk.'),
+      h('p', { id: 'email-hint', class: 'hint' }, 'Use the same email you signed in with on Settings → Phone in Wattlebooks.'),
       error,
       button,
     );
@@ -143,7 +143,7 @@ export function notConfiguredScreen(): HTMLElement {
     h(
       'div',
       { class: 'card stack' },
-      h('p', null, 'This copy of the InvoiceDesk phone app has no Supabase project set.'),
+      h('p', null, 'This copy of the Wattlebooks phone app has no Supabase project set.'),
       h(
         'p',
         { class: 'hint' },

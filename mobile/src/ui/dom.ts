@@ -40,7 +40,7 @@ const OFFLINE = /failed to fetch|networkerror|load failed|network request failed
 
 export function errorText(error: unknown): string {
   const message = error && typeof error === 'object' && 'message' in error ? String(error.message) : String(error);
-  return OFFLINE.test(message) ? "Couldn't reach InvoiceDesk sync. Check your signal and try again." : message;
+  return OFFLINE.test(message) ? "Couldn't reach Wattlebooks sync. Check your signal and try again." : message;
 }
 
 let toastTimer = 0;

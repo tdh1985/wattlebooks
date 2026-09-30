@@ -10,6 +10,7 @@ export interface Snapshot {
   fetched_at: string;
 }
 
+// the pre-rebrand name so phones already in use keep their offline copy
 const SNAPSHOT_KEY = 'invoicedesk.snapshot';
 
 export class App {

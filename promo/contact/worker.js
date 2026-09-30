@@ -51,7 +51,7 @@ export default {
         from: env.CONTACT_FROM,
         to: [env.CONTACT_TO],
         reply_to: email,
-        subject: `InvoiceDesk message from ${name.replace(/[\r\n]+/g, ' ')}`,
+        subject: `Wattlebooks message from ${name.replace(/[\r\n]+/g, ' ')}`,
         text: `${message}\n\n--\n${name} <${email}>`,
       }),
     }).catch(() => null);

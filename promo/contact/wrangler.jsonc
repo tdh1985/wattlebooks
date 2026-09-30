@@ -7,7 +7,7 @@
     "ALLOWED_ORIGINS": "https://tdh1985.github.io",
     "TURNSTILE_HOSTNAMES": "tdh1985.github.io",
     "CONTACT_TO": "timdowney@live.com.au",
-    "CONTACT_FROM": "InvoiceDesk site <onboarding@resend.dev>"
+    "CONTACT_FROM": "Wattlebooks site <onboarding@resend.dev>"
   }
   // switch CONTACT_TO to tim@setitnow.online once that domain is verified in resend
   // secrets: TURNSTILE_SECRET and RESEND_API_KEY, set with wrangler secret put

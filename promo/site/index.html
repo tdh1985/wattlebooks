@@ -1,66 +1,63 @@
-<title>InvoiceDesk</title>
+<title>Wattlebooks</title>
 <meta name="description" content="Free invoicing app for sole traders in Australia, New Zealand, the UK, Canada and the US. Tax invoices, GST or VAT and your tax return figures, with no monthly fee.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
+/* navy chrome and wattle gold so the site looks like the app */
 :root {
-  --paper: #F5F6F2;
+  --paper: #F4F6F9;
   --surface: #FFFFFF;
-  --ink: #172038;
+  --ink: #18213A;
   --muted: #566074;
-  --line: #D8DDD6;
+  --line: #D8DEE6;
+  --navy: #15294B;
+  --navy-ink: #CDD6E6;
   --accent: #2E6B57;
   --accent-ink: #FFFFFF;
   --accent-soft: #E3EEE8;
-  --amber: #E3A13A;
-  --amber-ink: #3A2606;
+  --amber: #F2B233;
+  --amber-ink: #15294B;
   --focus: var(--ink);
   --stamp: #9A5B00;
-  --shade: rgba(23, 32, 56, 0.10);
+  --shade: rgba(21, 41, 75, 0.10);
   --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
   --body: "Barlow", "Segoe UI", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
-  --logo-light: block;
-  --logo-dark: none;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --paper: #0E1424;
-    --surface: #161E33;
+    --paper: #0F1524;
+    --surface: #172033;
     --ink: #E6E9F1;
     --muted: #9AA3B8;
-    --line: #2A3450;
+    --line: #2A3550;
+    --navy: #0A1220;
     --accent: #5FB592;
     --accent-ink: #0B1A14;
     --accent-soft: #17302A;
-    --amber: #F0B64E;
-    --amber-ink: #2A1B03;
+    --amber: #F6C03F;
     --focus: var(--amber);
     --stamp: var(--amber);
     --shade: rgba(0, 0, 0, 0.45);
-    --logo-light: none;
-    --logo-dark: block;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --paper: #0E1424;
-  --surface: #161E33;
+  --paper: #0F1524;
+  --surface: #172033;
   --ink: #E6E9F1;
   --muted: #9AA3B8;
-  --line: #2A3450;
+  --line: #2A3550;
+  --navy: #0A1220;
   --accent: #5FB592;
   --accent-ink: #0B1A14;
   --accent-soft: #17302A;
-  --amber: #F0B64E;
-  --amber-ink: #2A1B03;
+  --amber: #F6C03F;
   --focus: var(--amber);
   --stamp: var(--amber);
   --shade: rgba(0, 0, 0, 0.45);
-  --logo-light: none;
-  --logo-dark: block;
 }
 
 * { box-sizing: border-box; }
@@ -88,13 +85,14 @@ a:focus-visible, .btn:focus-visible, summary:focus-visible, [tabindex]:focus-vis
 .shot { display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); box-shadow: 0 30px 60px -30px var(--shade), 0 2px 6px var(--shade); background: var(--surface); }
 
 /* top bar */
-.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 20px; }
-.top .logo { height: 46px; width: auto; }
-.top .logo.light { display: var(--logo-light); }
-.top .logo.dark { display: var(--logo-dark); }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 16px; }
+.top > a { display: block; border-radius: 6px; }
+.top .logo { display: block; height: 44px; width: auto; }
 .top nav { display: flex; gap: 22px; font-weight: 500; font-size: 16px; }
-.top nav a { color: var(--ink); text-decoration: none; }
-.top nav a:hover { color: var(--accent); }
+.top nav a { color: var(--navy-ink); text-decoration: none; }
+.top nav a:hover { color: var(--amber); }
+/* the ink focus ring would vanish on the navy bar */
+.top a:focus-visible { outline-color: var(--amber); }
 
 /* buttons */
 .btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 8px; font: 600 18px/1 var(--body); text-decoration: none; border: 2px solid transparent; }
@@ -192,7 +190,7 @@ a:focus-visible, .btn:focus-visible, summary:focus-visible, [tabindex]:focus-vis
 .currencies { font: 500 15px/1.9 var(--mono); color: var(--muted); letter-spacing: 0.04em; }
 
 /* sticky frosted header */
-.top-bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; margin-inline: -20px; padding-inline: 20px; background: color-mix(in oklab, var(--paper) 82%, transparent); backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4); border-bottom: 1px solid transparent; }
+.top-bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; margin-inline: -20px; padding-inline: 20px; background: color-mix(in oklab, var(--navy) 97%, transparent); backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4); }
 
 [id] { scroll-margin-top: 96px; }
 #top { scroll-margin-top: 240px; }
@@ -216,7 +214,7 @@ html { scroll-behavior: smooth; }
 /* scroll-driven effects, decorative so no fallback */
 @media (prefers-reduced-motion: no-preference) {
   @supports (animation-timeline: scroll()) {
-    @keyframes settle-bar { to { border-bottom-color: var(--line); box-shadow: 0 8px 24px -18px var(--shade); } }
+    @keyframes settle-bar { to { box-shadow: 0 10px 26px -16px var(--shade); } }
     .top-bar { animation: settle-bar linear both; animation-timeline: scroll(root); animation-range: 0 120px; }
   }
   @supports ((animation-timeline: view()) and (animation-range: entry)) {
@@ -301,9 +299,8 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
 
 <a class="skip" href="#top">Skip to content</a>
 <div class="top-bar"><div class="wrap"><header class="top">
-    <a href="#top" aria-label="InvoiceDesk home">
-      <img class="logo light" src="img/logo.png" alt="InvoiceDesk" width="480" height="315">
-      <img class="logo dark" src="img/logo-dark.png" alt="InvoiceDesk" width="480" height="315">
+    <a href="#top" aria-label="Wattlebooks home">
+      <img class="logo" src="img/logo-wide-dark.svg" alt="Wattlebooks" width="194" height="44">
     </a>
     <nav aria-label="Page sections">
       <a href="#price">Price</a>
@@ -321,8 +318,8 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
       <div class="hero-copy">
         <span class="eyebrow">For Australian sole traders</span>
         <h1>Tax invoices, GST and your BAS. <span class="dim">No monthly fee.</span></h1>
-        <p class="lede">InvoiceDesk is a free, open-source invoicing app for tradies and freelancers on Windows, Mac and Linux. It runs on your own computer, so your books stay with you.</p>
-        <p class="phone-note">InvoiceDesk runs on your computer. Open this page on it to download.</p>
+        <p class="lede">Wattlebooks is a free, open-source invoicing app for tradies and freelancers on Windows, Mac and Linux. It runs on your own computer, so your books stay with you.</p>
+        <p class="phone-note">Wattlebooks runs on your computer. Open this page on it to download.</p>
         <div class="actions">
           <a class="btn primary" href="https://github.com/tdh1985/invoicedesk/releases/latest/download/InvoiceDesk.exe">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
@@ -333,7 +330,7 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
         <p class="fine">Free and open source. One file, nothing to install. Also set up for <a href="#countries">NZ, the UK, Canada and the US</a>.</p>
       </div>
       <div class="hero-visual">
-        <img class="shot" src="img/invoice-preview.webp" width="626" height="626" fetchpriority="high" alt="A tax invoice made in InvoiceDesk for Blue Gum Physio, with the ABN, three lines of work, GST of $404.00 and a total of $4,444.00">
+        <img class="shot" src="img/invoice-preview.webp" width="626" height="626" fetchpriority="high" alt="A tax invoice made in Wattlebooks for Blue Gum Physio, with the ABN, three lines of work, GST of $404.00 and a total of $4,444.00">
       </div>
     </section>
 
@@ -342,11 +339,11 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
         <h2>Here's our invoice to you</h2>
         <p class="lede">No subscription, no per-invoice fee and no limit on clients. The code is MIT licensed, so it stays free.</p>
       </div>
-      <div class="bill" role="img" aria-label="A tax invoice from InvoiceDesk: subscription $0.00, per-invoice fees $0.00, GST $0.00, total including GST $0.00, marked paid">
+      <div class="bill" role="img" aria-label="A tax invoice from Wattlebooks: subscription $0.00, per-invoice fees $0.00, GST $0.00, total including GST $0.00, marked paid">
         <div class="bill-head">
           <div>
             <h3>Tax invoice</h3>
-            <p class="bill-from"><strong>InvoiceDesk</strong><br>Billed to: you</p>
+            <p class="bill-from"><strong>Wattlebooks</strong><br>Billed to: you</p>
           </div>
           <div class="bill-meta">INV-0001<br>Due: never</div>
         </div>
@@ -368,14 +365,14 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
       <div class="watch-copy">
         <h2>See it in under a minute</h2>
         <p class="lede">From your first invoice to your tax figures, in all five countries, on Windows, Mac and Linux.</p>
-        <p class="fine">It has a voiceover, and captions are on so you can watch it with the sound off.</p>
+        <p class="fine">It has a voiceover, and captions are on so you can watch it with the sound off. It was made before the app was renamed, so you'll still hear and see its old name, InvoiceDesk.</p>
       </div>
       <div class="player">
         <!-- nothing downloads until someone scrolls down and presses play -->
         <video controls playsinline preload="none" loading="lazy" poster="img/promo-poster.webp" width="1920" height="1080">
           <source src="img/promo.mp4" type="video/mp4">
           <track kind="captions" srclang="en-AU" label="English" src="img/promo.vtt" default>
-          <a href="img/promo.mp4">Watch the InvoiceDesk video</a>
+          <a href="img/promo.mp4">Watch the video</a>
         </video>
       </div>
     </section>
@@ -397,7 +394,7 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
     <section class="feature wide">
       <div class="feature-copy">
         <h2>Drop in a receipt and it fills in the expense for you</h2>
-        <p>Drag a photo or PDF of a receipt onto the Money page. InvoiceDesk reads the supplier, date, amount and GST, and highlights what it filled so you can check it.</p>
+        <p>Drag a photo or PDF of a receipt onto the Money page. Wattlebooks reads the supplier, date, amount and GST, and highlights what it filled so you can check it.</p>
         <p class="fine">Uses the text reader built into Windows, so the receipt never leaves your computer.</p>
       </div>
       <img class="shot" src="img/receipt-scan.webp" loading="lazy" width="1800" height="1090" alt="An Ampol fuel receipt dropped onto a new expense, with the amount, GST, date and supplier filled in">
@@ -442,7 +439,7 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
         <span class="tag">New · free pilot</span>
         <h2>Snap receipts on site with your phone</h2>
         <p>The optional phone app sends receipt photos and quick invoices back to your computer, and shows who still owes you. It works offline and catches up when you have signal.</p>
-        <p>To set it up, sign in under Settings &gt; Phone in InvoiceDesk on your computer. Then open <a class="nowrap" href="https://invoicedesk-phone.vercel.app">invoicedesk-phone.vercel.app</a> on your phone, sign in with the same email and add it to your home screen.</p>
+        <p>To set it up, sign in under Settings &gt; Phone in Wattlebooks on your computer. Then open <a class="nowrap" href="https://invoicedesk-phone.vercel.app">invoicedesk-phone.vercel.app</a> on your phone, sign in with the same email and add it to your home screen.</p>
         <p class="fine">Works in the browser on iPhone and Android. Your computer stays the only full copy of your books.</p>
       </div>
       <div class="phones" tabindex="0" role="region" aria-label="Phone app screens">
@@ -475,7 +472,7 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
         </details>
         <details>
           <summary>How is it different from Xero, MYOB or QuickBooks?</summary>
-          <p>Those are monthly subscriptions that run online, with extras like bank feeds and payroll. InvoiceDesk is free, keeps your books on your own computer and sticks to invoices, quotes, expenses and your GST. If you need payroll or bank feeds, one of those is the better fit.</p>
+          <p>Those are monthly subscriptions that run online, with extras like bank feeds and payroll. Wattlebooks is free, keeps your books on your own computer and sticks to invoices, quotes, expenses and your GST. If you need payroll or bank feeds, one of those is the better fit.</p>
         </details>
         <details>
           <summary>Where are my invoices kept?</summary>
@@ -500,6 +497,10 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
         <details>
           <summary>Does it replace my accountant?</summary>
           <p>No. It keeps your records and works out your GST figures, but it isn't tax advice. Check your BAS with your accountant or the ATO if you're unsure.</p>
+        </details>
+        <details>
+          <summary>Wasn't this called InvoiceDesk?</summary>
+          <p>Yes. InvoiceDesk is now Wattlebooks, with a new look. Your invoices, clients and settings carry over as they are, and the Windows download is still named InvoiceDesk.exe.</p>
         </details>
       </div>
     </section>
@@ -535,7 +536,7 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
 
     <section class="closer">
       <div>
-        <h2>Send your next invoice from InvoiceDesk</h2>
+        <h2>Send your next invoice from Wattlebooks</h2>
         <p>Free for Windows, with Mac and Linux versions too.</p>
       </div>
       <div class="actions">
@@ -546,7 +547,7 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
   </main>
 
   <footer>
-    <span>InvoiceDesk is free software under the MIT licence.</span>
+    <span>Wattlebooks is free software under the MIT licence.</span>
     <span><a href="#contact">Contact</a> · <a href="privacy.html">Privacy</a> · <a href="https://github.com/tdh1985/invoicedesk/releases">All releases</a></span>
   </footer>
 </div>

@@ -5,8 +5,8 @@ site = here / 'site'
 out = pathlib.Path(sys.argv[1])
 url = 'https://tdh1985.github.io/invoicedesk/'
 repo = 'https://github.com/tdh1985/invoicedesk'
-title = 'InvoiceDesk: free invoice app for sole traders, GST and BAS'
-og_alt = 'InvoiceDesk: tax invoices, GST and your BAS with no monthly fee, beside the invoice editor'
+title = 'Wattlebooks: free invoice app for sole traders, GST and BAS'
+og_alt = 'Wattlebooks: tax invoices, GST and your BAS with no monthly fee, beside a tax invoice made in the app'
 # bing and other indexnow engines fetch this file to trust our pings
 indexnow_key = 'd7f1989c9676aa3d101197f4be473fc2'
 # search console looks for this file to prove we own the site
@@ -28,14 +28,16 @@ def document(head, css, body):
 def common(page_url):
     return (f'<link rel="canonical" href="{page_url}">\n'
             '<meta name="robots" content="max-image-preview:large">\n'
-            '<meta name="theme-color" content="#F5F6F2" media="(prefers-color-scheme: light)">\n'
-            '<meta name="theme-color" content="#0E1424" media="(prefers-color-scheme: dark)">\n'
-            '<link rel="icon" href="img/logo.png">\n')
+            '<meta name="theme-color" content="#15294B" media="(prefers-color-scheme: light)">\n'
+            '<meta name="theme-color" content="#0A1220" media="(prefers-color-scheme: dark)">\n'
+            # the png is for browsers that can't show an svg icon
+            '<link rel="icon" href="img/icon-32.png" sizes="32x32">\n'
+            '<link rel="icon" href="img/icon.svg" type="image/svg+xml">\n')
 
 s = (site / 'index.html').read_text(encoding='utf-8')
 head, rest = s.split('<style>', 1)
 css, body = rest.split('</style>\n', 1)
-head = head.replace('<title>InvoiceDesk</title>', f'<title>{title}</title>')
+head = head.replace('<title>Wattlebooks</title>', f'<title>{title}</title>')
 desc = html.unescape(re.search(r'<meta name="description" content="([^"]+)"', head).group(1))
 fonts = ''.join(re.findall(r'<link [^>]+>\n', head))
 
@@ -46,15 +48,17 @@ vtt = (site / 'img' / 'promo.vtt').read_text(encoding='utf-8').splitlines()
 transcript = ' '.join(l.strip() for l in vtt if l.strip() and '-->' not in l and not l.startswith('WEBVTT'))
 
 graph = [
-    {'@type': 'Organization', '@id': url + '#org', 'name': 'InvoiceDesk', 'url': url,
+    {'@type': 'Organization', '@id': url + '#org', 'name': 'Wattlebooks', 'url': url,
      'logo': img('logo.png'), 'sameAs': [repo]},
-    {'@type': 'WebSite', '@id': url + '#website', 'url': url, 'name': 'InvoiceDesk',
+    {'@type': 'WebSite', '@id': url + '#website', 'url': url, 'name': 'Wattlebooks',
      'inLanguage': 'en-AU', 'publisher': {'@id': url + '#org'}},
     {'@type': ['WebPage', 'FAQPage'], '@id': url + '#page', 'url': url, 'name': title,
      'description': desc, 'inLanguage': 'en-AU', 'dateModified': today,
      'isPartOf': {'@id': url + '#website'}, 'about': {'@id': url + '#app'},
      'primaryImageOfPage': img('og.png'), 'mainEntity': faq},
-    {'@type': 'SoftwareApplication', '@id': url + '#app', 'name': 'InvoiceDesk', 'url': url,
+    {'@type': 'SoftwareApplication', '@id': url + '#app', 'name': 'Wattlebooks', 'url': url,
+     # the old name, so searches for it still lead here
+     'alternateName': 'InvoiceDesk',
      'description': desc, 'applicationCategory': 'BusinessApplication',
      'applicationSubCategory': 'Invoicing', 'operatingSystem': 'Windows 10, Windows 11, macOS, Linux',
      'softwareVersion': version, 'downloadUrl': repo + '/releases/latest',
@@ -74,9 +78,10 @@ graph = [
      ],
      'image': img('og.png'), 'screenshot': [img(n) for n in shots],
      'publisher': {'@id': url + '#org'}, 'sameAs': [repo]},
-    {'@type': 'VideoObject', '@id': url + '#video', 'name': 'InvoiceDesk in under a minute',
-     'description': 'What InvoiceDesk does, from your first invoice to your GST, VAT or sales tax figures, '
-                    'for Australia, New Zealand, the UK, Canada and the US, on Windows, Mac and Linux.',
+    {'@type': 'VideoObject', '@id': url + '#video', 'name': 'Wattlebooks in under a minute',
+     'description': 'What Wattlebooks does, from your first invoice to your GST, VAT or sales tax figures, '
+                    'for Australia, New Zealand, the UK, Canada and the US, on Windows, Mac and Linux. '
+                    'It was made before the rename, so it still calls the app InvoiceDesk.',
      'thumbnailUrl': img('promo-poster.webp'), 'contentUrl': img('promo.mp4'),
      'uploadDate': '2026-09-30T12:00:00+10:00', 'duration': 'PT54S', 'inLanguage': 'en-AU',
      'transcript': transcript},
@@ -85,10 +90,10 @@ ld = json.dumps({'@context': 'https://schema.org', '@graph': graph}, ensure_asci
 meta = (common(url)
         + f'<meta name="msvalidate.01" content="{bing_code}">\n'
         '<meta property="og:type" content="website">\n'
-        '<meta property="og:site_name" content="InvoiceDesk">\n'
+        '<meta property="og:site_name" content="Wattlebooks">\n'
         '<meta property="og:locale" content="en_AU">\n'
         f'<meta property="og:url" content="{url}">\n'
-        '<meta property="og:title" content="InvoiceDesk: free invoicing for sole traders">\n'
+        '<meta property="og:title" content="Wattlebooks: free invoicing for sole traders">\n'
         '<meta property="og:description" content="Free invoicing for sole traders. Tax invoices, GST and your BAS, with no monthly fee.">\n'
         f'<meta property="og:image" content="{img("og.png")}">\n'
         '<meta property="og:image:width" content="1200">\n'
@@ -122,6 +127,7 @@ pictures = ''.join(f'<image:image><image:loc>{img(n)}</image:loc></image:image>\
 
 (out / 'img').mkdir(exist_ok=True)
 for f in (site / 'img').iterdir():
-    if f.suffix in ('.webp', '.mp4', '.vtt') or f.name.startswith('logo'):
+    # the other pngs are sources for the webp copies, so they stay behind
+    if f.suffix in ('.webp', '.mp4', '.vtt', '.svg') or f.name.startswith(('logo', 'icon')) or f.name == 'og.png':
         shutil.copy2(f, out / 'img' / f.name)
 print('built', out, 'version', version, 'questions', len(faq))

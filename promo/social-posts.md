@@ -1,4 +1,4 @@
-# InvoiceDesk social posts
+# Wattlebooks social posts
 
 Link everywhere: https://tdh1985.github.io/invoicedesk/
 
@@ -14,7 +14,7 @@ People respond far better to "I built this" than to something that reads like an
 
 A lot of sole traders pay every month for accounting software when all they
 really use is sending tax invoices, tracking what's owed and getting their BAS
-figures at the end of the quarter. So I built InvoiceDesk to do those jobs,
+figures at the end of the quarter. So I built Wattlebooks to do those jobs,
 and made it free.
 
 - Proper tax invoices with your ABN and GST, emailed as a PDF
@@ -39,7 +39,7 @@ Happy to hear what's missing. I'm fixing things as people find them.
 G'day all. I've made a free invoicing app for sole traders and I'm after a few
 people to try it.
 
-InvoiceDesk sends tax invoices with your ABN and GST, keeps track of who owes
+Wattlebooks sends tax invoices with your ABN and GST, keeps track of who owes
 you, and works out your BAS figures (G1, 1A and 1B) each quarter. No monthly
 fee, no account, and your data stays on your own computer.
 
@@ -56,7 +56,7 @@ If you give it a go, I'd love to know what you'd change.
 Most invoicing software charges a sole trader every month, whether they send
 two invoices or two hundred.
 
-I built InvoiceDesk to do the core jobs for free:
+I built Wattlebooks to do the core jobs for free:
 
 → Tax invoices with your ABN and GST
 → Reminders for overdue invoices
@@ -95,12 +95,12 @@ figures, free for Aussie sole traders. Link in bio.
 #soletrader #smallbusinessaustralia #tradie #freelancer #GST #BAS #invoicing
 
 **Phone app (ad-b)**
-Snap the receipt on site. Sort it at your desk. The new InvoiceDesk phone app
+Snap the receipt on site. Sort it at your desk. The new Wattlebooks phone app
 sends receipt photos straight to your computer. Free. Link in bio.
 #tradielife #soletrader #smallbusinessaustralia #receipts #invoicing
 
 **BAS worksheet (ad-c)**
-BAS due? InvoiceDesk has G1, 1A and 1B worked out already. Free invoicing for
+BAS due? Wattlebooks has G1, 1A and 1B worked out already. Free invoicing for
 Aussie sole traders, no monthly fee. Link in bio.
 #BAS #GST #soletrader #smallbusinessaustralia #eofy
 
@@ -108,7 +108,7 @@ Aussie sole traders, no monthly fee. Link in bio.
 
 ## Reels / TikTok / Shorts caption (for the video)
 
-Paying every month just to send invoices? InvoiceDesk is free 🧾 Tax invoices,
+Paying every month just to send invoices? Wattlebooks is free 🧾 Tax invoices,
 GST, BAS figures and a phone app for receipts. Link in bio.
 #soletrader #tradie #smallbusinessaustralia #invoicing #BAS
 
@@ -122,8 +122,8 @@ whichever ad gets the cheapest clicks after a week.
 
 | Ad | Primary text | Headline | Description |
 |---|---|---|---|
-| ad-a | Tax invoices, GST and your BAS figures without a monthly fee. InvoiceDesk is free for Aussie sole traders and runs on your own computer. | Invoicing that bills you $0.00 | Free download for Windows |
-| ad-b | Snap receipts on site with your phone and they land in InvoiceDesk on your computer, ready to become expenses. Free, with no subscription. | Snap it on site, sort it at your desk | Free invoicing app |
-| ad-c | InvoiceDesk works out G1, 1A and 1B for any quarter from the invoices and expenses you've recorded. Free for Aussie sole traders. | BAS due? It's already worked out | Free download |
+| ad-a | Tax invoices, GST and your BAS figures without a monthly fee. Wattlebooks is free for Aussie sole traders and runs on your own computer. | Invoicing that bills you $0.00 | Free download for Windows |
+| ad-b | Snap receipts on site with your phone and they land in Wattlebooks on your computer, ready to become expenses. Free, with no subscription. | Snap it on site, sort it at your desk | Free invoicing app |
+| ad-c | Wattlebooks works out G1, 1A and 1B for any quarter from the invoices and expenses you've recorded. Free for Aussie sole traders. | BAS due? It's already worked out | Free download |
 
 Use https://tdh1985.github.io/invoicedesk/ as the website URL and "Download" as the button.

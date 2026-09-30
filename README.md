@@ -1,11 +1,11 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.png">
-    <img src="docs/logo.png" alt="InvoiceDesk" width="320">
+    <img src="docs/logo.png" alt="Wattlebooks" width="220">
   </picture>
 </p>
 
-# InvoiceDesk
+# Wattlebooks
 
 A desktop app for sending invoices to clients and keeping track of money in
 and out, on Windows, Linux and Mac. Made for sole traders and small businesses
@@ -14,12 +14,16 @@ country's GST, VAT or sales tax rules. It's a single file with nothing to
 install, and your data stays on your own computer. An optional
 [phone app](#phone-pilot) lets you snap receipts and start invoices on the go.
 
+Wattlebooks used to be called InvoiceDesk. The download files and data folders
+still use the old name, so your books carry over with nothing to move.
+
 ![The dashboard, with unpaid invoices hanging on a rail by due date above this month's cash book](docs/screenshots/dashboard.png)
 
 ## Download
 
-**[Download InvoiceDesk.exe](https://github.com/tdh1985/invoicedesk/releases/latest/download/InvoiceDesk.exe)**
+**[Download Wattlebooks for Windows](https://github.com/tdh1985/invoicedesk/releases/latest/download/InvoiceDesk.exe)**
 for Windows 10 and 11 (64-bit), or see [all releases](https://github.com/tdh1985/invoicedesk/releases).
+The file is still named `InvoiceDesk.exe`.
 
 It's a single file with nothing to install. The exe isn't code-signed yet, so
 Windows SmartScreen may say it protected your PC. Click **More info**, then
@@ -266,7 +270,8 @@ Everything is in `%LOCALAPPDATA%\InvoiceDesk\` on Windows,
 `~/.local/share/InvoiceDesk/` on Linux, unless you move it in
 **Settings → Your data**. The Microsoft Store version keeps it in
 `Documents\InvoiceDesk\` instead, so uninstalling the app doesn't delete it
-(its logs and caches stay in the app's own storage and do go):
+(its logs and caches stay in the app's own storage and do go). The folders
+keep the app's old name so nothing moves when you update:
 
 | Path | What it is |
 |---|---|
@@ -279,20 +284,20 @@ Everything is in `%LOCALAPPDATA%\InvoiceDesk\` on Windows,
 The app makes a backup each time it starts. You can also copy the whole folder
 yourself to take your own backup.
 
-InvoiceDesk never goes online by itself. **Settings → About** has a **Check
+Wattlebooks never goes online by itself. **Settings → About** has a **Check
 for updates** button, which asks GitHub for the latest version only when you
 click it.
 
 ## Phone (pilot)
 
-Sign in under **Settings → Phone** to use InvoiceDesk from your phone. The phone
+Sign in under **Settings → Phone** to use Wattlebooks from your phone. The phone
 app is a web page you add to your home screen, at
 **<https://invoicedesk-phone.vercel.app>**. From it you can:
 
 - **Snap a receipt.** It lands in a **From your phone** tray on Money in & out,
   and opening it starts a new expense with the photo read for you.
 - **See who owes you**, with overdue invoices first.
-- **Start a quick invoice.** It arrives as a draft for InvoiceDesk to number,
+- **Start a quick invoice.** It arrives as a draft for Wattlebooks to number,
   check and send.
 
 Receipts and quick invoices wait on the phone when there's no signal and upload
@@ -302,7 +307,7 @@ later.
 
 To sign in:
 
-1. In InvoiceDesk, open **Settings → Phone**, enter your email and click
+1. In Wattlebooks, open **Settings → Phone**, enter your email and click
    **Email me a code**. Type in the code from the email. There's no password.
 2. On your phone, open the phone app, sign in with the same email and a new
    code, then choose **Add to Home Screen**.
@@ -359,7 +364,7 @@ built on a personal computer gets signed.
 
 ### Privacy
 
-InvoiceDesk won't send any information to other networked systems unless
+Wattlebooks won't send any information to other networked systems unless
 you ask it to. Your data is kept on your computer. It only goes online when:
 
 - you choose **Check for updates**, which asks GitHub for the latest version
@@ -371,7 +376,7 @@ you ask it to. Your data is kept on your computer. It only goes online when:
 
 ## Disclaimer
 
-InvoiceDesk helps you keep records. It isn't tax advice, so check your figures
+Wattlebooks helps you keep records. It isn't tax advice, so check your figures
 with your accountant or your tax office: the ATO, IRD, HMRC, CRA, or the IRS
 and your state.
 
@@ -381,5 +386,5 @@ and your state.
 
 ## Support
 
-If InvoiceDesk saves you time, feel free to buy me a coffee, or more, through
+If Wattlebooks saves you time, feel free to buy me a coffee, or more, through
 PayPal at [paypal.me/timdowney](https://paypal.me/timdowney).

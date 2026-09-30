@@ -1,11 +1,12 @@
-# InvoiceDesk
+# Wattlebooks
 
-> InvoiceDesk is a free, open-source invoicing app for sole traders and small businesses. It runs on Windows 10 and 11, Linux and macOS (as a preview), keeps your books in a folder on your own computer and follows the GST, VAT or sales tax rules of Australia, New Zealand, the UK, Canada and the US.
+> Wattlebooks is a free, open-source invoicing app for sole traders and small businesses. It runs on Windows 10 and 11, Linux and macOS (as a preview), keeps your books in a folder on your own computer and follows the GST, VAT or sales tax rules of Australia, New Zealand, the UK, Canada and the US.
 
 - Price: free. No subscription, no per-invoice fee, no paid plan and no ads. MIT licence.
 - Made for: tradies, freelancers and other sole traders, first in Australia.
 - Install: a single file with nothing to install. The latest version is {version}.
 - Privacy: nothing goes online unless you sign in to the optional phone app. Then only open invoices, recent payments and client names are shared with your phone.
+- Former name: InvoiceDesk. The Windows download is still named InvoiceDesk.exe, and the data folder is still called InvoiceDesk.
 
 ## What it does
 

@@ -5,8 +5,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
 :root {
-  --paper: #F5F6F2; --ink: #172038; --muted: #566074; --line: #D8DDD6;
-  --accent: #2E6B57; --mint: #8FD3B6; --amber: #E3A13A; --amber-ink: #3A2606;
+  --paper: #F4F6F9; --ink: #18213A; --navy: #15294B; --muted: #566074; --line: #D8DEE6;
+  --accent: #2E6B57; --mint: #8FD3B6; --amber: #F2B233; --amber-ink: #15294B;
   --display: "Barlow Condensed", sans-serif; --body: "Barlow", sans-serif; --mono: "IBM Plex Mono", monospace;
 }
 * { box-sizing: border-box; margin: 0; }
@@ -23,8 +23,8 @@ h1 em { font-style: normal; color: var(--accent); }
 .story .sub { font-size: 40px; }
 .eyebrow { font: 600 26px/1 var(--body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
 .brand { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-.brand img { height: 92px; }
-.story .brand img { height: 120px; }
+.brand img { height: 76px; }
+.story .brand img { height: 96px; }
 .cta { font: 600 30px/1 var(--body); background: var(--accent); color: #fff; padding: 22px 30px; border-radius: 12px; }
 .story .cta { font-size: 36px; padding: 28px 36px; }
 .visual { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; position: relative; }
@@ -45,7 +45,7 @@ h1 em { font-style: normal; color: var(--accent); }
 .stamp { position: absolute; left: 40%; bottom: 20px; transform: rotate(-14deg); font: 700 64px/1 var(--display); letter-spacing: .12em; color: var(--amber); border: 6px solid var(--amber); border-radius: 10px; padding: 8px 20px 4px; }
 
 /* b: phone on navy */
-.ad.b { background: var(--ink); color: #fff; }
+.ad.b { background: var(--navy); color: #fff; }
 .ad.b h1 em { color: var(--mint); }
 .ad.b .sub { color: #B9C1D3; }
 .ad.b .eyebrow { color: var(--mint); }
@@ -77,11 +77,11 @@ h1 em { font-style: normal; color: var(--accent); }
 .row.pay span:last-child { font-size: 42px; }
 .note { font-size: 22px; color: var(--muted); margin-top: 18px; }
 /* video cards */
-.ad.hook { background: var(--ink); color: #fff; justify-content: center; }
+.ad.hook { background: var(--navy); color: #fff; justify-content: center; }
 .ad.hook h1 { font-size: 150px; }
 .ad.hook h1 em { color: var(--amber); }
 .ad.end { justify-content: center; align-items: center; text-align: center; gap: 70px; }
-.ad.end img { width: 640px; }
+.ad.end img { width: 460px; }
 .ad.end h1 { font-size: 130px; }
 .ad.end .url { font: 600 44px/1 var(--mono); color: var(--accent); }
 .ad.end .sub { font-size: 44px; }
@@ -105,17 +105,17 @@ h1 em { font-style: normal; color: var(--accent); }
     </div>
   </div>
   <p class="sub story-only">Tax invoices, GST and your BAS figures. Free, and it runs on your own computer.</p>
-  <div class="brand"><img src="../site/img/logo.png" alt="InvoiceDesk"><span class="cta">Free download</span></div>
+  <div class="brand"><img src="../site/img/logo-wide.svg" alt="Wattlebooks"><span class="cta">Free download</span></div>
 </section>
 
 <section class="ad b" id="b">
   <div class="copy">
     <span class="pill">New phone app</span>
     <h1>Snap it on site. <em>Sort it at your desk.</em></h1>
-    <p class="sub">Receipt photos from your phone land in InvoiceDesk, ready to turn into expenses.</p>
+    <p class="sub">Receipt photos from your phone land in Wattlebooks, ready to turn into expenses.</p>
   </div>
   <div class="visual"><img class="phone" src="../site/img/phone-snap.png" alt=""></div>
-  <div class="brand"><img src="../site/img/logo-dark.png" alt="InvoiceDesk"><span class="cta">Free download</span></div>
+  <div class="brand"><img src="../site/img/logo-wide-dark.svg" alt="Wattlebooks"><span class="cta">Free download</span></div>
 </section>
 
 <section class="ad c" id="c">
@@ -134,7 +134,7 @@ h1 em { font-style: normal; color: var(--accent); }
     </div>
   </div>
   <p class="sub story-only">Free invoicing for Aussie sole traders, with no monthly fee.</p>
-  <div class="brand"><img src="../site/img/logo.png" alt="InvoiceDesk"><span class="cta">Free download</span></div>
+  <div class="brand"><img src="../site/img/logo-wide.svg" alt="Wattlebooks"><span class="cta">Free download</span></div>
 </section>
 
 <section class="ad hook" id="hook">
@@ -142,7 +142,7 @@ h1 em { font-style: normal; color: var(--accent); }
 </section>
 
 <section class="ad end" id="end">
-  <img src="../site/img/logo.png" alt="InvoiceDesk">
+  <img src="../site/img/logo.png" alt="Wattlebooks">
   <h1>Free.<br><em>No monthly fee.</em></h1>
   <p class="sub">Windows, Mac and Linux</p>
   <p class="url">tdh1985.github.io/invoicedesk</p>

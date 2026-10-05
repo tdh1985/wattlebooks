@@ -16,13 +16,15 @@ install, and your data stays on your own computer. An optional
 
 Wattlebooks used to be called InvoiceDesk. The download files and data folders
 still use the old name, so your books carry over with nothing to move.
+Wattlebooks is also on the
+[Microsoft Store](https://apps.microsoft.com/detail/9nhxgb9bdrr1).
 
 ![The dashboard, with unpaid invoices hanging on a rail by due date above this month's cash book](docs/screenshots/dashboard.png)
 
 ## Download
 
-**[Download Wattlebooks for Windows](https://github.com/tdh1985/invoicedesk/releases/latest/download/InvoiceDesk.exe)**
-for Windows 10 and 11 (64-bit), or see [all releases](https://github.com/tdh1985/invoicedesk/releases).
+**[Download Wattlebooks for Windows](https://github.com/tdh1985/wattlebooks/releases/latest/download/InvoiceDesk.exe)**
+for Windows 10 and 11 (64-bit), or see [all releases](https://github.com/tdh1985/wattlebooks/releases).
 The file is still named `InvoiceDesk.exe`.
 
 It's a single file with nothing to install. The exe isn't code-signed yet, so
@@ -33,7 +35,7 @@ Windows SmartScreen may say it protected your PC. Click **More info**, then
 
 The same app also runs on Linux and macOS (Apple Silicon and Intel), with the
 same screens. Download `InvoiceDesk-linux-x64.tar.gz` or the Mac file for your
-chip from the [latest release](https://github.com/tdh1985/invoicedesk/releases/latest).
+chip from the [latest release](https://github.com/tdh1985/wattlebooks/releases/latest).
 The Mac version is a **preview**: it hasn't been tried on a real Mac yet, so
 please report anything that goes wrong. A few things work differently on both:
 
@@ -49,18 +51,18 @@ please report anything that goes wrong. A few things work differently on both:
 
 | Version | Date | What changed |
 |---|---|---|
-| [1.7.0](https://github.com/tdh1985/invoicedesk/releases/tag/v1.7.0) | 1 Oct 2026 | InvoiceDesk is now Wattlebooks, with a navy and wattle look, a new icon and a new phone app header. Your invoices, clients and settings carry over as they are, and the download is still named InvoiceDesk.exe. |
-| [1.6.1](https://github.com/tdh1985/invoicedesk/releases/tag/v1.6.1) | 28 Sep 2026 | Works better with a keyboard and a screen reader. Drawers and pop-ups keep your place, focus outlines are easier to see, and on/off buttons say whether they're on. |
-| [1.6.0](https://github.com/tdh1985/invoicedesk/releases/tag/v1.6.0) | 28 Sep 2026 | A new dashboard where unpaid invoices hang on a rail by due date, rubber-stamp statuses, and a dark side menu with live figures and recent items. The window now opens at the right size on scaled screens. |
-| [1.5.1](https://github.com/tdh1985/invoicedesk/releases/tag/v1.5.1) | 27 Sep 2026 | A [phone app](#phone-pilot) as a pilot, for snapping receipts, seeing who owes you and starting a quick invoice. Also fixes scanned amounts over $999 being misread and a bank fee being deleted with the wrong payment. |
-| [1.4.0](https://github.com/tdh1985/invoicedesk/releases/tag/v1.4.0) | 25 Sep 2026 | Runs on Linux and, as a preview, on macOS. |
-| [1.3.0](https://github.com/tdh1985/invoicedesk/releases/tag/v1.3.0) | 24 Sep 2026 | Scan a remittance to record a payment. Payments and expenses in another currency, with the bank fee. |
-| [1.2.1](https://github.com/tdh1985/invoicedesk/releases/tag/v1.2.1) | 23 Sep 2026 | Easier-to-read grey text in both themes. |
-| [1.2.0](https://github.com/tdh1985/invoicedesk/releases/tag/v1.2.0) | 23 Sep 2026 | New Zealand, the UK, Canada and the US, and billing overseas clients in their own currency. |
-| [1.1.0](https://github.com/tdh1985/invoicedesk/releases/tag/v1.1.0) | 21 Sep 2026 | Quotes, repeating invoices, receipt scanning, reminders and statements. |
-| [1.0.0](https://github.com/tdh1985/invoicedesk/releases/tag/v1.0.0) | 21 Sep 2026 | The first release, for Australian businesses. |
+| [1.7.0](https://github.com/tdh1985/wattlebooks/releases/tag/v1.7.0) | 1 Oct 2026 | InvoiceDesk is now Wattlebooks, with a navy and wattle look, a new icon and a new phone app header. Your invoices, clients and settings carry over as they are, and the download is still named InvoiceDesk.exe. |
+| [1.6.1](https://github.com/tdh1985/wattlebooks/releases/tag/v1.6.1) | 28 Sep 2026 | Works better with a keyboard and a screen reader. Drawers and pop-ups keep your place, focus outlines are easier to see, and on/off buttons say whether they're on. |
+| [1.6.0](https://github.com/tdh1985/wattlebooks/releases/tag/v1.6.0) | 28 Sep 2026 | A new dashboard where unpaid invoices hang on a rail by due date, rubber-stamp statuses, and a dark side menu with live figures and recent items. The window now opens at the right size on scaled screens. |
+| [1.5.1](https://github.com/tdh1985/wattlebooks/releases/tag/v1.5.1) | 27 Sep 2026 | A [phone app](#phone-pilot) as a pilot, for snapping receipts, seeing who owes you and starting a quick invoice. Also fixes scanned amounts over $999 being misread and a bank fee being deleted with the wrong payment. |
+| [1.4.0](https://github.com/tdh1985/wattlebooks/releases/tag/v1.4.0) | 25 Sep 2026 | Runs on Linux and, as a preview, on macOS. |
+| [1.3.0](https://github.com/tdh1985/wattlebooks/releases/tag/v1.3.0) | 24 Sep 2026 | Scan a remittance to record a payment. Payments and expenses in another currency, with the bank fee. |
+| [1.2.1](https://github.com/tdh1985/wattlebooks/releases/tag/v1.2.1) | 23 Sep 2026 | Easier-to-read grey text in both themes. |
+| [1.2.0](https://github.com/tdh1985/wattlebooks/releases/tag/v1.2.0) | 23 Sep 2026 | New Zealand, the UK, Canada and the US, and billing overseas clients in their own currency. |
+| [1.1.0](https://github.com/tdh1985/wattlebooks/releases/tag/v1.1.0) | 21 Sep 2026 | Quotes, repeating invoices, receipt scanning, reminders and statements. |
+| [1.0.0](https://github.com/tdh1985/wattlebooks/releases/tag/v1.0.0) | 21 Sep 2026 | The first release, for Australian businesses. |
 
-The full notes for each version are on the [releases page](https://github.com/tdh1985/invoicedesk/releases).
+The full notes for each version are on the [releases page](https://github.com/tdh1985/wattlebooks/releases).
 
 ## Features
 

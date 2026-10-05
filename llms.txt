@@ -37,12 +37,16 @@
 - It doesn't lodge your BAS or tax return. It works out the figures for you to copy across.
 - Quebec QST and the provincial sales taxes in BC, Saskatchewan and Manitoba aren't covered yet.
 - It isn't tax advice. Check your figures with your accountant or tax office if you're unsure.
-- The Windows download isn't code-signed yet, so SmartScreen may warn about it. Click More info, then Run anyway.
+- The Microsoft Store copy is signed by Microsoft. The plain Windows .exe isn't code-signed yet, so SmartScreen may warn about it. Click More info, then Run anyway.
 
 ## Links
 
-- [Download for Windows](https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks.exe): Wattlebooks.exe for Windows 10 and 11 (64-bit)
-- [Mac and Linux downloads](https://github.com/tdh1985/wattlebooks/releases/latest): the latest release, with every file
+- [Microsoft Store](https://apps.microsoft.com/detail/9nhxgb9bdrr1): the recommended way to install on Windows 10 and 11
+- [Windows .exe](https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks.exe): Wattlebooks.exe for Windows 10 and 11 (64-bit), no install
+- [Mac with Apple silicon](https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks-macos-arm64.tar.gz): preview, notarised by Apple
+- [Mac with Intel](https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks-macos-x64.tar.gz): preview, notarised by Apple
+- [Linux](https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks-linux-x64.tar.gz): x64 build
+- [All downloads](https://github.com/tdh1985/wattlebooks/releases/latest): the latest release, with every file
 - [Source code and README](https://github.com/tdh1985/wattlebooks): full feature list and setup notes
 - [Release notes](https://github.com/tdh1985/wattlebooks/releases): what changed in each version
 - [Phone app](https://invoicedesk-phone.vercel.app): open on a phone and sign in with the same email as the desktop app

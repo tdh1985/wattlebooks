@@ -24,11 +24,14 @@ public sealed class DatabaseInitializer(
     public async Task InitializeAsync(CancellationToken ct = default)
     {
         paths.EnsureCreated();
+        var brandNew = !File.Exists(paths.Database);
         BackupDatabase();
         store.ClearStaging();
 
         await using var db = await factory.CreateDbContextAsync(ct);
-        await db.Database.MigrateAsync(ct);
+        // migrate takes a lock and writes even when there is nothing to apply
+        if (brandNew || (await db.Database.GetPendingMigrationsAsync(ct)).Any())
+            await db.Database.MigrateAsync(ct);
         // wal keeps extra side files that cloud sync can copy half written
         await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=DELETE;", ct);
         await SeedAsync(db, ct);

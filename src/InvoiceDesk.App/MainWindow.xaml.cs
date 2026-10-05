@@ -25,7 +25,8 @@ public partial class MainWindow : Window
     readonly ToastService _toasts;
     IntPtr _hwnd;
     Microsoft.Web.WebView2.Wpf.WebView2CompositionControl? _webView;
-    readonly TaskbarBadge _badge;
+    TaskbarBadge? _badge;
+    bool _closing;
 
     public MainWindow(IServiceProvider services)
     {
@@ -37,8 +38,13 @@ public partial class MainWindow : Window
         Resources.Add("services", services);
         InitializeComponent();
         WindowPlacement.Restore(this, _prefs.Current);
-        _badge = new TaskbarBadge(Taskbar, services.GetRequiredService<InvoiceService>(),
-            services.GetRequiredService<TransactionService>(), Dispatcher);
+        // the overdue count reads the database, so it waits until that is set up
+        services.GetRequiredService<StartupGate>().Ready.ContinueWith(_ =>
+        {
+            if (_closing) return;
+            _badge = new TaskbarBadge(Taskbar, services.GetRequiredService<InvoiceService>(),
+                services.GetRequiredService<TransactionService>(), Dispatcher);
+        }, CancellationToken.None, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.FromCurrentSynchronizationContext());
 
         var dark = _theme.ResolveInitial();
         ApplyChrome(dark);
@@ -112,7 +118,8 @@ public partial class MainWindow : Window
 
     void OnClosing(object? sender, CancelEventArgs e)
     {
-        _badge.Dispose();
+        _closing = true;
+        _badge?.Dispose();
         WindowPlacement.Save(this, _prefs.Current);
         _prefs.Save();
         // pending undo-able deletes are committed rather than silently dropped

@@ -108,37 +108,16 @@ public partial class App : Application
         services.AddSingleton<IPdfPrinter, PdfPrinter>();
         services.AddSingleton<IMailer, Mailer>();
         services.AddSingleton<IReceiptReader, ReceiptReader>();
-        _services = services.BuildServiceProvider();
-
-        try
-        {
-            await _services.GetRequiredService<DatabaseInitializer>().InitializeAsync();
-            var profiles = _services.GetRequiredService<ProfileService>();
-            Format.UseCountry((await profiles.GetAsync()).Country);
-            // the pdf renderer and every page read the country through Format
-            profiles.Changed += async () =>
-            {
-                try { Format.UseCountry((await profiles.GetAsync()).Country); }
-                catch (Exception ex) { FileLog.Write(ex, "country change"); }
-            };
-            await _services.GetRequiredService<RecurringRunner>().RunAtStartupAsync();
-        }
-        catch (Exception ex)
-        {
-            FileLog.Write(ex, "startup");
-            MessageBox.Show(
-                $"Wattlebooks couldn't open its data folder.\n\n{ex.Message}\n\nDetails were saved in {paths.Logs}.",
-                "Wattlebooks", MessageBoxButton.OK, MessageBoxImage.Error);
-            Shutdown(1);
-            return;
-        }
+        var provider = services.BuildServiceProvider();
+        _services = provider;
+        var gate = provider.GetRequiredService<StartupGate>();
 
         // without a window the process would linger and swallow every later launch
         try
         {
-            var launches = _services.GetRequiredService<LaunchRequests>();
+            var launches = provider.GetRequiredService<LaunchRequests>();
             launches.Request(route);
-            var window = new MainWindow(_services);
+            var window = new MainWindow(provider);
             MainWindow = window;
             _instance.ListenForActivation(next => Dispatcher.BeginInvoke(() =>
             {
@@ -146,9 +125,6 @@ public partial class App : Application
                 launches.Request(next);
             }));
             window.Show();
-            SetUpJumpList();
-            _services.GetRequiredService<RecurringRunner>().StartHourly();
-            _services.GetRequiredService<SyncRunner>().Start();
         }
         catch (Exception ex)
         {
@@ -157,7 +133,43 @@ public partial class App : Application
                 $"Wattlebooks couldn't open its window.\n\n{ex.Message}\n\nDetails were saved in {paths.Logs}.",
                 "Wattlebooks", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
+            return;
         }
+
+        // the window paints its splash while the database opens off the ui thread
+        try
+        {
+            await Task.Run(() => SetUpDataAsync(provider));
+        }
+        catch (Exception ex)
+        {
+            gate.Fail(ex);
+            FileLog.Write(ex, "startup");
+            MessageBox.Show(
+                $"Wattlebooks couldn't open its data folder.\n\n{ex.Message}\n\nDetails were saved in {paths.Logs}.",
+                "Wattlebooks", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown(1);
+            return;
+        }
+
+        gate.Open();
+        SetUpJumpList();
+        provider.GetRequiredService<RecurringRunner>().StartHourly();
+        provider.GetRequiredService<SyncRunner>().Start();
+    }
+
+    static async Task SetUpDataAsync(IServiceProvider services)
+    {
+        await services.GetRequiredService<DatabaseInitializer>().InitializeAsync();
+        var profiles = services.GetRequiredService<ProfileService>();
+        Format.UseCountry((await profiles.GetAsync()).Country);
+        // the pdf renderer and every page read the country through Format
+        profiles.Changed += async () =>
+        {
+            try { Format.UseCountry((await profiles.GetAsync()).Country); }
+            catch (Exception ex) { FileLog.Write(ex, "country change"); }
+        };
+        await services.GetRequiredService<RecurringRunner>().RunAtStartupAsync();
     }
 
     // right-click shortcuts on the taskbar icon, each opening the page straight away

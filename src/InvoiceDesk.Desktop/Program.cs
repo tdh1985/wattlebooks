@@ -107,30 +107,15 @@ static class Program
         window.Window = app.MainWindow;
         var services = app.Services;
 
-        try
-        {
-            services.GetRequiredService<DatabaseInitializer>().InitializeAsync().GetAwaiter().GetResult();
-            var profiles = services.GetRequiredService<ProfileService>();
-            Format.UseCountry(profiles.GetAsync().GetAwaiter().GetResult().Country);
-            // the pdf renderer and every page read the country through format
-            profiles.Changed += async () =>
-            {
-                try { Format.UseCountry((await profiles.GetAsync()).Country); }
-                catch (Exception ex) { FileLog.Write(ex, "country change"); }
-            };
-            services.GetRequiredService<RecurringRunner>().RunAtStartupAsync().GetAwaiter().GetResult();
-        }
-        catch (Exception ex)
-        {
-            FileLog.Write(ex, "startup");
-            SystemDialog.Ask(Title, $"Wattlebooks couldn't open its data folder.\n\n{ex.Message}\n\nDetails were saved in {paths.Logs}.", DialogButtons.Ok);
-            return 1;
-        }
-
         var prefs = services.GetRequiredService<PrefsStore>();
         var toasts = services.GetRequiredService<ToastService>();
         var launches = services.GetRequiredService<LaunchRequests>();
         var recurring = services.GetRequiredService<RecurringRunner>();
+        var sync = services.GetRequiredService<SyncRunner>();
+        var gate = services.GetRequiredService<StartupGate>();
+        // invoke needs the native window, which only exists once run has started
+        var created = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var failed = false;
 
         // receipts and logos load through schemes of our own, like webview2's virtual hosts on windows
         FilesUrl.Configure($"{FilesScheme}://data/", $"{LocalScheme}://data/");
@@ -142,7 +127,11 @@ static class Program
             .SetIconFile(IconFile(paths))
             .SetUseOsDefaultLocation(true)
             .SetMaximized(prefs.Current.Maximized)
-            .RegisterWindowCreatedHandler((_, _) => FitWindow(app.MainWindow, prefs.Current));
+            .RegisterWindowCreatedHandler((_, _) =>
+            {
+                FitWindow(app.MainWindow, prefs.Current);
+                created.TrySetResult();
+            });
 #if !DEBUG
         // browser keys and devtools would make this feel like a web page
         app.MainWindow.SetDevToolsEnabled(false);
@@ -169,9 +158,31 @@ static class Program
             app.MainWindow.SetTopMost(false);
             launches.Request(next);
         }));
-        recurring.StartHourly();
-        var sync = services.GetRequiredService<SyncRunner>();
-        sync.Start();
+
+        // the window paints its splash while the database opens off the ui thread
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await SetUpDataAsync(services);
+            }
+            catch (Exception ex)
+            {
+                failed = true;
+                gate.Fail(ex);
+                FileLog.Write(ex, "startup");
+                await created.Task;
+                app.MainWindow.Invoke(() =>
+                {
+                    SystemDialog.Ask(Title, $"Wattlebooks couldn't open its data folder.\n\n{ex.Message}\n\nDetails were saved in {paths.Logs}.", DialogButtons.Ok);
+                    app.MainWindow.Close();
+                });
+                return;
+            }
+            gate.Open();
+            recurring.StartHourly();
+            sync.Start();
+        });
 
         app.Run();
 
@@ -179,7 +190,21 @@ static class Program
         sync.Stop();
         try { (services as IDisposable)?.Dispose(); }
         catch (Exception ex) { FileLog.Write(ex, "shutdown"); }
-        return 0;
+        return failed ? 1 : 0;
+    }
+
+    static async Task SetUpDataAsync(IServiceProvider services)
+    {
+        await services.GetRequiredService<DatabaseInitializer>().InitializeAsync();
+        var profiles = services.GetRequiredService<ProfileService>();
+        Format.UseCountry((await profiles.GetAsync()).Country);
+        // the pdf renderer and every page read the country through format
+        profiles.Changed += async () =>
+        {
+            try { Format.UseCountry((await profiles.GetAsync()).Country); }
+            catch (Exception ex) { FileLog.Write(ex, "country change"); }
+        };
+        await services.GetRequiredService<RecurringRunner>().RunAtStartupAsync();
     }
 
     // big enough for the side menu and a full width dashboard

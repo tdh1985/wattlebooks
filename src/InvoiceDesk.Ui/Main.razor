@@ -1,7 +1,29 @@
 @* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
-<Router AppAssembly="typeof(Main).Assembly">
-    <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)" />
-        <FocusOnNavigate RouteData="routeData" Selector="h1" />
-    </Found>
-</Router>
+@inject StartupGate Gate
+
+@if (_ready)
+{
+    <Router AppAssembly="typeof(Main).Assembly">
+        <Found Context="routeData">
+            <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)" />
+            <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        </Found>
+    </Router>
+}
+else
+{
+    @* the same splash as index.html so nothing flashes while the data is set up *@
+    <div class="boot" aria-hidden="true"><img src="img/wattlebooks-icon.svg" alt="" /></div>
+}
+
+@code {
+    bool _ready;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { await Gate.Ready; }
+        // the host shows the error and closes, so the splash just stays
+        catch { return; }
+        _ready = true;
+    }
+}

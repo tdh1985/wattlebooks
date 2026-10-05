@@ -1,6 +1,6 @@
 # Wattlebooks social posts
 
-Link everywhere: https://tdh1985.github.io/invoicedesk/
+Link everywhere: https://wattlebooks.work/
 
 Most small business groups and subreddits only allow self-promotion on set days
 or in a set thread, so read each group's rules before posting. Say you made it.
@@ -28,7 +28,7 @@ There's also an optional phone app (a free pilot) for snapping receipts on site.
 It's open source (MIT) and runs on Windows, with Mac and Linux versions too. It
 also handles NZ, the UK, Canada and the US if you're not in Australia.
 
-https://tdh1985.github.io/invoicedesk/
+https://wattlebooks.work/
 
 Happy to hear what's missing. I'm fixing things as people find them.
 
@@ -45,7 +45,7 @@ fee, no account, and your data stays on your own computer.
 
 There's a phone app too for snapping receipts on the job.
 
-Free download: https://tdh1985.github.io/invoicedesk/
+Free download: https://wattlebooks.work/
 
 If you give it a go, I'd love to know what you'd change.
 
@@ -68,7 +68,7 @@ It runs on your own computer, it's open source, and it's also set up for New
 Zealand, the UK, Canada and the US.
 
 If you know a tradie, freelancer or contractor who's paying too much to send
-invoices, send them this: https://tdh1985.github.io/invoicedesk/
+invoices, send them this: https://wattlebooks.work/
 
 #smallbusiness #soletrader #australia #GST #BAS #invoicing
 
@@ -83,7 +83,7 @@ Built a free invoicing app for Aussie sole traders 🧾
 ✅ Receipts read into expenses
 ✅ No monthly fee, runs on your own PC
 
-https://tdh1985.github.io/invoicedesk/
+https://wattlebooks.work/
 
 ---
 
@@ -126,4 +126,4 @@ whichever ad gets the cheapest clicks after a week.
 | ad-b | Snap receipts on site with your phone and they land in Wattlebooks on your computer, ready to become expenses. Free, with no subscription. | Snap it on site, sort it at your desk | Free invoicing app |
 | ad-c | Wattlebooks works out G1, 1A and 1B for any quarter from the invoices and expenses you've recorded. Free for Aussie sole traders. | BAS due? It's already worked out | Free download |
 
-Use https://tdh1985.github.io/invoicedesk/ as the website URL and "Download" as the button.
+Use https://wattlebooks.work/ as the website URL and "Download" as the button.

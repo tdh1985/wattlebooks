@@ -3,8 +3,8 @@ import datetime, html, json, re, shutil, sys, pathlib
 here = pathlib.Path(__file__).parent
 site = here / 'site'
 out = pathlib.Path(sys.argv[1])
-url = 'https://tdh1985.github.io/invoicedesk/'
-repo = 'https://github.com/tdh1985/invoicedesk'
+url = 'https://wattlebooks.work/'
+repo = 'https://github.com/tdh1985/wattlebooks'
 title = 'Wattlebooks: free invoice app for sole traders, GST and BAS'
 og_alt = 'Wattlebooks: tax invoices, GST and your BAS with no monthly fee, beside a tax invoice made in the app'
 # bing and other indexnow engines fetch this file to trust our pings

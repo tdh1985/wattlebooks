@@ -4,8 +4,8 @@
   "compatibility_date": "2026-09-01",
   "workers_dev": true,
   "vars": {
-    "ALLOWED_ORIGINS": "https://tdh1985.github.io",
-    "TURNSTILE_HOSTNAMES": "tdh1985.github.io",
+    "ALLOWED_ORIGINS": "https://wattlebooks.work",
+    "TURNSTILE_HOSTNAMES": "wattlebooks.work",
     "CONTACT_TO": "timdowney@live.com.au",
     "CONTACT_FROM": "Wattlebooks site <onboarding@resend.dev>"
   }

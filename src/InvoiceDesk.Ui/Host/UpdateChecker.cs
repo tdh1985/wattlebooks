@@ -14,8 +14,8 @@ public sealed record UpdateResult(bool Reached, bool IsNewer, string Latest, str
 // the one place the app goes online, and only when someone clicks check
 public sealed class UpdateChecker(ILogger<UpdateChecker> log)
 {
-    const string LatestRelease = "https://api.github.com/repos/tdh1985/invoicedesk/releases/latest";
-    const string ReleasesPage = "https://github.com/tdh1985/invoicedesk/releases/";
+    const string LatestRelease = "https://api.github.com/repos/tdh1985/wattlebooks/releases/latest";
+    const string ReleasesPage = "https://github.com/tdh1985/wattlebooks/releases/";
 
     public static string CurrentVersion { get; } = ReleaseVersion.Display(
         typeof(UpdateChecker).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.0");
@@ -39,7 +39,7 @@ public sealed class UpdateChecker(ILogger<UpdateChecker> log)
         try
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-            http.DefaultRequestHeaders.UserAgent.ParseAdd($"InvoiceDesk/{CurrentVersion}");
+            http.DefaultRequestHeaders.UserAgent.ParseAdd($"Wattlebooks/{CurrentVersion}");
             http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
             using var doc = JsonDocument.Parse(await http.GetStringAsync(LatestRelease));
             var tag = doc.RootElement.GetProperty("tag_name").GetString() ?? "";

@@ -6,7 +6,7 @@
 - Made for: tradies, freelancers and other sole traders, first in Australia.
 - Install: a single file with nothing to install. The latest version is {version}.
 - Privacy: nothing goes online unless you sign in to the optional phone app. Then only open invoices, recent payments and client names are shared with your phone.
-- Former name: InvoiceDesk. The Windows download is still named InvoiceDesk.exe, and the data folder is still called InvoiceDesk.
+- Former name: InvoiceDesk. The download is now Wattlebooks.exe, and the data folder is still called InvoiceDesk.
 
 ## What it does
 
@@ -41,10 +41,10 @@
 
 ## Links
 
-- [Download for Windows](https://github.com/tdh1985/invoicedesk/releases/latest/download/InvoiceDesk.exe): InvoiceDesk.exe for Windows 10 and 11 (64-bit)
-- [Mac and Linux downloads](https://github.com/tdh1985/invoicedesk/releases/latest): the latest release, with every file
-- [Source code and README](https://github.com/tdh1985/invoicedesk): full feature list and setup notes
-- [Release notes](https://github.com/tdh1985/invoicedesk/releases): what changed in each version
+- [Download for Windows](https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks.exe): Wattlebooks.exe for Windows 10 and 11 (64-bit)
+- [Mac and Linux downloads](https://github.com/tdh1985/wattlebooks/releases/latest): the latest release, with every file
+- [Source code and README](https://github.com/tdh1985/wattlebooks): full feature list and setup notes
+- [Release notes](https://github.com/tdh1985/wattlebooks/releases): what changed in each version
 - [Phone app](https://invoicedesk-phone.vercel.app): open on a phone and sign in with the same email as the desktop app
 - [Website](https://tdh1985.github.io/invoicedesk/): screenshots, a one-minute video and a contact form
 - [Privacy statement](https://tdh1985.github.io/invoicedesk/privacy.html): what the app, phone app and website collect, and how to delete it

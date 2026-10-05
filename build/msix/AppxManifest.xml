@@ -28,7 +28,8 @@
   </Resources>
 
   <Applications>
-    <Application Id="Wattlebooks" Executable="Wattlebooks.exe" EntryPoint="Windows.FullTrustApplication">
+    <!-- the id stays invoicedesk so start pins and shortcuts survive updates -->
+    <Application Id="InvoiceDesk" Executable="Wattlebooks.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
         DisplayName="Wattlebooks"
         Description="Free invoicing for sole traders: tax invoices, GST and your BAS figures."

@@ -23,9 +23,8 @@ Wattlebooks is also on the
 
 ## Download
 
-**[Download Wattlebooks for Windows](https://github.com/tdh1985/wattlebooks/releases/latest/download/InvoiceDesk.exe)**
+**[Download Wattlebooks for Windows](https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks.exe)**
 for Windows 10 and 11 (64-bit), or see [all releases](https://github.com/tdh1985/wattlebooks/releases).
-The file is still named `InvoiceDesk.exe`.
 
 It's a single file with nothing to install. The exe isn't code-signed yet, so
 Windows SmartScreen may say it protected your PC. Click **More info**, then
@@ -34,7 +33,7 @@ Windows SmartScreen may say it protected your PC. Click **More info**, then
 ### Mac and Linux
 
 The same app also runs on Linux and macOS (Apple Silicon and Intel), with the
-same screens. Download `InvoiceDesk-linux-x64.tar.gz` or the Mac file for your
+same screens. Download `Wattlebooks-linux-x64.tar.gz` or the Mac file for your
 chip from the [latest release](https://github.com/tdh1985/wattlebooks/releases/latest).
 The Mac version is a **preview**: it hasn't been tried on a real Mac yet, so
 please report anything that goes wrong. A few things work differently on both:
@@ -51,6 +50,7 @@ please report anything that goes wrong. A few things work differently on both:
 
 | Version | Date | What changed |
 |---|---|---|
+| [1.7.1](https://github.com/tdh1985/wattlebooks/releases/tag/v1.7.1) | 5 Oct 2026 | The downloads are now named Wattlebooks too: `Wattlebooks.exe` on Windows, `Wattlebooks.app` on a Mac and `Wattlebooks` on Linux. Your books stay where they are, so you can delete the old InvoiceDesk.exe once the new one opens. |
 | [1.7.0](https://github.com/tdh1985/wattlebooks/releases/tag/v1.7.0) | 1 Oct 2026 | InvoiceDesk is now Wattlebooks, with a navy and wattle look, a new icon and a new phone app header. Your invoices, clients and settings carry over as they are, and the download is still named InvoiceDesk.exe. |
 | [1.6.1](https://github.com/tdh1985/wattlebooks/releases/tag/v1.6.1) | 28 Sep 2026 | Works better with a keyboard and a screen reader. Drawers and pop-ups keep your place, focus outlines are easier to see, and on/off buttons say whether they're on. |
 | [1.6.0](https://github.com/tdh1985/wattlebooks/releases/tag/v1.6.0) | 28 Sep 2026 | A new dashboard where unpaid invoices hang on a rail by due date, rubber-stamp statuses, and a dark side menu with live figures and recent items. The window now opens at the right size on scaled screens. |
@@ -238,21 +238,21 @@ dotnet run --project src/InvoiceDesk.App
 ```
 
 Build the single exe (self-contained, so it doesn't need .NET installed). It
-ends up in `dist\InvoiceDesk.exe`:
+ends up in `dist\Wattlebooks.exe`:
 
 ```powershell
 dotnet publish src/InvoiceDesk.App -p:PublishProfile=SingleExe
 ```
 
 The Mac and Linux version is `src/InvoiceDesk.Desktop`. Linux builds to a
-single file in `dist/linux-x64/InvoiceDesk`:
+single file in `dist/linux-x64/Wattlebooks`:
 
 ```powershell
 dotnet publish src/InvoiceDesk.Desktop -p:PublishProfile=Linux
 ```
 
-For Macs, this makes `dist/InvoiceDesk-macos-arm64.tar.gz` and `-x64.tar.gz`,
-each holding `InvoiceDesk.app`:
+For Macs, this makes `dist/Wattlebooks-macos-arm64.tar.gz` and `-x64.tar.gz`,
+each holding `Wattlebooks.app`:
 
 ```powershell
 pwsh build/make-mac-app.ps1

@@ -28,7 +28,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-unsigned
-          path: dist/InvoiceDesk.exe
+          path: dist/Wattlebooks.exe
           if-no-files-found: error
 
       # skipped until signpath approves the project and the token is added
@@ -49,12 +49,12 @@ jobs:
       - name: use the signed exe
         if: env.SIGNPATH_API_TOKEN != ''
         shell: pwsh
-        run: Copy-Item signed/InvoiceDesk.exe dist/InvoiceDesk.exe -Force
+        run: Copy-Item signed/Wattlebooks.exe dist/Wattlebooks.exe -Force
 
       - uses: actions/upload-artifact@v4
         with:
           name: windows
-          path: dist/InvoiceDesk.exe
+          path: dist/Wattlebooks.exe
           if-no-files-found: error
 
   linux:
@@ -70,13 +70,13 @@ jobs:
 
       - name: pack
         run: |
-          chmod 755 dist/linux-x64/InvoiceDesk
-          tar -czf InvoiceDesk-linux-x64.tar.gz -C dist/linux-x64 InvoiceDesk
+          chmod 755 dist/linux-x64/Wattlebooks
+          tar -czf Wattlebooks-linux-x64.tar.gz -C dist/linux-x64 Wattlebooks
 
       - uses: actions/upload-artifact@v4
         with:
           name: linux
-          path: InvoiceDesk-linux-x64.tar.gz
+          path: Wattlebooks-linux-x64.tar.gz
           if-no-files-found: error
 
   mac:
@@ -120,10 +120,10 @@ jobs:
             dotnet publish $project -p:PublishProfile=$([ $arch = arm64 ] && echo MacArm || echo MacIntel) \
               -p:IncludeNativeLibrariesForSelfExtract=false -p:PublishDir="$PWD/out/$rid/"
 
-            app="out/mac-$arch/InvoiceDesk.app"
+            app="out/mac-$arch/Wattlebooks.app"
             mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
-            cp out/$rid/InvoiceDesk out/$rid/*.dylib "$app/Contents/MacOS/"
-            chmod 755 "$app/Contents/MacOS/InvoiceDesk"
+            cp out/$rid/Wattlebooks out/$rid/*.dylib "$app/Contents/MacOS/"
+            chmod 755 "$app/Contents/MacOS/Wattlebooks"
             cp $project/Mac/InvoiceDesk.icns "$app/Contents/Resources/"
             sed "s/\$(Version)/$version/g" $project/Mac/Info.plist > "$app/Contents/Info.plist"
 
@@ -141,7 +141,7 @@ jobs:
               xcrun stapler staple "$app"
             fi
 
-            COPYFILE_DISABLE=1 tar -czf InvoiceDesk-macos-$arch.tar.gz -C out/mac-$arch InvoiceDesk.app
+            COPYFILE_DISABLE=1 tar -czf Wattlebooks-macos-$arch.tar.gz -C out/mac-$arch Wattlebooks.app
           done
 
       - name: remove the keychain
@@ -151,7 +151,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: mac
-          path: InvoiceDesk-macos-*.tar.gz
+          path: Wattlebooks-macos-*.tar.gz
           if-no-files-found: error
 
   release:
@@ -177,7 +177,7 @@ jobs:
         with:
           draft: true
           files: |
-            InvoiceDesk.exe
-            InvoiceDesk-linux-x64.tar.gz
-            InvoiceDesk-macos-arm64.tar.gz
-            InvoiceDesk-macos-x64.tar.gz
+            Wattlebooks.exe
+            Wattlebooks-linux-x64.tar.gz
+            Wattlebooks-macos-arm64.tar.gz
+            Wattlebooks-macos-x64.tar.gz

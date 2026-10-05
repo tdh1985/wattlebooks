@@ -7,8 +7,8 @@ namespace InvoiceDesk.Ui.Host;
 // one dashboard read shared by the side rail, the dashboard and the taskbar badge
 public sealed class DashboardFeed : IDisposable
 {
-    // a burst of saves becomes one read rather than one each
-    static readonly TimeSpan Debounce = TimeSpan.FromMilliseconds(150);
+    // turning a quote into an invoice fires twice about 10 ms apart
+    static readonly TimeSpan Debounce = TimeSpan.FromMilliseconds(25);
 
     readonly Func<Task<DashboardData>> _load;
     readonly TimeSpan _debounce;

@@ -31,6 +31,22 @@ public sealed class ClientService(IDbContextFactory<AppDbContext> factory, TimeP
             .ToList();
     }
 
+    // archived clients are left out to match ListAsync
+    public async Task<int> CountAsync()
+    {
+        await using var db = await factory.CreateDbContextAsync();
+        return await db.Clients.CountAsync(c => !c.IsArchived);
+    }
+
+    public async Task<Dictionary<int, string>> NamesAsync(IReadOnlyCollection<int> ids)
+    {
+        await using var db = await factory.CreateDbContextAsync();
+        return await db.Clients.AsNoTracking()
+            .Where(c => ids.Contains(c.Id))
+            .Select(c => new { c.Id, c.Name })
+            .ToDictionaryAsync(c => c.Id, c => c.Name);
+    }
+
     public async Task<Client?> GetAsync(int id)
     {
         await using var db = await factory.CreateDbContextAsync();

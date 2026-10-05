@@ -14,7 +14,10 @@ public sealed class SnapshotPusher(
     const string Upsert = "resolution=merge-duplicates,return=minimal";
     public static readonly TimeSpan RecentlyPaid = TimeSpan.FromDays(90);
 
-    public async Task PushAsync()
+    // the reads and upload run on the pool so a ui-thread caller never waits
+    public Task PushAsync() => Task.Run(PushNowAsync);
+
+    async Task PushNowAsync()
     {
         var uid = settings.Session?.UserId ?? throw new SyncException("Sign in to sync with your phone.", signedOut: true);
 

@@ -14,6 +14,8 @@ public enum InvoiceFilter { All, Draft, Sent, Overdue, Paid, Void, Accepted, Dec
 
 public sealed record InvoiceLink(int Id, string Number);
 
+public sealed record InvoiceLabel(int Id, string Number, string ClientName);
+
 public sealed record InvoiceSummary(
     int Id, string Number, int ClientId, string ClientName, DateOnly IssueDate, DateOnly DueDate,
     long TotalCents, long TaxCents, long PaidCents, long BalanceCents, DisplayStatus Status, bool IsTaxInvoice,

@@ -12,6 +12,7 @@ public static class UiServices
     public static IServiceCollection AddInvoiceDeskUi(this IServiceCollection services)
     {
         services.AddSingleton<StartupGate>();
+        services.AddSingleton<DashboardFeed>();
         services.AddSingleton<PrefsStore>();
         services.AddSingleton<ThemeService>();
         services.AddSingleton<ToastService>();

@@ -42,8 +42,7 @@ public partial class MainWindow : Window
         services.GetRequiredService<StartupGate>().Ready.ContinueWith(_ =>
         {
             if (_closing) return;
-            _badge = new TaskbarBadge(Taskbar, services.GetRequiredService<InvoiceService>(),
-                services.GetRequiredService<TransactionService>(), Dispatcher);
+            _badge = new TaskbarBadge(Taskbar, services.GetRequiredService<DashboardFeed>(), Dispatcher);
         }, CancellationToken.None, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.FromCurrentSynchronizationContext());
 
         var dark = _theme.ResolveInitial();

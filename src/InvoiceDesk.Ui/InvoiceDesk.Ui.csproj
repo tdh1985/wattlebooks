@@ -14,6 +14,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- lets tests hand DashboardFeed a fake load and a zero debounce -->
+    <InternalsVisibleTo Include="InvoiceDesk.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- referenced directly only to get a path to its blazor.webview.js -->
     <PackageReference Include="Microsoft.AspNetCore.Components.WebView" Version="10.0.0" GeneratePathProperty="true" />
   </ItemGroup>

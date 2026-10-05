@@ -5,8 +5,6 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using InvoiceDesk.Core.Services;
-
 using InvoiceDesk.Ui.Host;
 
 namespace InvoiceDesk.App.Host;
@@ -15,31 +13,30 @@ namespace InvoiceDesk.App.Host;
 public sealed class TaskbarBadge : IDisposable
 {
     readonly System.Windows.Shell.TaskbarItemInfo _taskbar;
-    readonly InvoiceService _invoices;
-    readonly TransactionService _ledger;
+    readonly DashboardFeed _feed;
     readonly Dispatcher _dispatcher;
     // invoices tip into overdue at midnight without anything being saved
     readonly DispatcherTimer _hourly;
     int _shown = -1;
 
-    public TaskbarBadge(System.Windows.Shell.TaskbarItemInfo taskbar, InvoiceService invoices, TransactionService ledger, Dispatcher dispatcher)
+    public TaskbarBadge(System.Windows.Shell.TaskbarItemInfo taskbar, DashboardFeed feed, Dispatcher dispatcher)
     {
         _taskbar = taskbar;
-        _invoices = invoices;
-        _ledger = ledger;
+        _feed = feed;
         _dispatcher = dispatcher;
-        _invoices.Changed += Refresh;
-        _ledger.Changed += Refresh;
-        _hourly = new DispatcherTimer(TimeSpan.FromHours(1), DispatcherPriority.Background, (_, _) => Refresh(), dispatcher);
+        _feed.Updated += Refresh;
+        _hourly = new DispatcherTimer(TimeSpan.FromHours(1), DispatcherPriority.Background, (_, _) => _feed.Invalidate(), dispatcher);
         _hourly.Start();
         Refresh();
     }
 
+    // updated fires on a pool thread so the overlay is set on the window thread
     public void Refresh() => _dispatcher.BeginInvoke(async () =>
     {
         try
         {
-            var count = (await _invoices.ListAsync(InvoiceFilter.Overdue)).Count;
+            // every currency counts, the same as the overdue invoice list
+            var count = (await _feed.GetAsync()).Overdue.Count;
             if (count == _shown) return;
             _shown = count;
             _taskbar.Overlay = count == 0 ? null : Render(count);
@@ -79,7 +76,6 @@ public sealed class TaskbarBadge : IDisposable
     public void Dispose()
     {
         _hourly.Stop();
-        _invoices.Changed -= Refresh;
-        _ledger.Changed -= Refresh;
+        _feed.Updated -= Refresh;
     }
 }

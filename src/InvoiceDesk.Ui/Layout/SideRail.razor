@@ -1,11 +1,9 @@
 @* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
 @* the graphite desk down the left, each tab says one thing worth knowing *@
 @implements IDisposable
-@inject DashboardService DashboardStore
+@inject DashboardFeed Feed
 @inject InvoiceService InvoiceStore
 @inject ClientService ClientStore
-@inject TransactionService Ledger
-@inject ProfileService Profiles
 @inject ThemeService Theme
 @inject NavigationManager Nav
 @inject TimeProvider Clock
@@ -112,7 +110,10 @@
     [Parameter] public EventCallback OnToggleFold { get; set; }
     [Parameter] public EventCallback OnSearch { get; set; }
 
-    sealed record Recent(string Href, string Number, string Title);
+    sealed record Recent(bool IsInvoice, int Id, string Number, string Title)
+    {
+        public string Href => IsInvoice ? $"invoices/{Id}" : $"clients/{Id}";
+    }
 
     readonly List<Recent> _recent = [];
     string? _invoicesNote;
@@ -122,10 +123,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        InvoiceStore.Changed += OnDataChanged;
-        ClientStore.Changed += OnDataChanged;
-        Ledger.Changed += OnDataChanged;
-        Profiles.Changed += OnDataChanged;
+        Feed.Updated += OnFeedUpdated;
         Theme.Changed += OnThemeChanged;
         Nav.LocationChanged += OnLocationChanged;
         await LoadFiguresAsync();
@@ -133,7 +131,7 @@
 
     async Task LoadFiguresAsync()
     {
-        var d = await DashboardStore.GetAsync();
+        var d = await Feed.GetAsync();
         _late = d.OverdueCount;
         _invoicesNote = d.OverdueCount > 0
             ? $"{d.OverdueCount} late, {Format.Money(d.OverdueCents)}"
@@ -158,8 +156,8 @@
 
         Recent? item = parts[0] switch
         {
-            "invoices" when await InvoiceStore.GetAsync(id) is { } inv => new($"invoices/{id}", inv.Number, inv.Client?.Name ?? ""),
-            "clients" when await ClientStore.GetAsync(id) is { } client => new($"clients/{id}", "", client.Name),
+            "invoices" when (await InvoiceStore.LabelsAsync([id])).TryGetValue(id, out var inv) => new(true, id, inv.Number, inv.ClientName),
+            "clients" when (await ClientStore.NamesAsync([id])).TryGetValue(id, out var name) => new(false, id, "", name),
             _ => null,
         };
         if (item is null) return;
@@ -171,13 +169,18 @@
     // a renamed client or deleted invoice shouldn't linger with its old label
     async Task RefreshRecentAsync()
     {
-        foreach (var r in _recent.ToList())
+        if (_recent.Count == 0) return;
+        var asked = _recent.ToList();
+        var invoices = await InvoiceStore.LabelsAsync(asked.Where(r => r.IsInvoice).Select(r => r.Id).ToList());
+        var clients = await ClientStore.NamesAsync(asked.Where(r => !r.IsInvoice).Select(r => r.Id).ToList());
+        foreach (var r in asked)
         {
-            var id = int.Parse(r.Href.Split('/')[1], CultureInfo.InvariantCulture);
-            Recent? fresh = r.Href.StartsWith("invoices/", StringComparison.Ordinal)
-                ? await InvoiceStore.GetAsync(id) is { } inv ? r with { Number = inv.Number, Title = inv.Client?.Name ?? "" } : null
-                : await ClientStore.GetAsync(id) is { } client ? r with { Title = client.Name } : null;
+            Recent? fresh = r.IsInvoice
+                ? invoices.TryGetValue(r.Id, out var inv) ? r with { Number = inv.Number, Title = inv.ClientName } : null
+                : clients.TryGetValue(r.Id, out var name) ? r with { Title = name } : null;
+            // a page opened while the lookups ran may have moved or dropped it
             var at = _recent.IndexOf(r);
+            if (at < 0) continue;
             if (fresh is null) _recent.RemoveAt(at);
             else _recent[at] = fresh;
         }
@@ -187,7 +190,7 @@
 
     static string ThemeIcon(string choice) => choice switch { "light" => "sun", "dark" => "moon", _ => "monitor" };
 
-    void OnDataChanged() => InvokeAsync(async () =>
+    void OnFeedUpdated() => InvokeAsync(async () =>
     {
         await LoadFiguresAsync();
         await RefreshRecentAsync();
@@ -204,10 +207,7 @@
 
     public void Dispose()
     {
-        InvoiceStore.Changed -= OnDataChanged;
-        ClientStore.Changed -= OnDataChanged;
-        Ledger.Changed -= OnDataChanged;
-        Profiles.Changed -= OnDataChanged;
+        Feed.Updated -= OnFeedUpdated;
         Theme.Changed -= OnThemeChanged;
         Nav.LocationChanged -= OnLocationChanged;
     }

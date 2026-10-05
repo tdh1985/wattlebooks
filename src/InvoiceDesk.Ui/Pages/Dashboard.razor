@@ -1,11 +1,10 @@
 @* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
 @page "/"
 @implements IDisposable
-@inject DashboardService DashboardStore
+@inject DashboardFeed Feed
 @inject ProfileService Profiles
 @inject ClientService ClientStore
 @inject InvoiceService InvoiceStore
-@inject TransactionService Ledger
 @inject InsightService Insights
 @inject TimeProvider Clock
 
@@ -167,20 +166,21 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Profiles.Changed += OnChanged;
-        ClientStore.Changed += OnChanged;
-        InvoiceStore.Changed += OnChanged;
-        Ledger.Changed += OnChanged;
+        Feed.Updated += OnChanged;
         await LoadAsync();
     }
 
     async Task LoadAsync()
     {
-        _profile = await Profiles.GetAsync();
-        _data = await DashboardStore.GetAsync();
-        _expected = (await Insights.GetForecastAsync()).Items.ToDictionary(e => e.Invoice.Id, e => e.ExpectedDate);
-        _clientCount = (await ClientStore.ListAsync()).Count;
-        _invoiceCount = (await InvoiceStore.ListAsync()).Count;
+        var data = Feed.GetAsync();
+        // the rest reads the database too so it stays off the ui thread as well
+        var (profile, forecast, clients, invoices) = await Task.Run(async () =>
+            (await Profiles.GetAsync(), await Insights.GetForecastAsync(), await ClientStore.CountAsync(), await InvoiceStore.CountAsync()));
+        _data = await data;
+        _profile = profile;
+        _expected = forecast.Items.ToDictionary(e => e.Invoice.Id, e => e.ExpectedDate);
+        _clientCount = clients;
+        _invoiceCount = invoices;
     }
 
     static string Href(ActivityItem item) => item.Kind switch
@@ -204,11 +204,5 @@
         StateHasChanged();
     });
 
-    public void Dispose()
-    {
-        Profiles.Changed -= OnChanged;
-        ClientStore.Changed -= OnChanged;
-        InvoiceStore.Changed -= OnChanged;
-        Ledger.Changed -= OnChanged;
-    }
+    public void Dispose() => Feed.Updated -= OnChanged;
 }

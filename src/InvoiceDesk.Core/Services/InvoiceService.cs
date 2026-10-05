@@ -436,6 +436,22 @@ public sealed class InvoiceService(
             .ToList();
     }
 
+    public async Task<int> CountAsync(InvoiceKind kind = InvoiceKind.Invoice)
+    {
+        await using var db = await factory.CreateDbContextAsync();
+        return await db.Invoices.CountAsync(i => i.Kind == kind);
+    }
+
+    // one query for a handful of labels instead of loading each invoice whole
+    public async Task<Dictionary<int, InvoiceLabel>> LabelsAsync(IReadOnlyCollection<int> ids)
+    {
+        await using var db = await factory.CreateDbContextAsync();
+        return await db.Invoices.AsNoTracking()
+            .Where(i => ids.Contains(i.Id))
+            .Select(i => new InvoiceLabel(i.Id, i.Number, i.Client!.Name))
+            .ToDictionaryAsync(l => l.Id);
+    }
+
     // skip used numbers so lowering the counter can't create duplicates
     static async Task<string> NextNumberAsync(AppDbContext db, BusinessProfile profile, InvoiceKind kind)
     {

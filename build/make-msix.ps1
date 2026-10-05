@@ -16,13 +16,14 @@ $sdk = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64" -Direc
     Sort-Object { [version]($_.Parent.Name) } | Select-Object -Last 1
 if (-not $sdk) { throw 'makeappx.exe and makepri.exe not found, install the Windows SDK' }
 
-dotnet publish (Join-Path $repo 'src/InvoiceDesk.App') -p:PublishProfile=SingleExe
+dotnet publish (Join-Path $repo 'src/InvoiceDesk.App') -p:PublishProfile=StoreFolder
 if ($LASTEXITCODE -ne 0) { throw 'publish failed' }
 
 $staging = Join-Path $repo 'dist/msix'
 if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
 New-Item -ItemType Directory -Force $staging | Out-Null
-Copy-Item (Join-Path $repo 'dist/Wattlebooks.exe') $staging
+# a folder starts faster than a single exe that has to unpack itself
+Copy-Item (Join-Path $repo 'dist/store/*') $staging -Recurse
 Copy-Item (Join-Path $PSScriptRoot 'msix/Assets') $staging -Recurse
 (Get-Content (Join-Path $PSScriptRoot 'msix/AppxManifest.xml') -Raw).Replace('$(Version)', $version) |
     Set-Content (Join-Path $staging 'AppxManifest.xml') -NoNewline -Encoding utf8NoBOM

@@ -487,18 +487,26 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    readonly LatestOnly _picks = new();
+
+    // the id is set after the fetch so a slow older pick can't leave a mixed invoice
     async Task OnClientChanged(int clientId)
     {
-        _invoice!.ClientId = clientId;
-        var client = await ClientStore.GetAsync(clientId);
-        _invoice.Client = client;
-        if (_invoice.Status == InvoiceStatus.Draft && client is not null)
+        var inv = _invoice!;
+        await _picks.RunAsync(() => ClientStore.GetAsync(clientId), client =>
         {
-            var before = _invoice.Currency;
-            InvoiceDefaults.Apply(_invoice, client, _profile!);
-            if (_invoice.Currency != before) Toasts.Show($"Switched to {Currencies.Label(_invoice.Currency)} for {client.Name}");
-        }
-        Changed();
+            // navigating to another invoice mid-fetch makes this pick stale
+            if (inv != _invoice) return;
+            inv.ClientId = clientId;
+            inv.Client = client;
+            if (inv.Status == InvoiceStatus.Draft && client is not null)
+            {
+                var before = inv.Currency;
+                InvoiceDefaults.Apply(inv, client, _profile!);
+                if (inv.Currency != before) Toasts.Show($"Switched to {Currencies.Label(inv.Currency)} for {client.Name}");
+            }
+            Changed();
+        });
     }
 
     void OpenNewClient(string name)

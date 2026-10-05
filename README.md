@@ -295,7 +295,7 @@ click it.
 
 Sign in under **Settings → Phone** to use Wattlebooks from your phone. The phone
 app is a web page you add to your home screen, at
-**<https://invoicedesk-phone.vercel.app>**. From it you can:
+**<https://app.wattlebooks.work>**. From it you can:
 
 - **Snap a receipt.** It lands in a **From your phone** tray on Money in & out,
   and opening it starts a new expense with the photo read for you.

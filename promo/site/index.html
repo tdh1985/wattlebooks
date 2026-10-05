@@ -112,6 +112,9 @@ a:focus-visible, .btn:focus-visible, summary:focus-visible, [tabindex]:focus-vis
 .hero-visual { position: relative; }
 .hero-visual .shot { max-width: 626px; margin-inline: auto; }
 .phone-note { display: none; font-weight: 600; }
+.qr { display: flex; align-items: center; gap: 18px; margin-block: 20px; }
+.qr img { width: 132px; height: 132px; flex: none; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.qr p { margin: 0; max-width: 22ch; font-size: 15px; color: var(--muted); }
 
 /* the price, as a tax invoice */
 .bill-section { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 56px; align-items: center; padding-block: 72px; border-top: 1px solid var(--line); }
@@ -275,6 +278,8 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
   .more-list { columns: 1; }
   .contact .pair { grid-template-columns: minmax(0, 1fr); }
   .phone-note { display: block; }
+  /* no point scanning a code with the phone that shows it */
+  .qr { display: none; }
   .ledger table { min-width: 0; }
   .ledger thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .ledger tr { display: grid; gap: 4px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
@@ -440,7 +445,11 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
         <span class="tag">New · free pilot</span>
         <h2>Snap receipts on site with your phone</h2>
         <p>The optional phone app sends receipt photos and quick invoices back to your computer, and shows who still owes you. It works offline and catches up when you have signal.</p>
-        <p>To set it up, sign in under Settings &gt; Phone in Wattlebooks on your computer. Then open <a class="nowrap" href="https://invoicedesk-phone.vercel.app">invoicedesk-phone.vercel.app</a> on your phone, sign in with the same email and add it to your home screen.</p>
+        <p>To set it up, sign in under Settings &gt; Phone in Wattlebooks on your computer. Then open <a class="nowrap" href="https://app.wattlebooks.work">app.wattlebooks.work</a> on your phone, sign in with the same email and add it to your home screen.</p>
+        <div class="qr">
+          <img src="img/phone-qr.svg" width="132" height="132" alt="QR code for app.wattlebooks.work">
+          <p>Point your phone's camera here to open the phone app.</p>
+        </div>
         <p class="fine">Works in the browser on iPhone and Android. Your computer stays the only full copy of your books.</p>
       </div>
       <div class="phones" tabindex="0" role="region" aria-label="Phone app screens">
@@ -485,7 +494,7 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
         </details>
         <details>
           <summary>Do I need the phone app?</summary>
-          <p>No. It's an optional extra and the desktop app does everything on its own. If you want it, sign in under Settings &gt; Phone on your computer, then open <a class="nowrap" href="https://invoicedesk-phone.vercel.app">invoicedesk-phone.vercel.app</a> on your phone and sign in with the same email. It's free while it's a pilot.</p>
+          <p>No. It's an optional extra and the desktop app does everything on its own. If you want it, sign in under Settings &gt; Phone on your computer, then open <a class="nowrap" href="https://app.wattlebooks.work">app.wattlebooks.work</a> on your phone and sign in with the same email. It's free while it's a pilot.</p>
         </details>
         <details>
           <summary>Does it work on a Mac?</summary>

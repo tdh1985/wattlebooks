@@ -314,6 +314,10 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
 .policy li::marker { color: var(--accent); }
 .policy .ledger table { min-width: 0; }
 .policy code { font: 500 0.88em var(--mono); overflow-wrap: anywhere; }
+/* big enough to tap, and it sits above the eyebrow */
+.policy .back { justify-self: start; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-bottom: 4px; font-weight: 600; color: var(--accent); text-decoration: none; }
+.policy .back:hover { text-decoration: underline; }
+.policy .back svg { width: 18px; height: 18px; }
 </style>
 </head>
 <body>
@@ -330,6 +334,7 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
   </header></div></div>
 <div class="wrap">
   <main id="top" class="policy">
+    <a class="back" href="./"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Back to Wattlebooks</a>
     <span class="eyebrow">Privacy statement</span>
     <h1>Your books stay on your computer</h1>
     <p class="lede">This covers the Wattlebooks app, its optional phone app and this website. Wattlebooks is made by Tim Downey. It has no ads or analytics, and your information is never sold.</p>
@@ -388,12 +393,18 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
     </ul>
 
     <h2>Changes and questions</h2>
-    <p>If any of this changes, this page will be updated with a new date. For questions, use the <a href="./#contact">contact form</a> and you'll get a reply by email.</p>
+    <p>If any of this changes, this page will be updated with a new date. For questions, use the <a href="./#contact">contact form</a> and you'll get a reply by email, or <a href="https://github.com/tdh1985/wattlebooks/issues">open an issue on GitHub</a>.</p>
   </main>
   <footer>
     <span>Wattlebooks is free software under the MIT licence.</span>
-    <span><a href="./#contact">Contact</a> · <a href="privacy.html" aria-current="page">Privacy</a> · <a href="https://github.com/tdh1985/wattlebooks/releases">All releases</a></span>
+    <span><a href="./#contact">Contact</a> · <a href="privacy.html" aria-current="page">Privacy</a> · <a href="https://github.com/tdh1985/wattlebooks/issues">Support</a> · <a href="https://github.com/tdh1985/wattlebooks/releases">All releases</a></span>
   </footer>
 </div>
+<script>
+// coming from our own page, go back so the reader lands where they left off
+document.querySelector('.policy .back').addEventListener('click', (e) => {
+  if (document.referrer.startsWith(location.origin + '/') && history.length > 1) { e.preventDefault(); history.back(); }
+});
+</script>
 </body>
 </html>

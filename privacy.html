@@ -123,6 +123,9 @@ a:focus-visible, .btn:focus-visible, summary:focus-visible, [tabindex]:focus-vis
 .hero-visual { position: relative; }
 .hero-visual .shot { max-width: 626px; margin-inline: auto; }
 .phone-note { display: none; font-weight: 600; }
+.qr { display: flex; align-items: center; gap: 18px; margin-block: 20px; }
+.qr img { width: 132px; height: 132px; flex: none; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.qr p { margin: 0; max-width: 22ch; font-size: 15px; color: var(--muted); }
 
 /* the price, as a tax invoice */
 .bill-section { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 56px; align-items: center; padding-block: 72px; border-top: 1px solid var(--line); }
@@ -286,6 +289,8 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
   .more-list { columns: 1; }
   .contact .pair { grid-template-columns: minmax(0, 1fr); }
   .phone-note { display: block; }
+  /* no point scanning a code with the phone that shows it */
+  .qr { display: none; }
   .ledger table { min-width: 0; }
   .ledger thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .ledger tr { display: grid; gap: 4px; padding: 14px 16px; border-bottom: 1px solid var(--line); }

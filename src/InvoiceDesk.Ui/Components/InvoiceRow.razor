@@ -2,12 +2,15 @@
 @* a component so its @key holds inside virtualize and focus survives a scroll *@
 <tr class="link @(Item.Status switch { DisplayStatus.Void => "strike", DisplayStatus.Paid => "settled", _ => null })" tabindex="0"
     @onclick="() => OnOpen.InvokeAsync(Item)" @onkeydown="OnKey">
-    <td class="stub">
-        <span class="primary">@Item.Number</span>
-        @if (!Quotes)
-        {
-            <span class="secondary">@(Item.IsTaxInvoice ? Format.Country.TaxedSubject : "Invoice")</span>
-        }
+    <td class="stub nowrap">
+        @* clips inside the cell so the perforation on the cell edge stays whole *@
+        <div class="stub-text">
+            <span class="primary">@Item.Number</span>
+            @if (!Quotes)
+            {
+                <span class="secondary">@(Item.IsTaxInvoice ? Format.Country.TaxedSubject : "Invoice")</span>
+            }
+        </div>
     </td>
     <td class="truncate" style="max-width:260px">@Item.ClientName</td>
     <td class="nowrap">@Format.Date(Item.IssueDate)</td>

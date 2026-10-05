@@ -1143,6 +1143,11 @@ a.ledger-label:hover { color: var(--accent-text); }
 .stub .primary { color: var(--sent); font: 700 15px/1.1 var(--font-display); letter-spacing: .01em; }
 .table tr.settled td:not(.stub) { color: var(--ink-3); }
 
+/* virtualised rows are too few to size auto columns, so widths are set up front */
+.table.fixed-cols { table-layout: fixed; }
+.table.fixed-cols td:not(.stub):not(:last-child) { overflow: hidden; text-overflow: ellipsis; }
+.table .stub-text, .table .stub-text .secondary { overflow: hidden; text-overflow: ellipsis; }
+
 /* the ticket rail runs four weeks either side of today */
 .rail-scroll { overflow: auto hidden; margin: 0 -6px 30px; padding: 0 6px; }
 .ticket-rail { position: relative; min-width: 760px; height: 256px; }

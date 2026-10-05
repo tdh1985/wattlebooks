@@ -27,6 +27,29 @@ public static class InvoiceRows
         filters.Distinct().ToDictionary(f => f, f => shown.Count(s => s.Matches(f)));
 }
 
+// set from every row up front because the few rendered rows can't size them
+public sealed record InvoiceColumns(int StubPx, int TablePx)
+{
+    public static readonly InvoiceColumns Default = For([], _ => "");
+
+    public static InvoiceColumns For(IEnumerable<InvoiceSummary> all, Func<InvoiceSummary, string> money)
+    {
+        int numberChars = 8, moneyChars = 9;
+        foreach (var s in all)
+        {
+            numberChars = Math.Max(numberChars, s.Number.Length);
+            moneyChars = Math.Max(moneyChars, money(s).Length);
+        }
+        // characters run 7.5 to 8.5 px in these fonts so 9 px leaves room
+        // 127 px is what the stub had at the default window before virtualising
+        var stub = Math.Max(127, numberChars * 9 + 24);
+        var amount = moneyChars * 9 + 24;
+        // the client gets what's left of 35% after the stub, kept at 160 px or more
+        var table = Math.Max(860, Math.Max((stub + 160) * 100 / 35, amount * 100 / 12));
+        return new InvoiceColumns(stub, table);
+    }
+}
+
 // the strip adds up every visible row, not just the rendered ones
 public sealed record MoneyRows(
     List<Transaction> Rows, long InCents, long OutCents, long InTaxCents, long OutTaxCents,

@@ -135,12 +135,12 @@
         }
         else
         {
-        <table class="table">
+        <table class="table @(_quotes ? null : "fixed-cols")" style="@(_quotes ? null : $"width:max(100%, {_cols.TablePx}px)")">
             @if (!_quotes)
             {
-                @* only on-screen rows size the columns, so set shares stop them jumping *@
+                @* the client column takes whatever the others leave *@
                 <colgroup>
-                    <col style="width:11%" /><col style="width:24%" /><col style="width:12%" /><col style="width:16%" />
+                    <col style="width:@(_cols.StubPx)px" /><col /><col style="width:12%" /><col style="width:16%" />
                     <col style="width:12%" /><col style="width:14%" /><col style="width:11%" />
                 </colgroup>
             }
@@ -245,7 +245,7 @@
         (InvoiceFilter.Expired, "Expired"),
     ];
 
-    // every invoice row is two lines tall, measured at the default zoom
+    // the stub never wraps so every row is two lines, measured at default zoom
     const float RowHeight = 62.67f;
 
     // straight from the database, including deletes still waiting on undo
@@ -255,6 +255,7 @@
     Dictionary<InvoiceFilter, int> _counts = [];
     string _summary = "";
     string _footerBalance = "";
+    InvoiceColumns _cols = InvoiceColumns.Default;
     readonly RowLimit _limit = new();
     InvoiceFilter _filter = InvoiceFilter.All;
     string _search = "";
@@ -421,6 +422,7 @@
         _today = Clock.Today();
         _profile = await Profiles.GetAsync();
         _loaded = await InvoiceStore.ListAsync(kind: _quotes ? InvoiceKind.Quote : InvoiceKind.Invoice);
+        _cols = InvoiceColumns.For(_loaded, s => Format.Money(s.TotalCents, s.Currency));
         _repeats = await Recurring.ListAsync();
         ApplyPending();
     }

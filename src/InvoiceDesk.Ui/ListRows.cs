@@ -28,26 +28,40 @@ public static class InvoiceRows
 }
 
 // set from every row up front because the few rendered rows can't size them
-public sealed record InvoiceColumns(int StubPx, int TablePx)
+public sealed record InvoiceColumns(int StubPx, int AmountPx, int TotalWidePx, int BalanceWidePx, int MinPx, int MinWidePx)
 {
+    // issued, due and status share 39% of the table and the client takes the rest
+    const int SharePercent = 39;
+    const int ClientMinPx = 120;
+    const int ClientMinWidePx = 160;
+
     public static readonly InvoiceColumns Default = For([], _ => "");
 
     public static InvoiceColumns For(IEnumerable<InvoiceSummary> all, Func<InvoiceSummary, string> money)
     {
-        int numberChars = 8, moneyChars = 9;
+        int numberChars = 0, moneyChars = 9;
         foreach (var s in all)
         {
             numberChars = Math.Max(numberChars, s.Number.Length);
             moneyChars = Math.Max(moneyChars, money(s).Length);
         }
-        // characters run 7.5 to 8.5 px in these fonts so 9 px leaves room
-        // 127 px is what the stub had at the default window before virtualising
-        var stub = Math.Max(127, numberChars * 9 + 24);
-        var amount = moneyChars * 9 + 24;
-        // the client gets what's left of 35% after the stub, kept at 160 px or more
-        var table = Math.Max(860, Math.Max((stub + 160) * 100 / 35, amount * 100 / 12));
-        return new InvoiceColumns(stub, table);
+        // measured near 7.2 px a character for numbers and 6.9 px for amounts
+        var stub = Math.Max(127, numberChars * 8 + 24);
+        var amount = (moneyChars * 15 + 1) / 2 + 24;
+        // wide windows keep the widths auto layout gave before virtualising
+        var totalWide = Math.Max(138, amount);
+        var balanceWide = Math.Max(166, amount);
+        return new InvoiceColumns(stub, amount, totalWide, balanceWide,
+            MinWidth(stub + amount + amount + ClientMinPx),
+            MinWidth(stub + totalWide + balanceWide + ClientMinWidePx));
     }
+
+    // the shares only scale, so the fixed columns and the client set the floor
+    static int MinWidth(int fixedPx) => (fixedPx * 100 + (100 - SharePercent) - 1) / (100 - SharePercent);
+
+    public string Style =>
+        $"--stub:{StubPx}px;--total:{AmountPx}px;--balance:{AmountPx}px;--min:{MinPx}px;" +
+        $"--total-wide:{TotalWidePx}px;--balance-wide:{BalanceWidePx}px;--min-wide:{MinWidePx}px";
 }
 
 // the strip adds up every visible row, not just the rendered ones

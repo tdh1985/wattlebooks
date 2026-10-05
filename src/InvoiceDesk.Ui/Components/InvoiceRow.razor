@@ -4,7 +4,7 @@
     @onclick="() => OnOpen.InvokeAsync(Item)" @onkeydown="OnKey">
     <td class="stub nowrap">
         @* clips inside the cell so the perforation on the cell edge stays whole *@
-        <div class="stub-text">
+        <div class="stub-text" title="@Item.Number">
             <span class="primary">@Item.Number</span>
             @if (!Quotes)
             {

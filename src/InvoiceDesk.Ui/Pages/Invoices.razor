@@ -135,13 +135,13 @@
         }
         else
         {
-        <table class="table @(_quotes ? null : "fixed-cols")" style="@(_quotes ? null : $"width:max(100%, {_cols.TablePx}px)")">
+        <table class="table @(_quotes ? null : "fixed-cols")" style="@(_quotes ? null : _cols.Style)">
             @if (!_quotes)
             {
                 @* the client column takes whatever the others leave *@
                 <colgroup>
-                    <col style="width:@(_cols.StubPx)px" /><col /><col style="width:12%" /><col style="width:16%" />
-                    <col style="width:12%" /><col style="width:14%" /><col style="width:11%" />
+                    <col class="col-stub" /><col /><col style="width:12%" /><col style="width:16%" />
+                    <col class="col-total" /><col class="col-balance" /><col style="width:11%" />
                 </colgroup>
             }
             <thead>

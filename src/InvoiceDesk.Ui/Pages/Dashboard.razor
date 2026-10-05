@@ -160,6 +160,7 @@
     BusinessProfile? _profile;
     int _clientCount;
     int _invoiceCount;
+    readonly LatestOnly _loads = new();
 
     bool HasBusiness => _profile is not null && _profile.Name.Length > 0;
     bool SetupDone => HasBusiness && _clientCount > 0 && _invoiceCount > 0;
@@ -170,17 +171,21 @@
         await LoadAsync();
     }
 
-    async Task LoadAsync()
+    Task LoadAsync() => _loads.RunAsync(ReadAsync, loaded =>
+    {
+        (_data, _profile, _expected, _clientCount, _invoiceCount) = loaded;
+    });
+
+    async Task<(DashboardData, BusinessProfile, IReadOnlyDictionary<int, DateOnly>, int, int)> ReadAsync()
     {
         var data = Feed.GetAsync();
         // the rest reads the database too so it stays off the ui thread as well
-        var (profile, forecast, clients, invoices) = await Task.Run(async () =>
+        var rest = Task.Run(async () =>
             (await Profiles.GetAsync(), await Insights.GetForecastAsync(), await ClientStore.CountAsync(), await InvoiceStore.CountAsync()));
-        _data = await data;
-        _profile = profile;
-        _expected = forecast.Items.ToDictionary(e => e.Invoice.Id, e => e.ExpectedDate);
-        _clientCount = clients;
-        _invoiceCount = invoices;
+        // waiting on both means a failure in one never leaves the other unobserved
+        await Task.WhenAll(data, rest);
+        var (profile, forecast, clients, invoices) = rest.Result;
+        return (data.Result, profile, forecast.Items.ToDictionary(e => e.Invoice.Id, e => e.ExpectedDate), clients, invoices);
     }
 
     static string Href(ActivityItem item) => item.Kind switch

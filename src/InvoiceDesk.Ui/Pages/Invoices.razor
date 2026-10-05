@@ -1,6 +1,7 @@
 @* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
 @page "/invoices"
 @implements IDisposable
+@using Microsoft.AspNetCore.Components.Web.Virtualization
 @inject InvoiceService InvoiceStore
 @inject ToastService Toasts
 @inject NavigationManager Nav
@@ -9,11 +10,12 @@
 @inject IDesktop Desktop
 @inject AppPaths Paths
 @inject RecurringService Recurring
+@inject TransactionService Ledger
 @inject ProfileService Profiles
 
 <div class="page">
     <PageHeader Title="@(_quotes ? "Quotes" : "Invoices")">
-        <Subtitle>@Summary</Subtitle>
+        <Subtitle>@_summary</Subtitle>
         <Actions>
             @if (_all is { Count: > 0 } && !_quotes)
             {
@@ -34,8 +36,8 @@
                 @foreach (var (filter, label) in _quotes ? QuoteFilters : Filters)
                 {
                     <button type="button" class="chip @(_filter == filter && !_showRepeating ? "on" : null)" aria-pressed="@Aria.Bool(_filter == filter && !_showRepeating)"
-                            @onclick="() => { _filter = filter; _showRepeating = false; }">
-                        @label <span class="chip-count">@_all.Count(s => s.Matches(filter))</span>
+                            @onclick="() => { _showRepeating = false; SetFilter(filter); }">
+                        @label <span class="chip-count">@_counts.GetValueOrDefault(filter)</span>
                     </button>
                 }
                 @if (!_quotes && (_repeats.Count > 0 || _showRepeating))
@@ -49,7 +51,7 @@
             <div class="search">
                 <Icon Name="search" Size="16" />
                 <input class="input" type="search" placeholder="Number or client" aria-label="@(_quotes ? "Search quotes" : "Search invoices")"
-                       @bind="_search" @bind:event="oninput" />
+                       @bind="_search" @bind:event="oninput" @bind:after="SearchChanged" />
             </div>
         }
     </div>
@@ -134,6 +136,14 @@
         else
         {
         <table class="table">
+            @if (!_quotes)
+            {
+                @* only on-screen rows size the columns, so set shares stop them jumping *@
+                <colgroup>
+                    <col style="width:11%" /><col style="width:24%" /><col style="width:12%" /><col style="width:16%" />
+                    <col style="width:12%" /><col style="width:14%" /><col style="width:11%" />
+                </colgroup>
+            }
             <thead>
                 <tr>
                     <th class="stub">@(_quotes ? "Quote" : "Invoice")</th>
@@ -149,51 +159,38 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var s in Rows)
+                @if (_quotes)
                 {
-                    <tr class="link @(s.Status switch { DisplayStatus.Void => "strike", DisplayStatus.Paid => "settled", _ => null })" tabindex="0" @key="s.Id"
-                        @onclick="() => Open(s)" @onkeydown="e => OnRowKey(e, s)">
-                        <td class="stub">
-                            <span class="primary">@s.Number</span>
-                            @if (!_quotes)
-                            {
-                                <span class="secondary">@(s.IsTaxInvoice ? Format.Country.TaxedSubject : "Invoice")</span>
-                            }
-                        </td>
-                        <td class="truncate" style="max-width:260px">@s.ClientName</td>
-                        <td class="nowrap">@Format.Date(s.IssueDate)</td>
-                        <td class="nowrap">
-                            @Format.Date(s.DueDate)
-                            @if (s.IsAwaitingPayment)
-                            {
-                                <span class="secondary @(s.Status == DisplayStatus.Overdue ? "danger-text" : null)">@Format.Due(s.DueDate, _today)</span>
-                            }
-                            else if (_quotes && s.Status == DisplayStatus.Sent)
-                            {
-                                <span class="secondary">@Format.ValidUntil(s.DueDate, _today)</span>
-                            }
-                        </td>
-                        <td class="num">@Format.Money(s.TotalCents, s.Currency)</td>
-                        @if (!_quotes)
-                        {
-                            <td class="num">@(s.IsAwaitingPayment ? Format.Money(s.BalanceCents, s.Currency) : "–")</td>
-                        }
-                        <td><StatusPill Status="s.Status" /></td>
-                    </tr>
+                    @foreach (var s in _limit.Take(_rows))
+                    {
+                        <InvoiceRow @key="s.Id" Item="s" Quotes="_quotes" Today="_today" OnOpen="Open" />
+                    }
+                }
+                else
+                {
+                    <Virtualize Items="_rows" ItemSize="RowHeight" SpacerElement="tr" Context="s">
+                        <InvoiceRow @key="s.Id" Item="s" Quotes="_quotes" Today="_today" OnOpen="Open" />
+                    </Virtualize>
                 }
             </tbody>
-            @if (!_quotes && _filter is InvoiceFilter.Sent or InvoiceFilter.Overdue && Rows.Any())
+            @if (!_quotes && _filter is InvoiceFilter.Sent or InvoiceFilter.Overdue && _rows.Count > 0)
             {
                 <tfoot>
                     <tr>
                         <td colspan="5" class="soft">@(_filter == InvoiceFilter.Overdue ? "Overdue" : "Waiting on")</td>
-                        <td class="num">@FooterBalanceText</td>
+                        <td class="num">@_footerBalance</td>
                         <td></td>
                     </tr>
                 </tfoot>
             }
         </table>
-        @if (!Rows.Any())
+        @if (_quotes && _limit.HasMore(_rows.Count))
+        {
+            <div class="row center mt-16">
+                <button type="button" class="btn btn-ghost" @onclick="_limit.More">Show more</button>
+            </div>
+        }
+        @if (_rows.Count == 0)
         {
             <EmptyState Compact Title="@EmptyTitle" IconName="search" Text="@EmptyHint" />
         }
@@ -248,7 +245,17 @@
         (InvoiceFilter.Expired, "Expired"),
     ];
 
+    // every invoice row is two lines tall, measured at the default zoom
+    const float RowHeight = 62.67f;
+
+    // straight from the database, including deletes still waiting on undo
+    List<InvoiceSummary>? _loaded;
     List<InvoiceSummary>? _all;
+    List<InvoiceSummary> _rows = [];
+    Dictionary<InvoiceFilter, int> _counts = [];
+    string _summary = "";
+    string _footerBalance = "";
+    readonly RowLimit _limit = new();
     InvoiceFilter _filter = InvoiceFilter.All;
     string _search = "";
     DateOnly _today;
@@ -276,12 +283,13 @@
             _filter = InvoiceFilter.All;
             _showRepeating = false;
             _search = "";
+            _limit.Reset();
             await LoadAsync();
         }
         if (Show == "draft")
         {
-            _filter = InvoiceFilter.Draft;
             _showRepeating = false;
+            if (_filter != InvoiceFilter.Draft) SetFilter(InvoiceFilter.Draft);
         }
         else if (Show == "repeating")
         {
@@ -330,11 +338,33 @@
         ? (_filter == InvoiceFilter.All ? "Check the number or client name, or clear the search." : "Choose All, or clear the search.")
         : $"Choose All to see every one of your {Noun}.";
 
-    IEnumerable<InvoiceSummary> Rows => (_all ?? [])
-        .Where(s => s.Matches(_filter))
-        .Where(s => _search.Trim().Length == 0
-                    || s.Number.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase)
-                    || s.ClientName.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase));
+    // pending deletes hide and undone ones return without a database trip
+    void ApplyPending()
+    {
+        _all = _loaded is null ? null : InvoiceRows.Shown(_loaded, id => Toasts.IsPending($"invoice:{id}"));
+        _counts = InvoiceRows.Counts(_all ?? [], _quotes ? QuoteFilters.Select(f => f.Filter) : Filters.Select(f => f.Filter));
+        _summary = Summary;
+        ApplyFilter();
+    }
+
+    void ApplyFilter()
+    {
+        _rows = InvoiceRows.Filter(_all ?? [], _filter, _search);
+        _footerBalance = !_quotes && _filter is InvoiceFilter.Sent or InvoiceFilter.Overdue ? BalanceText(_rows, s => s.BalanceCents) : "";
+    }
+
+    void SetFilter(InvoiceFilter filter)
+    {
+        _filter = filter;
+        _limit.Reset();
+        ApplyFilter();
+    }
+
+    void SearchChanged()
+    {
+        _limit.Reset();
+        ApplyFilter();
+    }
 
     // one total per currency, so two kinds of money are never added together
     static string BalanceText(IEnumerable<InvoiceSummary> invoices, Func<InvoiceSummary, long> pick)
@@ -349,8 +379,6 @@
             .ToList();
         return others.Count == 0 ? Format.Money(homeCents) : $"{Format.Money(homeCents)} plus {Format.MoneyList(others)}";
     }
-
-    string FooterBalanceText => BalanceText(Rows, s => s.BalanceCents);
 
     string Summary
     {
@@ -379,9 +407,12 @@
     protected override async Task OnInitializedAsync()
     {
         InvoiceStore.Changed += OnChanged;
-        Toasts.Changed += OnChanged;
+        Toasts.Changed += OnToastsChanged;
         Recurring.Changed += OnChanged;
+        // payments move balances, and a toast no longer reloads to catch that
+        Ledger.Changed += OnChanged;
         _quotes = KindQuery == "quote";
+        _summary = Summary;
         await LoadAsync();
     }
 
@@ -389,10 +420,9 @@
     {
         _today = Clock.Today();
         _profile = await Profiles.GetAsync();
-        _all = (await InvoiceStore.ListAsync(kind: _quotes ? InvoiceKind.Quote : InvoiceKind.Invoice))
-            .Where(s => !Toasts.IsPending($"invoice:{s.Id}"))
-            .ToList();
+        _loaded = await InvoiceStore.ListAsync(kind: _quotes ? InvoiceKind.Quote : InvoiceKind.Invoice);
         _repeats = await Recurring.ListAsync();
+        ApplyPending();
     }
 
     async Task ExportCsvAsync()
@@ -436,21 +466,24 @@
 
     void Open(InvoiceSummary s) => Nav.NavigateTo(s.Status == DisplayStatus.Draft ? $"invoices/{s.Id}/edit" : $"invoices/{s.Id}");
 
-    void OnRowKey(KeyboardEventArgs e, InvoiceSummary s)
-    {
-        if (e.Key == "Enter") Open(s);
-    }
-
     void OnChanged() => InvokeAsync(async () =>
     {
         await LoadAsync();
         StateHasChanged();
     });
 
+    // a real delete fires the service's Changed, so a toast needs no reload
+    void OnToastsChanged() => InvokeAsync(() =>
+    {
+        ApplyPending();
+        StateHasChanged();
+    });
+
     public void Dispose()
     {
         InvoiceStore.Changed -= OnChanged;
-        Toasts.Changed -= OnChanged;
+        Toasts.Changed -= OnToastsChanged;
         Recurring.Changed -= OnChanged;
+        Ledger.Changed -= OnChanged;
     }
 }

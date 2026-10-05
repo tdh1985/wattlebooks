@@ -1,0 +1,40 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@* a component so its @key holds inside virtualize and focus survives a scroll *@
+<tr class="link @(Item.Status switch { DisplayStatus.Void => "strike", DisplayStatus.Paid => "settled", _ => null })" tabindex="0"
+    @onclick="() => OnOpen.InvokeAsync(Item)" @onkeydown="OnKey">
+    <td class="stub">
+        <span class="primary">@Item.Number</span>
+        @if (!Quotes)
+        {
+            <span class="secondary">@(Item.IsTaxInvoice ? Format.Country.TaxedSubject : "Invoice")</span>
+        }
+    </td>
+    <td class="truncate" style="max-width:260px">@Item.ClientName</td>
+    <td class="nowrap">@Format.Date(Item.IssueDate)</td>
+    <td class="nowrap">
+        @Format.Date(Item.DueDate)
+        @if (Item.IsAwaitingPayment)
+        {
+            <span class="secondary @(Item.Status == DisplayStatus.Overdue ? "danger-text" : null)">@Format.Due(Item.DueDate, Today)</span>
+        }
+        else if (Quotes && Item.Status == DisplayStatus.Sent)
+        {
+            <span class="secondary">@Format.ValidUntil(Item.DueDate, Today)</span>
+        }
+    </td>
+    <td class="num">@Format.Money(Item.TotalCents, Item.Currency)</td>
+    @if (!Quotes)
+    {
+        <td class="num">@(Item.IsAwaitingPayment ? Format.Money(Item.BalanceCents, Item.Currency) : "–")</td>
+    }
+    <td><StatusPill Status="Item.Status" /></td>
+</tr>
+
+@code {
+    [Parameter, EditorRequired] public InvoiceSummary Item { get; set; } = default!;
+    [Parameter] public bool Quotes { get; set; }
+    [Parameter] public DateOnly Today { get; set; }
+    [Parameter] public EventCallback<InvoiceSummary> OnOpen { get; set; }
+
+    Task OnKey(KeyboardEventArgs e) => e.Key == "Enter" ? OnOpen.InvokeAsync(Item) : Task.CompletedTask;
+}

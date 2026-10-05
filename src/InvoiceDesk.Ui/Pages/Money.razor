@@ -51,22 +51,22 @@
         <div class="grow"></div>
         <div class="search">
             <Icon Name="search" Size="16" />
-            <input class="input" type="search" placeholder="Who, what or invoice number" aria-label="Search money" @bind="_search" @bind:event="oninput" />
+            <input class="input" type="search" placeholder="Who, what or invoice number" aria-label="Search money" @bind="_search" @bind:event="oninput" @bind:after="SearchChanged" />
         </div>
     </div>
 
     @if (_rows is not null)
     {
-        var rows = Visible.ToList();
-        var inCents = rows.Where(t => t.Direction == Direction.In).Sum(t => t.AmountCents);
-        var outCents = rows.Where(t => t.Direction == Direction.Out).Sum(t => t.AmountCents);
+        var rows = _view.Rows;
+        var inCents = _view.InCents;
+        var outCents = _view.OutCents;
         <div class="ledger-strip mt-8" style="margin-bottom:22px">
             @if (_tab != "out")
             {
                 <div class="ledger-cell">
                     <div class="ledger-label">Money in</div>
                     <div class="ledger-value">@Format.Money(inCents)</div>
-                    <div class="ledger-note">@Format.Country.TaxName collected @Format.Money(rows.Where(t => t.Direction == Direction.In).Sum(t => t.TaxCents))</div>
+                    <div class="ledger-note">@Format.Country.TaxName collected @Format.Money(_view.InTaxCents)</div>
                 </div>
             }
             @if (_tab != "in")
@@ -77,7 +77,7 @@
                     <div class="ledger-note">
                         @if (Format.Country.ExpensesCarryTax)
                         {
-                            @($"{Format.Country.TaxName} paid {Format.Money(rows.Where(t => t.Direction == Direction.Out).Sum(t => t.TaxCents))}")
+                            @($"{Format.Country.TaxName} paid {Format.Money(_view.OutTaxCents)}")
                         }
                         else
                         {
@@ -96,8 +96,8 @@
             }
             <div class="ledger-cell">
                 <div class="ledger-label">Receipts attached</div>
-                <div class="ledger-value">@rows.Count(t => t.Attachments.Count > 0) of @rows.Count</div>
-                <div class="ledger-note">@(rows.Any(t => t.Direction == Direction.Out && t.Attachments.Count == 0) ? "Some expenses have no receipt" : "Nothing missing")</div>
+                <div class="ledger-value">@_view.WithReceipts of @rows.Count</div>
+                <div class="ledger-note">@(_view.ExpenseWithoutReceipt ? "Some expenses have no receipt" : "Nothing missing")</div>
             </div>
         </div>
 
@@ -129,7 +129,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var t in rows)
+                    @foreach (var t in _limit.Take(rows))
                     {
                         <tr class="link" tabindex="0" @key="t.Id" @onclick="() => OpenEntry(t.Id)" @onkeydown="e => OnRowKey(e, t.Id)">
                             <td class="nowrap">@Format.Date(t.Date)</td>
@@ -168,6 +168,12 @@
                     }
                 </tbody>
             </table>
+            @if (_limit.HasMore(rows.Count))
+            {
+                <div class="row center mt-16">
+                    <button type="button" class="btn btn-ghost" @onclick="_limit.More">Show more</button>
+                </div>
+            }
         }
     }
 </div>
@@ -191,6 +197,8 @@
     [SupplyParameterFromQuery(Name = "open")] public int? OpenQuery { get; set; }
 
     List<Transaction>? _rows;
+    MoneyRows _view = MoneyRows.Empty;
+    readonly RowLimit _limit = new();
     bool _hasAny;
     BusinessProfile? _profile;
     List<Category> _categories = [];
@@ -220,13 +228,14 @@
         }
     }
 
-    IEnumerable<Transaction> Visible => (_rows ?? [])
-        .Where(t => !Toasts.IsPending($"tx:{t.Id}"))
-        .Where(t => _search.Trim().Length == 0
-                    || t.Party.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase)
-                    || t.Description.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase)
-                    || t.Notes.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase)
-                    || (t.Invoice?.Number.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase) ?? false));
+    // pending deletes hide and undone ones return without a database trip
+    void ApplyView() => _view = MoneyRows.Build(_rows ?? [], id => Toasts.IsPending($"tx:{id}"), _search);
+
+    void SearchChanged()
+    {
+        _limit.Reset();
+        ApplyView();
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -264,6 +273,7 @@
         _rows = await Ledger.ListAsync(new TransactionFilter(TabDirection, range, _categoryId));
         // first-run help only makes sense when nothing has ever been recorded
         _hasAny = _rows.Count > 0 || await Ledger.AnyAsync();
+        ApplyView();
     }
 
     string PeriodLabel(string period)
@@ -315,18 +325,21 @@
         _tab = tab;
         if (_categoryId is { } id && _categories.FirstOrDefault(c => c.Id == id) is { } c && TabDirection is { } d && c.Direction != d)
             _categoryId = null;
+        _limit.Reset();
         await LoadAsync();
     }
 
     async Task SetPeriodAsync(string period)
     {
         _period = period;
+        _limit.Reset();
         await LoadAsync();
     }
 
     async Task SetCategoryAsync(ChangeEventArgs e)
     {
         _categoryId = int.TryParse(e.Value?.ToString(), out var id) ? id : null;
+        _limit.Reset();
         await LoadAsync();
     }
 
@@ -451,7 +464,11 @@
         StateHasChanged();
     });
 
-    void OnToastsChanged() => InvokeAsync(StateHasChanged);
+    void OnToastsChanged() => InvokeAsync(() =>
+    {
+        ApplyView();
+        StateHasChanged();
+    });
 
     public void Dispose()
     {

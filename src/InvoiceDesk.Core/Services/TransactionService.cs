@@ -33,6 +33,12 @@ public sealed class TransactionService(
             .ToList();
     }
 
+    public async Task<bool> AnyAsync()
+    {
+        await using var db = await factory.CreateDbContextAsync();
+        return await db.Transactions.AnyAsync();
+    }
+
     public async Task<Transaction?> GetAsync(int id)
     {
         await using var db = await factory.CreateDbContextAsync();

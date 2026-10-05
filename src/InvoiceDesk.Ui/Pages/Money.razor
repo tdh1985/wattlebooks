@@ -263,7 +263,7 @@
         var range = Range(_period, Clock.Today());
         _rows = await Ledger.ListAsync(new TransactionFilter(TabDirection, range, _categoryId));
         // first-run help only makes sense when nothing has ever been recorded
-        _hasAny = _rows.Count > 0 || (await Ledger.ListAsync(new TransactionFilter())).Count > 0;
+        _hasAny = _rows.Count > 0 || await Ledger.AnyAsync();
     }
 
     string PeriodLabel(string period)

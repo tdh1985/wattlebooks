@@ -243,7 +243,7 @@
 
     async Task LoadAsync()
     {
-        _summary = (await ClientStore.ListAsync(includeArchived: true)).FirstOrDefault(s => s.Client.Id == Id);
+        _summary = await ClientStore.GetSummaryAsync(Id);
         if (_summary is null)
         {
             if (!Toasts.IsPending($"client:{Id}")) Toasts.Show("That client no longer exists.", ToastKind.Error);

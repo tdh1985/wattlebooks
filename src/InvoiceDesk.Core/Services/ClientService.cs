@@ -47,6 +47,30 @@ public sealed class ClientService(IDbContextFactory<AppDbContext> factory, TimeP
             .ToDictionaryAsync(c => c.Id, c => c.Name);
     }
 
+    // same order as ListAsync so the picker reads the way it always did
+    public async Task<List<ClientOption>> ListOptionsAsync()
+    {
+        await using var db = await factory.CreateDbContextAsync();
+        var options = await db.Clients.AsNoTracking()
+            .Select(c => new ClientOption(c.Id, c.Name, c.IsArchived))
+            .ToListAsync();
+        return options.OrderBy(o => o.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+    }
+
+    // totals stay in c# so the money rules are the ones ListAsync uses
+    public async Task<ClientSummary?> GetSummaryAsync(int id)
+    {
+        await using var db = await factory.CreateDbContextAsync();
+        var client = await db.Clients.AsNoTracking().AsSplitQuery()
+            .Include(c => c.Invoices).ThenInclude(i => i.Lines)
+            .Include(c => c.Invoices).ThenInclude(i => i.Payments)
+            .FirstOrDefaultAsync(c => c.Id == id);
+        if (client is null) return null;
+
+        var home = Countries.For((await profiles.GetAsync()).Country).Currency;
+        return Summarise(client, home);
+    }
+
     public async Task<Client?> GetAsync(int id)
     {
         await using var db = await factory.CreateDbContextAsync();

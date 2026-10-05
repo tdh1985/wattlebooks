@@ -54,7 +54,7 @@
 @code {
     [Parameter] public int ClientId { get; set; }
     [Parameter] public EventCallback<int> ClientIdChanged { get; set; }
-    [Parameter] public IReadOnlyList<Client> Clients { get; set; } = [];
+    [Parameter] public IReadOnlyList<ClientOption> Clients { get; set; } = [];
     [Parameter] public EventCallback<string> OnNewClient { get; set; }
     [Parameter] public string? Id { get; set; }
     [Parameter] public bool Disabled { get; set; }
@@ -64,9 +64,9 @@
     string _query = "";
     int _active;
 
-    Client? Selected => Clients.FirstOrDefault(c => c.Id == ClientId);
+    ClientOption? Selected => Clients.FirstOrDefault(c => c.Id == ClientId);
 
-    List<Client> Matches => Clients
+    List<ClientOption> Matches => Clients
         .Where(c => !c.IsArchived || c.Id == ClientId)
         .Where(c => _query.Trim().Length == 0 || c.Name.Contains(_query.Trim(), StringComparison.OrdinalIgnoreCase))
         .ToList();
@@ -84,7 +84,7 @@
 
     void Close() => _open = false;
 
-    async Task PickAsync(Client client)
+    async Task PickAsync(ClientOption client)
     {
         _open = false;
         await ClientIdChanged.InvokeAsync(client.Id);

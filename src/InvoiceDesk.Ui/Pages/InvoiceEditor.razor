@@ -319,7 +319,7 @@
 
     Invoice? _invoice;
     BusinessProfile? _profile;
-    List<Client> _clients = [];
+    List<ClientOption> _clients = [];
     ElementReference _stage;
     DateOnly _today;
     string? _loadedKey;
@@ -418,7 +418,7 @@
     {
         _today = Clock.Today();
         _profile = await Profiles.GetAsync();
-        _clients = (await ClientStore.ListAsync(includeArchived: true)).Select(s => s.Client).ToList();
+        _clients = await ClientStore.ListOptionsAsync();
         _issueErrors = [];
         _triedIssue = false;
         _dirty = false;
@@ -443,7 +443,7 @@
         {
             _invoice = await InvoiceStore.NewDraftAsync(ClientId, KindQuery == "quote" ? InvoiceKind.Quote : InvoiceKind.Invoice);
         }
-        _invoice.Client = _clients.FirstOrDefault(c => c.Id == _invoice.ClientId);
+        if (_invoice.ClientId > 0) _invoice.Client ??= await ClientStore.GetAsync(_invoice.ClientId);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -487,10 +487,10 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    void OnClientChanged(int clientId)
+    async Task OnClientChanged(int clientId)
     {
         _invoice!.ClientId = clientId;
-        var client = _clients.FirstOrDefault(c => c.Id == clientId);
+        var client = await ClientStore.GetAsync(clientId);
         _invoice.Client = client;
         if (_invoice.Status == InvoiceStatus.Draft && client is not null)
         {
@@ -510,8 +510,8 @@
     async Task OnClientCreatedAsync(Client client)
     {
         _addingClient = false;
-        _clients = (await ClientStore.ListAsync(includeArchived: true)).Select(s => s.Client).ToList();
-        OnClientChanged(client.Id);
+        _clients = await ClientStore.ListOptionsAsync();
+        await OnClientChanged(client.Id);
     }
 
     void OnIssueChanged(ChangeEventArgs e)

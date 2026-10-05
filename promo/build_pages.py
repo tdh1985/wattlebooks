@@ -130,4 +130,7 @@ for f in (site / 'img').iterdir():
     # the other pngs are sources for the webp copies, so they stay behind
     if f.suffix in ('.webp', '.mp4', '.vtt', '.svg') or f.name.startswith(('logo', 'icon')) or f.name == 'og.png':
         shutil.copy2(f, out / 'img' / f.name)
+(out / 'fonts').mkdir(exist_ok=True)
+for f in (site / 'fonts').glob('*.woff2'):
+    shutil.copy2(f, out / 'fonts' / f.name)
 print('built', out, 'version', version, 'questions', len(faq))

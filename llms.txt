@@ -38,6 +38,7 @@
 - Quebec QST and the provincial sales taxes in BC, Saskatchewan and Manitoba aren't covered yet.
 - It isn't tax advice. Check your figures with your accountant or tax office if you're unsure.
 - The Microsoft Store copy is signed by Microsoft. The plain Windows .exe isn't code-signed yet, so SmartScreen may warn about it. Click More info, then Run anyway.
+- Switching from the .exe to the Store version: close the .exe and install from the Store. Data in a synced folder is found automatically. Otherwise choose Settings > Your data > Use data from another PC and pick %LOCALAPPDATA%\InvoiceDesk.
 
 ## Links
 

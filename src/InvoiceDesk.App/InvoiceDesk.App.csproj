@@ -9,7 +9,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <RootNamespace>InvoiceDesk.App</RootNamespace>
-    <AssemblyName>InvoiceDesk</AssemblyName>
+    <AssemblyName>Wattlebooks</AssemblyName>
     <Product>Wattlebooks</Product>
     <AssemblyTitle>Wattlebooks</AssemblyTitle>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>

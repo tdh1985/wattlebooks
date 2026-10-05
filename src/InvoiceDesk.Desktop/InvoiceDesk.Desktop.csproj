@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>InvoiceDesk.Desktop</RootNamespace>
-    <AssemblyName>InvoiceDesk</AssemblyName>
+    <AssemblyName>Wattlebooks</AssemblyName>
     <Product>Wattlebooks</Product>
     <AssemblyTitle>Wattlebooks</AssemblyTitle>
     <ApplicationIcon>..\InvoiceDesk.App\Assets\app.ico</ApplicationIcon>

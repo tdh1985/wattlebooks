@@ -367,6 +367,8 @@ built on a personal computer gets signed.
 
 ### Privacy
 
+The full privacy statement, covering the app, the phone app and the website, is at
+[wattlebooks.work/privacy.html](https://wattlebooks.work/privacy.html). In short,
 Wattlebooks won't send any information to other networked systems unless
 you ask it to. Your data is kept on your computer. It only goes online when:
 

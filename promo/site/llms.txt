@@ -47,4 +47,5 @@
 - [Release notes](https://github.com/tdh1985/wattlebooks/releases): what changed in each version
 - [Phone app](https://invoicedesk-phone.vercel.app): open on a phone and sign in with the same email as the desktop app
 - [Website](https://wattlebooks.work/): screenshots, a one-minute video and a contact form
+- [Support](https://github.com/tdh1985/wattlebooks/issues): report a bug or ask for a feature on GitHub
 - [Privacy statement](https://wattlebooks.work/privacy.html): what the app, phone app and website collect, and how to delete it

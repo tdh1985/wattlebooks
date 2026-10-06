@@ -168,7 +168,7 @@
                 }
                 else
                 {
-                    <Virtualize Items="_rows" ItemSize="RowHeight" SpacerElement="tr" Context="s">
+                    <Virtualize Items="_rows" ItemSize="RowHeight" OverscanCount="10" SpacerElement="tr" Context="s">
                         <InvoiceRow @key="s.Id" Item="s" Quotes="_quotes" Today="_today" OnOpen="Open" />
                     </Virtualize>
                 }
@@ -339,9 +339,10 @@
         ? (_filter == InvoiceFilter.All ? "Check the number or client name, or clear the search." : "Choose All, or clear the search.")
         : $"Choose All to see every one of your {Noun}.";
 
-    // pending deletes hide and undone ones return without a database trip
+    // a new pending delete hides its row without a database trip
     void ApplyPending()
     {
+        _hidden = HiddenNow();
         _all = _loaded is null ? null : InvoiceRows.Shown(_loaded, id => Toasts.IsPending($"invoice:{id}"));
         _counts = InvoiceRows.Counts(_all ?? [], _quotes ? QuoteFilters.Select(f => f.Filter) : Filters.Select(f => f.Filter));
         _summary = Summary;
@@ -404,6 +405,11 @@
                 : $"{waiting.Count} quote{(waiting.Count == 1 ? "" : "s")} waiting on an answer, worth {BalanceText(waiting, s => s.TotalCents)}.";
         }
     }
+
+    HashSet<int> _hidden = [];
+
+    HashSet<int> HiddenNow() =>
+        PendingIds.Among((_loaded ?? []).Select(s => s.Id), id => Toasts.IsPending($"invoice:{id}"));
 
     protected override async Task OnInitializedAsync()
     {
@@ -474,10 +480,11 @@
         StateHasChanged();
     });
 
-    // a real delete fires the service's Changed, so a toast needs no reload
-    void OnToastsChanged() => InvokeAsync(() =>
+    // other toasts only re-render, but a delete leaving its window reloads
+    void OnToastsChanged() => InvokeAsync(async () =>
     {
-        ApplyPending();
+        if (PendingIds.AnyLeft(_hidden, HiddenNow())) await LoadAsync();
+        else ApplyPending();
         StateHasChanged();
     });
 

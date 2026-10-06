@@ -171,7 +171,9 @@
         await LoadAsync();
     }
 
-    Task LoadAsync() => _loads.RunAsync(ReadAsync, loaded =>
+    Task _inflight = Task.CompletedTask;
+
+    Task LoadAsync() => _inflight = _loads.RunAsync(ReadAsync, loaded =>
     {
         (_data, _profile, _expected, _clientCount, _invoiceCount) = loaded;
     });
@@ -205,6 +207,9 @@
 
     void OnChanged() => InvokeAsync(async () =>
     {
+        // our own first load may already hold the snapshot just announced
+        await Task.WhenAny(_inflight);
+        if (ReferenceEquals(await Feed.GetAsync(), _data)) return;
         await LoadAsync();
         StateHasChanged();
     });

@@ -228,8 +228,17 @@
         }
     }
 
-    // pending deletes hide and undone ones return without a database trip
-    void ApplyView() => _view = MoneyRows.Build(_rows ?? [], id => Toasts.IsPending($"tx:{id}"), _search);
+    HashSet<int> _hidden = [];
+
+    HashSet<int> HiddenNow() =>
+        PendingIds.Among((_rows ?? []).Select(t => t.Id), id => Toasts.IsPending($"tx:{id}"));
+
+    // a new pending delete hides its row without a database trip
+    void ApplyView()
+    {
+        _hidden = HiddenNow();
+        _view = MoneyRows.Build(_rows ?? [], id => Toasts.IsPending($"tx:{id}"), _search);
+    }
 
     void SearchChanged()
     {
@@ -464,9 +473,11 @@
         StateHasChanged();
     });
 
-    void OnToastsChanged() => InvokeAsync(() =>
+    // other toasts only re-render, but a delete leaving its window reloads
+    void OnToastsChanged() => InvokeAsync(async () =>
     {
-        ApplyView();
+        if (PendingIds.AnyLeft(_hidden, HiddenNow())) await LoadAsync();
+        else ApplyView();
         StateHasChanged();
     });
 

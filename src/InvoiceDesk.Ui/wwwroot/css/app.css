@@ -1143,7 +1143,7 @@ a.ledger-label:hover { color: var(--accent-text); }
 .stub .primary { color: var(--sent); font: 700 15px/1.1 var(--font-display); letter-spacing: .01em; }
 .table tr.settled td:not(.stub) { color: var(--ink-3); }
 
-/* virtualised rows are too few to size auto columns, so widths are set up front */
+/* too few rows render to size auto columns, so widths are set up front */
 .table.fixed-cols { table-layout: fixed; width: max(100%, var(--min)); }
 .fixed-cols .col-stub { width: var(--stub); }
 .fixed-cols .col-total { width: var(--total); }

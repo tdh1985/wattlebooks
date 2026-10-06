@@ -16,6 +16,9 @@ $sdk = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64" -Direc
     Sort-Object { [version]($_.Parent.Name) } | Select-Object -Last 1
 if (-not $sdk) { throw 'makeappx.exe and makepri.exe not found, install the Windows SDK' }
 
+# files left from an earlier publish would ship in the package
+$store = Join-Path $repo 'dist/store'
+if (Test-Path $store) { Remove-Item $store -Recurse -Force }
 dotnet publish (Join-Path $repo 'src/InvoiceDesk.App') -p:PublishProfile=StoreFolder
 if ($LASTEXITCODE -ne 0) { throw 'publish failed' }
 

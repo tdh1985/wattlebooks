@@ -45,7 +45,8 @@ public sealed record InvoiceColumns(int StubPx, int AmountPx, int TotalWidePx, i
             numberChars = Math.Max(numberChars, s.Number.Length);
             moneyChars = Math.Max(moneyChars, money(s).Length);
         }
-        // measured near 7.2 px a character for numbers and 6.9 px for amounts
+        // measured near 7.6 px a character for numbers and 6.9 px for amounts
+        // 127 is the stub width at the default window before virtualising
         var stub = Math.Max(127, numberChars * 8 + 24);
         var amount = (moneyChars * 15 + 1) / 2 + 24;
         // wide windows keep the widths auto layout gave before virtualising
@@ -102,6 +103,17 @@ public sealed record MoneyRows(
         }
         return new MoneyRows(rows, inCents, outCents, inTax, outTax, withReceipts, missing);
     }
+}
+
+// a delete that leaves its undo window must reload, since the rows on screen are old
+public static class PendingIds
+{
+    public static HashSet<int> Among(IEnumerable<int> shown, Func<int, bool> isPending) =>
+        shown.Where(isPending).ToHashSet();
+
+    // a commit and an undo both end the window, and only the database knows which
+    public static bool AnyLeft(IReadOnlySet<int> before, IReadOnlySet<int> now) =>
+        before.Any(id => !now.Contains(id));
 }
 
 // mixed-height rows can't be virtualised so long lists grow in pages

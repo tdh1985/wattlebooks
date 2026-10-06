@@ -4,7 +4,7 @@ using InvoiceDesk.Core.Services;
 
 namespace InvoiceDesk.Ui.Host;
 
-// one dashboard read shared by the side rail, the dashboard and the taskbar badge
+// one read shared by the side rail, the dashboard and the taskbar badge
 public sealed class DashboardFeed : IDisposable
 {
     // turning a quote into an invoice fires twice about 10 ms apart

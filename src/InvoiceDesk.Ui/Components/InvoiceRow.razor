@@ -1,5 +1,5 @@
 @* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
-@* a component so its @key holds inside virtualize and focus survives a scroll *@
+@* a component so @key holds in virtualize and focus survives a scroll *@
 <tr class="link @(Item.Status switch { DisplayStatus.Void => "strike", DisplayStatus.Paid => "settled", _ => null })" tabindex="0"
     @onclick="() => OnOpen.InvokeAsync(Item)" @onkeydown="OnKey">
     <td class="stub nowrap">

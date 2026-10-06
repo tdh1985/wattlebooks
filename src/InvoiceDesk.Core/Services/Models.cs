@@ -10,7 +10,7 @@ public sealed record CurrencyAmount(string Currency, long Cents);
 public sealed record ClientSummary(
     Client Client, int InvoiceCount, long BilledCents, long OutstandingCents, int QuoteCount = 0, string Currency = "AUD");
 
-// the picker only shows a name and hides archived clients, so nothing else loads
+// the picker needs only a name so nothing else loads
 public sealed record ClientOption(int Id, string Name, bool IsArchived);
 
 public enum InvoiceFilter { All, Draft, Sent, Overdue, Paid, Void, Accepted, Declined, Expired }

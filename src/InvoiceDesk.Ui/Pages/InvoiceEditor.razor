@@ -489,7 +489,7 @@
 
     readonly LatestOnly _picks = new();
 
-    // the id is set after the fetch so a slow older pick can't leave a mixed invoice
+    // the id is set after the fetch so a slow older pick can't mix invoices
     async Task OnClientChanged(int clientId)
     {
         var inv = _invoice!;

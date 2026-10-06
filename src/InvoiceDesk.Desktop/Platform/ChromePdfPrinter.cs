@@ -85,7 +85,7 @@ public sealed class ChromePdfPrinter(AppPaths paths, Func<string?> findBrowser, 
 
     async Task<bool> TryPrintAsync(string browser, string profile, string output, string page)
     {
-        await RunAsync(browser, ChromeArgs.Print(profile, output, page));
+        await RunAsync(browser, ChromeArgs.Print(profile, output, page), output);
         return File.Exists(output);
     }
 
@@ -112,7 +112,7 @@ public sealed class ChromePdfPrinter(AppPaths paths, Func<string?> findBrowser, 
         ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "snap", snap, "common", "invoicedesk-print")
         : paths.Render;
 
-    async Task RunAsync(string browser, string[] args)
+    async Task RunAsync(string browser, string[] args, string output)
     {
         var start = new ProcessStartInfo(browser)
         {
@@ -126,17 +126,60 @@ public sealed class ChromePdfPrinter(AppPaths paths, Func<string?> findBrowser, 
         var stdout = process.StandardOutput.ReadToEndAsync();
         _ = process.StandardError.ReadToEndAsync();
         using var timeout = new CancellationTokenSource(limit);
+        using var done = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token);
         try
         {
-            await process.WaitForExitAsync(timeout.Token);
+            var exited = process.WaitForExitAsync(timeout.Token);
+            // chrome on mac writes the whole pdf and then never exits
+            var written = WaitForWholePdfAsync(output, done.Token);
+            if (await Task.WhenAny(exited, written) == written && !exited.IsCompleted)
+            {
+                await written;
+                Kill(process);
+                return;
+            }
+            await exited;
             // a leftover child process can hold the output open after the browser itself exits
             await stdout.WaitAsync(timeout.Token);
         }
         catch (OperationCanceledException)
         {
-            try { process.Kill(entireProcessTree: true); }
-            catch (InvalidOperationException) { }
+            Kill(process);
             throw new IOException("The browser took too long to make the PDF. Close any stuck browser windows and try again.");
         }
+        finally { done.Cancel(); }
+    }
+
+    // a pdf ends with %%EOF, and a size that holds still means chrome has stopped writing
+    static async Task WaitForWholePdfAsync(string path, CancellationToken token)
+    {
+        long last = -1;
+        while (true)
+        {
+            await Task.Delay(100, token);
+            var size = EndsLikeAPdf(path);
+            if (size > 0 && size == last) return;
+            last = size;
+        }
+    }
+
+    static long EndsLikeAPdf(string path)
+    {
+        try
+        {
+            using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            var tail = new byte[Math.Min(file.Length, 32)];
+            file.Seek(-tail.Length, SeekOrigin.End);
+            file.ReadExactly(tail);
+            return System.Text.Encoding.ASCII.GetString(tail).Contains("%%EOF") ? file.Length : 0;
+        }
+        catch (IOException) { return 0; }
+        catch (UnauthorizedAccessException) { return 0; }
+    }
+
+    static void Kill(Process process)
+    {
+        try { process.Kill(entireProcessTree: true); }
+        catch (InvalidOperationException) { }
     }
 }

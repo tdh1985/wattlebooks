@@ -25,11 +25,9 @@
   --navy: #15294B;
   --navy-ink: #CDD6E6;
   --accent: #2E6B57;
-  --accent-ink: #FFFFFF;
   --amber: #F2B233;
   --amber-ink: #15294B;
   --focus: var(--ink);
-  --stamp: #9A5B00;
   --display: "Barlow Condensed", "Barlow Condensed Fallback", "Arial Narrow", "Roboto Condensed", sans-serif;
   --body: "Barlow", "Barlow Fallback", "Segoe UI", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
@@ -44,10 +42,8 @@
     --line: #2D3954;
     --navy: #0A1220;
     --accent: #6CC09D;
-    --accent-ink: #0B1A14;
     --amber: #F6C03F;
     --focus: var(--amber);
-    --stamp: var(--amber);
   }
 }
 :root[data-theme="dark"] {
@@ -59,10 +55,8 @@
   --line: #2D3954;
   --navy: #0A1220;
   --accent: #6CC09D;
-  --accent-ink: #0B1A14;
   --amber: #F6C03F;
   --focus: var(--amber);
-  --stamp: var(--amber);
 }
 
 * { box-sizing: border-box; }
@@ -78,16 +72,16 @@ a:hover { text-decoration-thickness: 2px; }
 /* amber on light paper is only 2:1, so light mode rings in ink */
 a:focus-visible, .btn:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 2px; }
 .skip { position: absolute; left: 12px; top: -80px; z-index: 40; background: var(--ink); color: var(--paper); padding: 10px 16px; font-weight: 600; text-decoration: none; }
-.skip:focus-visible { top: 12px; outline-color: var(--accent); }
+.skip:focus-visible { top: 12px; outline-color: var(--amber); }
 /* a low highlighter stroke under the words rather than a block behind them */
-mark { background: linear-gradient(transparent 68%, var(--amber) 0 88%, transparent 0); color: inherit; padding-inline: 0.1em; margin-inline: -0.1em; }
+.hl { background: linear-gradient(transparent 68%, var(--amber) 0 88%, transparent 0); color: inherit; padding-inline: 0.1em; margin-inline: -0.1em; }
 /* a dateline over a thin rule, like the top of a paper */
-.eyebrow { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 16px; font: 500 14px/1.3 var(--mono); padding-block: 9px; border-bottom: 1px solid var(--ink); }
+.eyebrow { display: block; font: 600 15px/1.3 var(--body); padding-block: 9px; border-bottom: 1px solid var(--ink); }
 .lede { font-size: 21px; max-width: 34em; }
 .fine { font-size: 15px; color: var(--muted); }
 .nowrap { white-space: nowrap; }
 figure { margin: 0; display: grid; gap: 10px; align-content: start; }
-figcaption { font: 400 14px/1.55 var(--mono); color: var(--muted); max-width: 72ch; }
+figcaption { font-size: 15px; line-height: 1.5; color: var(--muted); max-width: 72ch; }
 figcaption b { font-weight: 600; color: var(--ink); }
 .shot { display: block; width: 100%; height: auto; border: 1px solid var(--line); background: var(--surface); }
 
@@ -106,7 +100,7 @@ figcaption b { font-weight: 600; color: var(--ink); }
 
 /* outlined in ink, green like the app's own buttons, and wattle under the pointer */
 .btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border: 2px solid var(--ink); border-radius: 3px; background: none; color: var(--ink); font: 600 18px/1 var(--body); text-decoration: none; cursor: pointer; }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary { background: #2E6B57; border-color: #2E6B57; color: #FFFFFF; }
 .btn:hover { background: var(--amber); border-color: var(--amber); color: var(--amber-ink); }
 .btn svg { width: 20px; height: 20px; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px; }
@@ -122,9 +116,9 @@ figcaption b { font-weight: 600; color: var(--ink); }
 .qr p { max-width: 22ch; font-size: 15px; color: var(--muted); }
 
 /* the price, as a tax invoice */
-.bill-section { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); gap: 56px; align-items: center; padding-block: 64px 96px; border-top: 6px double var(--ink); }
+.bill-section { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); gap: 56px; align-items: center; padding-block: 64px 96px; border-top: 2px solid var(--ink); }
 .bill-copy { display: grid; gap: 22px; }
-.bill { position: relative; padding: 34px 34px 30px; background: var(--surface); border: 1px solid var(--line); border-left: 6px solid var(--accent); box-shadow: 8px 8px 0 var(--line); font-size: 15px; transform: rotate(-1.2deg); }
+.bill { position: relative; padding: 34px 34px 30px; background: var(--surface); border: 1px solid var(--line); border-left: 6px solid var(--accent); font-size: 15px; transform: rotate(-1.2deg); }
 .bill-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .bill-head h3 { color: var(--accent); font-size: 30px; letter-spacing: 0.04em; text-transform: uppercase; }
 .bill-from { font-size: 14px; color: var(--muted); line-height: 1.45; }
@@ -140,8 +134,8 @@ figcaption b { font-weight: 600; color: var(--ink); }
 .bill .total td { border-bottom: 0; padding-top: 12px; font-weight: 600; font-size: 18px; }
 .bill .total td:last-child { border-top: 1px solid var(--ink); border-bottom: 4px double var(--ink); }
 /* inked like the rubber stamps on the app's dashboard */
-.stamp { position: absolute; left: 44%; bottom: 20px; transform: rotate(-12deg); opacity: 0.9; font: 700 30px/1 var(--display); letter-spacing: 0.12em; color: var(--stamp); border: 3px solid; border-radius: 6px; padding: 6px 12px 4px; }
-.tag { font: 500 15px/1.3 var(--mono); color: var(--muted); }
+.stamp { position: absolute; left: 44%; bottom: 20px; transform: rotate(-6deg); opacity: 0.9; font: 700 30px/1 var(--display); letter-spacing: 0.12em; color: var(--accent); border: 3px solid; border-radius: 6px; padding: 6px 12px 4px; }
+.tag { font-size: 15px; color: var(--muted); }
 
 /* the promo video, full width so the app on screen is readable */
 .watch { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px 56px; align-items: end; padding-block: 24px 88px; }
@@ -152,7 +146,7 @@ figcaption b { font-weight: 600; color: var(--ink); }
 .feature { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 32px 56px; padding-block: 80px; }
 .feature.flip { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
 .feature.flip .feature-copy { order: 2; }
-.feature.wide figure { grid-column: 1 / -1; }
+.feature.wide figure { grid-column: 1 / -1; order: -1; }
 .feature-copy { display: grid; gap: 18px; align-content: start; }
 .points { margin: 6px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--ink); }
 .points li { padding-block: 10px; border-bottom: 1px solid var(--line); }
@@ -165,7 +159,7 @@ figcaption b { font-weight: 600; color: var(--ink); }
 .phones img:nth-child(2) { margin-top: 36px; }
 
 /* other countries, as a ledger */
-.countries { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px 56px; align-items: end; padding-block: 72px 80px; border-top: 6px double var(--ink); }
+.countries { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px 56px; align-items: end; padding-block: 72px 80px; border-top: 2px solid var(--ink); }
 .countries-copy { display: grid; gap: 14px; }
 .countries .ledger, .currencies { grid-column: 1 / -1; }
 .ledger { overflow-x: auto; margin-top: 20px; }
@@ -184,18 +178,17 @@ figcaption b { font-weight: 600; color: var(--ink); }
 .more-list strong { display: block; margin-bottom: 4px; font: 700 23px/1.05 var(--display); color: var(--ink); }
 
 /* one column of questions; the triangle hangs so long ones wrap cleanly */
-.faq { display: grid; gap: 28px; padding-block: 72px; border-top: 6px double var(--ink); }
+.faq { display: grid; gap: 28px; padding-block: 72px; border-top: 2px solid var(--ink); }
 .faq > div { max-width: 46em; }
 .faq details { padding-block: 8px; }
 .faq summary { cursor: pointer; font-weight: 600; font-size: 20px; line-height: 1.35; padding-left: 1.15em; text-indent: -1.15em; }
 .faq summary::marker { color: var(--accent); }
 .faq details p { margin: 6px 0 10px 1.15em; color: var(--muted); }
 
-/* contact, as a coupon to cut out and send */
+/* contact */
 .contact { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 32px 56px; padding-block: 72px; }
 .contact-copy { display: grid; gap: 14px; align-content: start; }
-.contact form { position: relative; display: grid; gap: 18px; max-width: 640px; padding: 28px; border: 2px dashed var(--muted); }
-.contact .snip { position: absolute; top: -13px; left: 28px; width: 24px; height: 24px; padding-inline: 2px; background: var(--paper); color: var(--muted); }
+.contact form { display: grid; gap: 18px; max-width: 640px; }
 .contact .pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
 .contact label { display: grid; gap: 6px; font-weight: 600; font-size: 16px; }
 .contact input, .contact textarea { font: 400 17px/1.4 var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--muted); border-radius: 2px; padding: 11px 12px; width: 100%; }
@@ -211,7 +204,7 @@ figcaption b { font-weight: 600; color: var(--ink); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .contact .status.bad { color: #FF9C94; } }
 
 /* sign-off, one more go at the download without a box around it */
-.closer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 28px 48px; padding-block: 56px 72px; border-top: 6px double var(--ink); }
+.closer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 28px 48px; padding-block: 56px 72px; border-top: 2px solid var(--ink); }
 .closer h2 { font-size: clamp(40px, 5vw, 64px); }
 .closer p { margin-top: 12px; color: var(--muted); }
 
@@ -222,11 +215,12 @@ footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12
   .feature.flip .feature-copy { order: 0; }
   .bill { transform: none; }
 }
+@media (max-width: 680px) {
+  .top nav { display: none; }
+}
 @media (max-width: 560px) {
   body { font-size: 17px; }
-  .top nav { display: none; }
   .contact .pair { grid-template-columns: minmax(0, 1fr); }
-  .contact form { padding: 24px 18px; }
   .phone-note { display: block; }
   /* no point scanning a code with the phone that shows it */
   .qr { display: none; }
@@ -239,7 +233,7 @@ footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12
   .bill { padding: 24px 20px; }
   .bill-head { flex-direction: column; }
   .bill-meta { text-align: left; }
-  .stamp { font-size: 22px; left: 40%; bottom: 16px; }
+  .stamp { font-size: 22px; left: auto; right: 20px; top: 70px; bottom: auto; }
   /* one phone at a time, big enough to read */
   .phones { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px 4px 16px; margin-inline: -4px; }
   .phones img { flex: 0 0 74%; width: 74%; min-width: 0; scroll-snap-align: center; }
@@ -274,8 +268,8 @@ footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12
 
   <main id="top">
     <section class="hero">
-      <p class="eyebrow"><span>For Australian sole traders</span><span>Windows, Mac and Linux</span></p>
-      <h1>Tax invoices, GST and your BAS. <mark>No&nbsp;monthly&nbsp;fee.</mark></h1>
+      <p class="eyebrow">For Australian sole traders</p>
+      <h1>Tax invoices, GST and your BAS. <span class="hl">No&nbsp;monthly&nbsp;fee.</span></h1>
       <div class="hero-copy">
         <p class="lede">Wattlebooks is a free, open-source invoicing app for tradies and freelancers on Windows, Mac and Linux. It runs on your own computer, so your books stay with you.</p>
         <p class="phone-note">Wattlebooks runs on your computer. Open this page on it to download.</p>
@@ -352,15 +346,15 @@ footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12
     </section>
 
     <section class="feature wide">
-      <figure>
-        <img class="shot" src="img/receipt-scan.webp" srcset="img/receipt-scan-800.webp 800w, img/receipt-scan-1200.webp 1200w, img/receipt-scan.webp 1800w" sizes="(max-width: 1160px) calc(100vw - 40px), 1120px" loading="lazy" width="1800" height="1090" alt="An Ampol fuel receipt dropped onto a new expense, with the amount, GST, date and supplier filled in">
-        <figcaption><b>The Money page.</b> The highlighted fields are the ones it filled in from the receipt.</figcaption>
-      </figure>
       <h2>Drop in a receipt and it fills in the expense for you</h2>
       <div class="feature-copy">
         <p>Drag a photo or PDF of a receipt onto the Money page. Wattlebooks reads the supplier, date, amount and GST, and highlights what it filled so you can check it.</p>
         <p class="fine">Uses the text reader built into Windows, so the receipt never leaves your computer.</p>
       </div>
+      <figure>
+        <img class="shot" src="img/receipt-scan.webp" srcset="img/receipt-scan-800.webp 800w, img/receipt-scan-1200.webp 1200w, img/receipt-scan.webp 1800w" sizes="(max-width: 1160px) calc(100vw - 40px), 1120px" loading="lazy" width="1800" height="1090" alt="An Ampol fuel receipt dropped onto a new expense, with the amount, GST, date and supplier filled in">
+        <figcaption><b>The Money page.</b> The highlighted fields are the ones it filled in from the receipt.</figcaption>
+      </figure>
     </section>
 
     <section class="feature flip">
@@ -489,7 +483,6 @@ footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12
         <p class="fine">Your name and email are only used to reply. See the <a href="privacy.html">privacy statement</a>.</p>
       </div>
       <form id="contact-form" novalidate>
-        <svg class="snip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9M14.5 14.5L20 20M8.1 8.1L12 12"/></svg>
         <div class="pair">
           <label>Name
             <input name="name" autocomplete="name" maxlength="100" required>

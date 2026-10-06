@@ -90,6 +90,12 @@ public partial class MainWindow : Window
         // browser keys and devtools would make this feel like a web page
         core.Settings.AreBrowserAcceleratorKeysEnabled = false;
         core.Settings.AreDevToolsEnabled = false;
+        // zoom, swipe back and typed-value suggestions are browser habits
+        core.Settings.IsZoomControlEnabled = false;
+        core.Settings.IsPinchZoomEnabled = false;
+        core.Settings.IsSwipeNavigationEnabled = false;
+        core.Settings.IsGeneralAutofillEnabled = false;
+        core.Settings.IsPasswordAutosaveEnabled = false;
 #endif
         core.ContextMenuRequested += (_, args) =>
         {

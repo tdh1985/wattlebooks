@@ -11,6 +11,9 @@ window.invoicedesk = {
             if (mod && !e.shiftKey && !e.altKey && (key === 'k' || key === 'n' || key === 's')) {
                 e.preventDefault();
                 ref.invokeMethodAsync('OnShortcut', key);
+            } else if (mod && key === 'a' && !e.altKey && !typing(e.target)) {
+                // select all only means something inside a field
+                e.preventDefault();
             } else if (e.key === '[' && !mod && !e.altKey && !typing(e.target)) {
                 e.preventDefault();
                 ref.invokeMethodAsync('OnShortcut', 'fold');
@@ -34,6 +37,13 @@ window.invoicedesk = {
             }
         });
         document.addEventListener('drop', (e) => { if (outsideDropZone(e)) e.preventDefault(); });
+        // right-click only offers cut, copy and paste where there is text
+        document.addEventListener('contextmenu', (e) => {
+            if (!typing(e.target) && String(getSelection()).length === 0) e.preventDefault();
+        });
+        // the webkit hosts have no setting to turn zoom off, pinch arrives as ctrl+wheel
+        document.addEventListener('wheel', (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+        document.addEventListener('gesturestart', (e) => e.preventDefault());
         this.liftToasts();
     },
 

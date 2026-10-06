@@ -15,23 +15,19 @@
 /* arial tuned to barlow's size so the swap doesn't move the layout */
 @font-face { font-family: "Barlow Fallback"; src: local("Arial"); size-adjust: 95.86%; ascent-override: 104.32%; descent-override: 20.86%; line-gap-override: 0%; }
 @font-face { font-family: "Barlow Condensed Fallback"; src: local("Arial Narrow Bold"), local("ArialNarrow-Bold"); size-adjust: 83.15%; ascent-override: 120.26%; descent-override: 24.05%; line-gap-override: 0%; }
-/* navy chrome and wattle gold so the site looks like the app */
+/* newsprint and navy ink, with wattle gold kept for a few words */
 :root {
-  --paper: #F4F6F9;
-  --surface: #FFFFFF;
-  --ink: #18213A;
-  --muted: #566074;
-  --line: #D8DEE6;
+  --paper: #F6F2E9;
+  --surface: #FFFDF8;
+  --ink: #15294B;
+  --muted: #535C6E;
+  --line: #D6CEBE;
   --navy: #15294B;
   --navy-ink: #CDD6E6;
   --accent: #2E6B57;
-  --accent-ink: #FFFFFF;
-  --accent-soft: #E3EEE8;
   --amber: #F2B233;
   --amber-ink: #15294B;
   --focus: var(--ink);
-  --stamp: #9A5B00;
-  --shade: rgba(21, 41, 75, 0.10);
   --display: "Barlow Condensed", "Barlow Condensed Fallback", "Arial Narrow", "Roboto Condensed", sans-serif;
   --body: "Barlow", "Barlow Fallback", "Segoe UI", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
@@ -39,63 +35,58 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --paper: #0F1524;
-    --surface: #172033;
-    --ink: #E6E9F1;
-    --muted: #9AA3B8;
-    --line: #2A3550;
+    --paper: #0F1626;
+    --surface: #172036;
+    --ink: #EEE9DE;
+    --muted: #A4ABBB;
+    --line: #2D3954;
     --navy: #0A1220;
-    --accent: #5FB592;
-    --accent-ink: #0B1A14;
-    --accent-soft: #17302A;
+    --accent: #6CC09D;
     --amber: #F6C03F;
     --focus: var(--amber);
-    --stamp: var(--amber);
-    --shade: rgba(0, 0, 0, 0.45);
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --paper: #0F1524;
-  --surface: #172033;
-  --ink: #E6E9F1;
-  --muted: #9AA3B8;
-  --line: #2A3550;
+  --paper: #0F1626;
+  --surface: #172036;
+  --ink: #EEE9DE;
+  --muted: #A4ABBB;
+  --line: #2D3954;
   --navy: #0A1220;
-  --accent: #5FB592;
-  --accent-ink: #0B1A14;
-  --accent-soft: #17302A;
+  --accent: #6CC09D;
   --amber: #F6C03F;
   --focus: var(--amber);
-  --stamp: var(--amber);
-  --shade: rgba(0, 0, 0, 0.45);
 }
 
 * { box-sizing: border-box; }
-body {
-  margin: 0;
-  background: var(--paper);
-  color: var(--ink);
-  font: 400 18px/1.6 var(--body);
-  padding-inline: 20px;
-  -webkit-font-smoothing: antialiased;
-}
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 18px/1.6 var(--body); padding-inline: 20px; -webkit-font-smoothing: antialiased; }
 .wrap { max-width: 1160px; margin-inline: auto; }
-h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.02; text-wrap: balance; margin: 0; letter-spacing: 0.005em; }
-h1 { font-size: clamp(42px, 5.6vw, 72px); text-transform: uppercase; }
-h2 { font-size: clamp(34px, 4.6vw, 54px); text-transform: uppercase; }
-h3 { font-size: 26px; text-transform: uppercase; letter-spacing: 0.02em; }
+/* sentence case and tight leading, set like a headline rather than a label */
+h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 0.96; letter-spacing: -0.01em; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(44px, 6vw + 26px, 108px); }
+h2 { font-size: clamp(36px, 4.2vw, 58px); }
 p { margin: 0; }
-a { color: var(--accent); }
+a { color: var(--accent); text-underline-offset: 0.16em; }
+a:hover { text-decoration-thickness: 2px; }
 /* amber on light paper is only 2:1, so light mode rings in ink */
-a:focus-visible, .btn:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 6px; }
-.skip { position: absolute; left: 12px; top: -80px; z-index: 40; background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 6px; font-weight: 600; text-decoration: none; }
-.skip:focus-visible { top: 12px; outline-color: var(--accent); }
-.eyebrow { font: 600 14px/1 var(--body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
-.lede { font-size: 21px; color: var(--muted); max-width: 34em; }
-.shot { display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); box-shadow: 0 30px 60px -30px var(--shade), 0 2px 6px var(--shade); background: var(--surface); }
+a:focus-visible, .btn:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 2px; }
+.skip { position: absolute; left: 12px; top: -80px; z-index: 40; background: var(--ink); color: var(--paper); padding: 10px 16px; font-weight: 600; text-decoration: none; }
+.skip:focus-visible { top: 12px; outline-color: var(--amber); }
+/* a low highlighter stroke under the words rather than a block behind them */
+.hl { background: linear-gradient(transparent 68%, var(--amber) 0 88%, transparent 0); color: inherit; padding-inline: 0.1em; margin-inline: -0.1em; }
+/* a dateline over a thin rule, like the top of a paper */
+.eyebrow { display: block; font: 600 15px/1.3 var(--body); padding-block: 9px; border-bottom: 1px solid var(--ink); }
+.lede { font-size: 21px; max-width: 34em; }
+.fine { font-size: 15px; color: var(--muted); }
+.nowrap { white-space: nowrap; }
+figure { margin: 0; display: grid; gap: 10px; align-content: start; }
+figcaption { font-size: 15px; line-height: 1.5; color: var(--muted); max-width: 72ch; }
+figcaption b { font-weight: 600; color: var(--ink); }
+.shot { display: block; width: 100%; height: auto; border: 1px solid var(--line); background: var(--surface); }
 
-/* top bar */
+/* masthead, navy like the app's sidebar, with a wattle rule under it */
+.top-bar { margin-inline: -20px; padding-inline: 20px; background: var(--navy); border-bottom: 4px solid var(--amber); }
 .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 16px; }
 .top > a { display: block; border-radius: 6px; }
 .top .logo { display: block; height: 44px; width: auto; }
@@ -104,212 +95,158 @@ a:focus-visible, .btn:focus-visible, summary:focus-visible, [tabindex]:focus-vis
 .top nav a:hover { color: var(--amber); }
 /* the ink focus ring would vanish on the navy bar */
 .top a:focus-visible { outline-color: var(--amber); }
+/* the logo link goes right back up past the masthead */
+#top { scroll-margin-top: 240px; }
 
-/* buttons */
-.btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 8px; font: 600 18px/1 var(--body); text-decoration: none; border: 2px solid transparent; }
-.btn.primary { background: var(--accent); color: var(--accent-ink); }
-.btn.primary:hover { filter: brightness(1.08); }
-.btn.ghost { border-color: var(--muted); color: var(--ink); }
-.btn.ghost:hover { border-color: var(--accent); }
+/* outlined in ink, green like the app's own buttons, and wattle under the pointer */
+.btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border: 2px solid var(--ink); border-radius: 3px; background: none; color: var(--ink); font: 600 18px/1 var(--body); text-decoration: none; cursor: pointer; }
+.btn.primary { background: #2E6B57; border-color: #2E6B57; color: #FFFFFF; }
+.btn:hover { background: var(--amber); border-color: var(--amber); color: var(--amber-ink); }
 .btn svg { width: 20px; height: 20px; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px; }
-.fine { font-size: 15px; color: var(--muted); }
-.nowrap { white-space: nowrap; }
 
-/* hero */
-.hero { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 6fr); gap: 48px; align-items: center; padding-block: 40px 72px; }
-.hero-copy { display: grid; gap: 26px; }
-.hero h1 .dim { color: var(--accent); display: block; }
-.hero-visual { position: relative; }
-.hero-visual .shot { max-width: 626px; margin-inline: auto; }
+/* front page: the headline runs the full width, then copy beside the invoice */
+.hero { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 32px 56px; padding-block: 28px 88px; }
+.hero .eyebrow, .hero h1 { grid-column: 1 / -1; }
+.hero-copy { display: grid; gap: 24px; align-content: start; }
+.hero-visual .shot { max-width: 626px; }
 .phone-note { display: none; font-weight: 600; }
-.qr { display: flex; align-items: center; gap: 18px; margin-block: 20px; }
-.qr img { width: 132px; height: 132px; flex: none; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
-.qr p { margin: 0; max-width: 22ch; font-size: 15px; color: var(--muted); }
+.qr { display: flex; align-items: center; gap: 18px; }
+.qr img { width: 132px; height: 132px; flex: none; background: #fff; }
+.qr p { max-width: 22ch; font-size: 15px; color: var(--muted); }
 
 /* the price, as a tax invoice */
-.bill-section { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 56px; align-items: center; padding-block: 72px; border-top: 1px solid var(--line); }
-.bill-copy { display: grid; gap: 20px; }
-.bill {
-  background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 4px;
-  box-shadow: 0 30px 60px -34px var(--shade); padding: 34px 34px 30px; position: relative;
-  border-left: 6px solid var(--accent); font-size: 15px; transform: rotate(-1.2deg);
-}
+.bill-section { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); gap: 56px; align-items: center; padding-block: 64px 96px; border-top: 2px solid var(--ink); }
+.bill-copy { display: grid; gap: 22px; }
+.bill { position: relative; padding: 34px 34px 30px; background: var(--surface); border: 1px solid var(--line); border-left: 6px solid var(--accent); font-size: 15px; transform: rotate(-1.2deg); }
 .bill-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-.bill-head h3 { color: var(--accent); font-size: 30px; letter-spacing: 0.04em; }
+.bill-head h3 { color: var(--accent); font-size: 30px; letter-spacing: 0.04em; text-transform: uppercase; }
 .bill-from { font-size: 14px; color: var(--muted); line-height: 1.45; }
 .bill-from strong { color: var(--ink); font-weight: 600; }
-.bill-meta { font-family: var(--mono); font-size: 13px; color: var(--muted); text-align: right; line-height: 1.6; }
-.bill table { width: 100%; border-collapse: collapse; margin-top: 26px; font-variant-numeric: tabular-nums; }
-.bill th { text-align: left; font: 600 12px/1 var(--body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); padding-bottom: 10px; border-bottom: 1px solid var(--line); }
-.bill th:last-child, .bill td:last-child { text-align: right; }
+.bill-meta { font: 13px/1.6 var(--mono); color: var(--muted); text-align: right; }
+.bill table, .ledger table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.bill table { margin-top: 26px; }
+.bill th, .ledger th { text-align: left; font: 600 12px/1 var(--body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); padding: 0 16px 10px 0; border-bottom: 1px solid var(--line); }
+.bill th:last-child, .bill td:last-child { text-align: right; padding-right: 0; }
 .bill td { padding: 11px 0; border-bottom: 1px dashed var(--line); }
 .bill td:last-child { font-family: var(--mono); }
 .bill .sum td { border-bottom: 0; padding: 6px 0; color: var(--muted); }
-.bill .total td { border-top: 2px solid var(--ink); border-bottom: 0; padding-top: 12px; font-weight: 600; font-size: 18px; color: var(--ink); }
-.stamp {
-  position: absolute; left: 44%; bottom: 20px; transform: rotate(-12deg);
-  font: 700 30px/1 var(--display); letter-spacing: 0.12em; color: var(--stamp);
-  border: 3px solid var(--stamp); border-radius: 6px; padding: 6px 12px 4px; opacity: 0.9;
-}
+.bill .total td { border-bottom: 0; padding-top: 12px; font-weight: 600; font-size: 18px; }
+.bill .total td:last-child { border-top: 1px solid var(--ink); border-bottom: 4px double var(--ink); }
+/* inked like the rubber stamps on the app's dashboard */
+.stamp { position: absolute; left: 44%; bottom: 20px; transform: rotate(-6deg); opacity: 0.9; font: 700 30px/1 var(--display); letter-spacing: 0.12em; color: var(--accent); border: 3px solid; border-radius: 6px; padding: 6px 12px 4px; }
+.tag { font-size: 15px; color: var(--muted); }
 
-/* features */
-.feature { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 56px; align-items: center; padding-block: 72px; border-top: 1px solid var(--line); }
+/* the promo video, full width so the app on screen is readable */
+.watch { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px 56px; align-items: end; padding-block: 24px 88px; }
+.watch figure { grid-column: 1 / -1; margin-top: 20px; }
+.watch video { display: block; width: 100%; height: auto; background: var(--navy); }
+
+/* features, each laid out a little differently */
+.feature { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 32px 56px; padding-block: 80px; }
 .feature.flip { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
 .feature.flip .feature-copy { order: 2; }
+.feature.wide figure { grid-column: 1 / -1; order: -1; }
 .feature-copy { display: grid; gap: 18px; align-content: start; }
-.feature.wide { grid-template-columns: minmax(0, 1fr); gap: 40px; }
-.feature.wide .shot { order: -1; }
-.feature.wide .feature-copy { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-rows: auto 1fr; column-gap: 56px; }
-.feature.wide .feature-copy h2 { grid-row: span 2; }
-.ticks { list-style: none; padding: 0; margin: 4px 0 0; display: grid; gap: 10px; }
-.ticks li { padding-left: 30px; position: relative; }
-.ticks li::before { content: ""; position: absolute; left: 2px; top: 0.5em; width: 14px; height: 8px; border-left: 3px solid var(--accent); border-bottom: 3px solid var(--accent); transform: rotate(-45deg); }
-.tag { display: inline-block; font: 600 13px/1 var(--body); letter-spacing: 0.08em; text-transform: uppercase; background: var(--amber); color: var(--amber-ink); padding: 6px 9px; border-radius: 4px; justify-self: start; }
-.bas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 6px; }
-.bas div { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; background: var(--surface); }
-.bas b { display: block; font: 600 20px/1.1 var(--mono); color: var(--accent); }
-.bas span { font-size: 14px; color: var(--muted); line-height: 1.3; display: block; margin-top: 4px; }
-
-.phones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: start; border-radius: 22px; }
-.phones img { width: 100%; height: auto; border-radius: 22px; box-shadow: 0 24px 50px -26px var(--shade); border: 1px solid var(--line); }
+.points { margin: 6px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--ink); }
+.points li { padding-block: 10px; border-bottom: 1px solid var(--line); }
+/* set out like the labelled boxes on the paper form */
+.bas { margin-top: 6px; border-top: 1px solid var(--ink); }
+.bas div { display: flex; align-items: center; gap: 16px; padding-block: 10px; border-bottom: 1px solid var(--line); }
+.bas b { font: 600 16px/1 var(--mono); background: var(--ink); color: var(--paper); padding: 7px 0; width: 3.2em; text-align: center; }
+.phones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.phones img { width: 100%; height: auto; border-radius: 18px; border: 1px solid var(--line); }
 .phones img:nth-child(2) { margin-top: 36px; }
 
-/* also included */
-.more { padding-block: 72px; border-top: 1px solid var(--line); display: grid; gap: 36px; }
-.more-list { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 56px; }
-.more-list li { break-inside: avoid; padding-block: 14px; border-bottom: 1px solid var(--line); color: var(--muted); }
-.more-list strong { display: block; color: var(--ink); font-weight: 600; }
-
-/* questions */
-.faq { padding-block: 72px; border-top: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 56px; }
-.faq details { border-bottom: 1px solid var(--line); padding-block: 18px; }
-.faq details:first-child { padding-top: 0; }
-.faq summary { cursor: pointer; font-weight: 600; font-size: 20px; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
-.faq summary::-webkit-details-marker { display: none; }
-.faq summary::after { content: "+"; font: 500 24px/1 var(--mono); color: var(--accent); }
-.faq details[open] summary::after { content: "−"; }
-.faq details p { margin-top: 10px; color: var(--muted); max-width: 40em; }
-
-/* other countries */
-.countries { padding-block: 72px; border-top: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); gap: 56px; align-items: start; }
-.countries-copy { display: grid; gap: 18px; }
-.ledger { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
-.ledger table { width: 100%; border-collapse: collapse; font-size: 16px; min-width: 540px; }
-.ledger th { text-align: left; font: 600 12px/1 var(--body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); padding: 16px 18px 12px; border-bottom: 1px solid var(--line); }
-.ledger td { padding: 13px 18px; border-bottom: 1px solid var(--line); vertical-align: top; }
+/* other countries, as a ledger */
+.countries { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px 56px; align-items: end; padding-block: 72px 80px; border-top: 2px solid var(--ink); }
+.countries-copy { display: grid; gap: 14px; }
+.countries .ledger, .currencies { grid-column: 1 / -1; }
+.ledger { overflow-x: auto; margin-top: 20px; }
+.ledger table { font-size: 17px; min-width: 540px; border-block: 3px double var(--ink); }
+.ledger th { padding-top: 14px; }
+.ledger td { padding: 14px 16px 14px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
 .ledger tr:last-child td { border-bottom: 0; }
 .ledger td:first-child { font-weight: 600; white-space: nowrap; }
 .ledger .code { font: 500 13px/1 var(--mono); color: var(--accent); margin-right: 8px; }
 .currencies { font: 500 15px/1.9 var(--mono); color: var(--muted); letter-spacing: 0.04em; }
 
-/* sticky frosted header */
-.top-bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; margin-inline: -20px; padding-inline: 20px; background: color-mix(in oklab, var(--navy) 97%, transparent); backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4); }
+/* short items set like the briefs in a paper */
+.more { display: grid; gap: 32px; padding-block: 80px; }
+.more-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 28px 40px; }
+.more-list li { font-size: 16px; color: var(--muted); }
+.more-list strong { display: block; margin-bottom: 4px; font: 700 23px/1.05 var(--display); color: var(--ink); }
 
-[id] { scroll-margin-top: 96px; }
-#top { scroll-margin-top: 240px; }
-
-/* the promo video, full width so the app on screen is readable */
-.watch { padding-block: 72px; border-top: 1px solid var(--line); display: grid; gap: 36px; }
-.watch-copy { display: grid; gap: 18px; max-width: 62ch; }
-.player { width: 100%; aspect-ratio: 16 / 9; border-radius: 18px; overflow: hidden; background: var(--ink); border: 6px solid var(--ink); box-shadow: 0 40px 80px -30px var(--shade), 0 0 0 1px var(--line); }
-.player video { display: block; width: 100%; height: 100%; object-fit: contain; }
-
-/* hover lift */
-.shot, .phones img, .bill, .player { transition: translate .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s ease; }
-@media (hover: hover) {
-  .shot:hover, .phones img:hover { translate: 0 -6px; box-shadow: 0 44px 70px -30px var(--shade), 0 2px 6px var(--shade); }
-  .btn { transition: translate .2s ease, filter .2s ease, border-color .2s ease; }
-  .btn:hover { translate: 0 -2px; }
-}
-html { scroll-behavior: smooth; }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-
-/* scroll-driven effects, decorative so no fallback */
-@media (prefers-reduced-motion: no-preference) {
-  @supports (animation-timeline: scroll()) {
-    @keyframes settle-bar { to { box-shadow: 0 10px 26px -16px var(--shade); } }
-    .top-bar { animation: settle-bar linear both; animation-timeline: scroll(root); animation-range: 0 120px; }
-  }
-  @supports ((animation-timeline: view()) and (animation-range: entry)) {
-    @keyframes rise-in { from { opacity: 0.4; translate: 0 20px; } }
-    .feature > .shot, .feature .phones, .countries .ledger, .watch .player {
-      animation: rise-in auto cubic-bezier(.2,.7,.2,1) backwards;
-      animation-timeline: view();
-      animation-range: entry 0% entry 90%;
-    }
-    .bill { view-timeline: --bill; }
-    @keyframes thunk { 0%, 55% { opacity: 0; scale: 1.9; } 80% { opacity: 1; scale: 0.94; } 100% { opacity: .9; scale: 1; } }
-    .stamp { animation: thunk auto linear both; animation-timeline: --bill; animation-range: entry 30% cover 45%; }
-  }
-}
-
-/* closing call */
-.closer { margin-block: 24px 56px; background: var(--ink); color: var(--paper); border-radius: 14px; padding: 56px 48px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; align-items: center; }
-.closer h2 { color: var(--paper); }
-.closer p { color: color-mix(in oklab, var(--paper) 72%, var(--ink)); margin-top: 12px; }
-.closer .btn.primary { background: var(--amber); color: var(--amber-ink); }
-.closer .btn.ghost { color: var(--paper); border-color: color-mix(in oklab, var(--paper) 60%, var(--ink)); }
-.closer .btn:focus-visible { outline-color: var(--paper); }
+/* one column of questions; the triangle hangs so long ones wrap cleanly */
+.faq { display: grid; gap: 28px; padding-block: 72px; border-top: 2px solid var(--ink); }
+.faq > div { max-width: 46em; }
+.faq details { padding-block: 8px; }
+.faq summary { cursor: pointer; font-weight: 600; font-size: 20px; line-height: 1.35; padding-left: 1.15em; text-indent: -1.15em; }
+.faq summary::marker { color: var(--accent); }
+.faq details p { margin: 6px 0 10px 1.15em; color: var(--muted); }
 
 /* contact */
-.contact { padding-block: 72px; border-top: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 56px; }
-.contact-copy p { margin-top: 12px; color: var(--muted); max-width: 26em; }
-.contact form { display: grid; gap: 18px; max-width: 560px; }
+.contact { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 32px 56px; padding-block: 72px; }
+.contact-copy { display: grid; gap: 14px; align-content: start; }
+.contact form { display: grid; gap: 18px; max-width: 640px; }
 .contact .pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
 .contact label { display: grid; gap: 6px; font-weight: 600; font-size: 16px; }
-.contact input, .contact textarea { font: 400 17px/1.4 var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--muted); border-radius: 6px; padding: 11px 12px; width: 100%; }
+.contact input, .contact textarea { font: 400 17px/1.4 var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--muted); border-radius: 2px; padding: 11px 12px; width: 100%; }
 .contact textarea { min-height: 150px; resize: vertical; }
 .contact input:focus-visible, .contact textarea:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
 .contact .trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 .contact .send { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 20px; }
-.contact button.btn { cursor: pointer; }
-.contact button.btn:disabled { opacity: 0.6; cursor: default; }
+.btn:disabled { opacity: 0.6; cursor: default; }
 .contact .status { min-height: 1.5em; font-size: 16px; color: var(--muted); }
 .contact .status.bad { color: #B3261E; }
 .contact .status.good { color: var(--accent); font-weight: 600; }
 [data-theme="dark"] .contact .status.bad { color: #FF9C94; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .contact .status.bad { color: #FF9C94; } }
 
-footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; font-size: 15px; color: var(--muted); }
+/* sign-off, one more go at the download without a box around it */
+.closer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 28px 48px; padding-block: 56px 72px; border-top: 2px solid var(--ink); }
+.closer h2 { font-size: clamp(40px, 5vw, 64px); }
+.closer p { margin-top: 12px; color: var(--muted); }
+
+footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding-block: 18px 48px; border-top: 1px solid var(--line); font-size: 15px; color: var(--muted); }
 
 @media (max-width: 900px) {
-  .hero, .bill-section, .feature, .faq, .contact, .closer, .countries, .watch { grid-template-columns: minmax(0, 1fr); gap: 32px; }
-  .feature.flip { grid-template-columns: minmax(0, 1fr); }
+  .hero, .bill-section, .watch, .feature, .feature.flip, .countries, .contact { grid-template-columns: minmax(0, 1fr); }
   .feature.flip .feature-copy { order: 0; }
-  .feature.wide .feature-copy { grid-template-columns: minmax(0, 1fr); }
-  .feature.wide .feature-copy h2 { grid-row: auto; }
-  .hero { padding-top: 16px; }
   .bill { transform: none; }
-  .closer { padding: 40px 28px; }
+}
+@media (max-width: 680px) {
+  .top nav { display: none; }
 }
 @media (max-width: 560px) {
   body { font-size: 17px; }
-  .top nav { display: none; }
-  .more-list { columns: 1; }
   .contact .pair { grid-template-columns: minmax(0, 1fr); }
   .phone-note { display: block; }
   /* no point scanning a code with the phone that shows it */
   .qr { display: none; }
   .ledger table { min-width: 0; }
   .ledger thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  .ledger tr { display: grid; gap: 4px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .ledger tr { display: grid; gap: 4px; padding-block: 14px; border-bottom: 1px solid var(--line); }
   .ledger tr:last-child { border-bottom: 0; }
   .ledger td { display: block; padding: 0; border: 0; }
   .ledger td[data-label]::before { content: attr(data-label) ": "; color: var(--muted); }
   .bill { padding: 24px 20px; }
   .bill-head { flex-direction: column; }
   .bill-meta { text-align: left; }
-  .stamp { font-size: 22px; left: 40%; bottom: 16px; }
-  .bas { grid-template-columns: minmax(0, 1fr); }
+  .stamp { font-size: 22px; left: auto; right: 20px; top: 70px; bottom: auto; }
   /* one phone at a time, big enough to read */
   .phones { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px 4px 16px; margin-inline: -4px; }
-  .phones img { flex: 0 0 74%; width: 74%; min-width: 0; scroll-snap-align: center; border-radius: 18px; }
+  .phones img { flex: 0 0 74%; width: 74%; min-width: 0; scroll-snap-align: center; }
   .phones img:nth-child(2) { margin-top: 0; }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .hero-visual .shot { animation: rise 0.9s cubic-bezier(.2,.7,.2,1) both; }
-  @keyframes rise { from { transform: translateY(18px); } to { transform: none; } }
+  html { scroll-behavior: smooth; }
+  /* the stamp lands as the invoice scrolls in; decorative, so no fallback */
+  @supports ((animation-timeline: view()) and (animation-range: entry)) {
+    .bill { view-timeline: --bill; }
+    @keyframes thunk { 0%, 55% { opacity: 0; scale: 1.9; } 80% { opacity: 1; scale: 0.94; } 100% { opacity: .9; scale: 1; } }
+    .stamp { animation: thunk auto linear both; animation-timeline: --bill; animation-range: entry 30% cover 45%; }
+  }
 }
 </style>
 
@@ -331,9 +268,9 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
 
   <main id="top">
     <section class="hero">
+      <p class="eyebrow">For Australian sole traders</p>
+      <h1>Tax invoices, GST and your BAS. <span class="hl">No&nbsp;monthly&nbsp;fee.</span></h1>
       <div class="hero-copy">
-        <span class="eyebrow">For Australian sole traders</span>
-        <h1>Tax invoices, GST and your BAS. <span class="dim">No monthly fee.</span></h1>
         <p class="lede">Wattlebooks is a free, open-source invoicing app for tradies and freelancers on Windows, Mac and Linux. It runs on your own computer, so your books stay with you.</p>
         <p class="phone-note">Wattlebooks runs on your computer. Open this page on it to download.</p>
         <div class="actions">
@@ -341,14 +278,15 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
             Get it for Windows
           </a>
-          <a class="btn ghost" href="https://github.com/tdh1985/wattlebooks/releases/latest">Mac and Linux</a>
+          <a class="btn" href="https://github.com/tdh1985/wattlebooks/releases/latest">Mac and Linux</a>
         </div>
         <p class="fine">Windows installs from the Microsoft Store. Or download a file: <a href="https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks-macos-arm64.tar.gz">Mac with Apple silicon</a>, <a href="https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks-macos-x64.tar.gz">Mac with Intel</a>, <a href="https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks-linux-x64.tar.gz">Linux</a> or the <a href="https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks.exe">Windows .exe</a>.</p>
         <p class="fine">Free and open source, and set up for <a href="#countries">NZ, the UK, Canada and the US</a>.</p>
       </div>
-      <div class="hero-visual">
+      <figure class="hero-visual">
         <img class="shot" src="img/invoice-preview.webp" width="626" height="626" fetchpriority="high" alt="A tax invoice made in Wattlebooks for Blue Gum Physio, with the ABN, three lines of work, GST of $404.00 and a total of $4,444.00">
-      </div>
+        <figcaption><b>Made in Wattlebooks.</b> A tax invoice for Blue Gum Physio, with the ABN on it and $404.00 of GST.</figcaption>
+      </figure>
     </section>
 
     <section class="bill-section" id="price">
@@ -379,45 +317,47 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
     </section>
 
     <section class="watch" id="watch">
-      <div class="watch-copy">
-        <h2>See it in under a minute</h2>
-        <p class="lede">Your first tax invoice, a receipt read for you, your BAS figures and the five countries it's set up for.</p>
-        <p class="fine">It has a voiceover, and captions are on so you can watch it with the sound off.</p>
-      </div>
-      <div class="player">
+      <h2>See it in under a minute</h2>
+      <p class="lede">Your first tax invoice, a receipt read for you, your BAS figures and the five countries it's set up for.</p>
+      <figure>
         <!-- nothing downloads until someone scrolls down and presses play -->
         <video controls playsinline preload="none" loading="lazy" poster="img/promo-poster.webp" width="1920" height="1080">
           <source src="img/promo.mp4" type="video/mp4">
           <track kind="captions" srclang="en-AU" label="English" src="img/promo.vtt" default>
           <a href="img/promo.mp4">Watch the video</a>
         </video>
-      </div>
+      </figure>
     </section>
 
     <section class="feature" id="features">
       <div class="feature-copy">
-        <span class="eyebrow">Getting paid</span>
         <h2>Know who owes you, and chase them politely</h2>
         <p>Every invoice carries your ABN, the GST and the "Tax invoice" heading. Unpaid invoices hang on the dashboard at their due date, stamped with how late they are, above this month's cash book and your GST for the quarter.</p>
-        <ul class="ticks">
+        <ul class="points">
           <li>Email an invoice in one click, with the PDF attached in classic Outlook</li>
           <li>Chase late payers with a friendly, firm or final reminder</li>
           <li>Quotes that turn into invoices, and invoices that repeat monthly</li>
         </ul>
       </div>
-      <img class="shot" src="img/dashboard.webp" srcset="img/dashboard-800.webp 800w, img/dashboard.webp 1470w" sizes="(max-width: 900px) calc(100vw - 40px), 620px" loading="lazy" width="1470" height="1295" alt="The dashboard showing $2,992.50 owed by clients, two invoices stamped late on a rail of due dates, and September's cash book">
+      <figure>
+        <img class="shot" src="img/dashboard.webp" srcset="img/dashboard-800.webp 800w, img/dashboard.webp 1470w" sizes="(max-width: 900px) calc(100vw - 40px), 620px" loading="lazy" width="1470" height="1295" alt="The dashboard showing $2,992.50 owed by clients, two invoices stamped late on a rail of due dates, and September's cash book">
+        <figcaption><b>The dashboard.</b> Two invoices stamped late on the rail of due dates, above September's cash book.</figcaption>
+      </figure>
     </section>
 
     <section class="feature wide">
+      <h2>Drop in a receipt and it fills in the expense for you</h2>
       <div class="feature-copy">
-        <h2>Drop in a receipt and it fills in the expense for you</h2>
         <p>Drag a photo or PDF of a receipt onto the Money page. Wattlebooks reads the supplier, date, amount and GST, and highlights what it filled so you can check it.</p>
         <p class="fine">Uses the text reader built into Windows, so the receipt never leaves your computer.</p>
       </div>
-      <img class="shot" src="img/receipt-scan.webp" srcset="img/receipt-scan-800.webp 800w, img/receipt-scan-1200.webp 1200w, img/receipt-scan.webp 1800w" sizes="(max-width: 1160px) calc(100vw - 40px), 1120px" loading="lazy" width="1800" height="1090" alt="An Ampol fuel receipt dropped onto a new expense, with the amount, GST, date and supplier filled in">
+      <figure>
+        <img class="shot" src="img/receipt-scan.webp" srcset="img/receipt-scan-800.webp 800w, img/receipt-scan-1200.webp 1200w, img/receipt-scan.webp 1800w" sizes="(max-width: 1160px) calc(100vw - 40px), 1120px" loading="lazy" width="1800" height="1090" alt="An Ampol fuel receipt dropped onto a new expense, with the amount, GST, date and supplier filled in">
+        <figcaption><b>The Money page.</b> The highlighted fields are the ones it filled in from the receipt.</figcaption>
+      </figure>
     </section>
 
-    <section class="feature">
+    <section class="feature flip">
       <div class="feature-copy">
         <h2>Your BAS figures, ready when the quarter ends</h2>
         <p>Reports work out the boxes you fill in on your BAS for any quarter or financial year, plus a profit and loss. Save them as PDF or CSV for your accountant.</p>
@@ -427,15 +367,17 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
           <div><b>1B</b><span>GST on purchases</span></div>
         </div>
       </div>
-      <img class="shot" src="img/reports.webp" loading="lazy" width="1500" height="1295" alt="The BAS worksheet for July to September 2026: G1 $5,681.84, 1A $515.36, 1B $93.95, GST to pay $421.41">
+      <figure>
+        <img class="shot" src="img/reports.webp" loading="lazy" width="1500" height="1295" alt="The BAS worksheet for July to September 2026: G1 $5,681.84, 1A $515.36, 1B $93.95, GST to pay $421.41">
+        <figcaption><b>The BAS worksheet</b> for July to September 2026, with $421.41 of GST to pay.</figcaption>
+      </figure>
     </section>
 
     <section class="countries" id="countries">
+      <h2>Not in Australia?</h2>
       <div class="countries-copy">
-        <span class="eyebrow">Not in Australia?</span>
-        <h2>Also on the <a href="https://apps.microsoft.com/detail/9nhxgb9bdrr1">Microsoft Store</a> and set up for four more countries</h2>
+        <p class="lede">It's also on the <a href="https://apps.microsoft.com/detail/9nhxgb9bdrr1">Microsoft Store</a> and set up for four more countries.</p>
         <p>Pick your country and the tax, tax number, bank details, financial year and tax return follow. Clients can be anywhere in the world, billed in their own currency.</p>
-        <p class="currencies">AUD NZD GBP CAD USD EUR SGD HKD CHF SEK NOK DKK ZAR</p>
       </div>
       <div class="ledger">
         <table>
@@ -449,11 +391,12 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
           </tbody>
         </table>
       </div>
+      <p class="currencies">AUD NZD GBP CAD USD EUR SGD HKD CHF SEK NOK DKK ZAR</p>
     </section>
 
-    <section class="feature flip" id="phone">
+    <section class="feature" id="phone">
       <div class="feature-copy">
-        <span class="tag">New · free pilot</span>
+        <p class="tag">New, and free while it's a pilot.</p>
         <h2>Snap receipts on site with your phone</h2>
         <p>The optional phone app sends receipt photos and quick invoices back to your computer, and shows who still owes you. It works offline and catches up when you have signal.</p>
         <p>To set it up, sign in under Settings &gt; Phone in Wattlebooks on your computer. Then open <a class="nowrap" href="https://app.wattlebooks.work">app.wattlebooks.work</a> on your phone, sign in with the same email and add it to your home screen.</p>
@@ -463,15 +406,18 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
         </div>
         <p class="fine">Works in the browser on iPhone and Android. Your computer stays the only full copy of your books.</p>
       </div>
-      <div class="phones" tabindex="0" role="region" aria-label="Phone app screens">
-        <img src="img/phone-owes.webp" loading="lazy" width="527" height="1136" alt="Phone screen listing who owes you: $2,992.50 owed, $2,233.50 overdue">
-        <img src="img/phone-snap.webp" loading="lazy" width="525" height="1136" alt="Phone screen with a photo of a fuel receipt and a note">
-        <img src="img/phone-quick.webp" loading="lazy" width="528" height="1136" alt="Phone screen starting a quick invoice for Salt and Pine Bakery">
-      </div>
+      <figure>
+        <div class="phones" tabindex="0" role="region" aria-label="Phone app screens">
+          <img src="img/phone-owes.webp" loading="lazy" width="527" height="1136" alt="Phone screen listing who owes you: $2,992.50 owed, $2,233.50 overdue">
+          <img src="img/phone-snap.webp" loading="lazy" width="525" height="1136" alt="Phone screen with a photo of a fuel receipt and a note">
+          <img src="img/phone-quick.webp" loading="lazy" width="528" height="1136" alt="Phone screen starting a quick invoice for Salt and Pine Bakery">
+        </div>
+        <figcaption><b>The phone app.</b> Who owes you, a fuel receipt with a note, and a quick invoice for Salt and Pine Bakery.</figcaption>
+      </figure>
     </section>
 
     <section class="more">
-      <h2>Also in the box</h2>
+      <h2>A few more things it does</h2>
       <ul class="more-list">
         <li><strong>Statements</strong>Send a client everything they owe, aged into 30, 60 and 90 days.</li>
         <li><strong>How late each client pays</strong>See each client's usual delay, and what's likely to land in the next 30 days.</li>
@@ -485,7 +431,7 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
     </section>
 
     <section class="faq" id="questions">
-      <h2>Questions</h2>
+      <h2>Things people ask</h2>
       <div>
         <details open>
           <summary>Is it really free?</summary>
@@ -532,7 +478,7 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
 
     <section class="contact" id="contact" aria-labelledby="contact-title">
       <div class="contact-copy">
-        <h2 id="contact-title">Get in touch</h2>
+        <h2 id="contact-title">Send a message</h2>
         <p>Found a bug, or want your country's tax rules added? Send a message and you'll get a reply by email, or <a href="https://github.com/tdh1985/wattlebooks/issues">open an issue on GitHub</a>.</p>
         <p class="fine">Your name and email are only used to reply. See the <a href="privacy.html">privacy statement</a>.</p>
       </div>
@@ -561,12 +507,12 @@ footer { padding-block: 0 48px; display: flex; flex-wrap: wrap; justify-content:
 
     <section class="closer">
       <div>
-        <h2>Send your next invoice from Wattlebooks</h2>
+        <h2>Got an invoice to send?</h2>
         <p>Free for Windows, with Mac and Linux versions too.</p>
       </div>
       <div class="actions">
         <a class="btn primary" href="https://apps.microsoft.com/detail/9nhxgb9bdrr1">Get it for Windows</a>
-        <a class="btn ghost" href="https://github.com/tdh1985/wattlebooks">See it on GitHub</a>
+        <a class="btn" href="https://github.com/tdh1985/wattlebooks">See it on GitHub</a>
       </div>
     </section>
   </main>

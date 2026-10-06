@@ -1,5 +1,6 @@
 @* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
 @implements IDisposable
+@implements IHandleEvent
 @inject SearchService Search
 @inject InvoiceService InvoiceStore
 @inject NavigationManager Nav
@@ -37,7 +38,7 @@
                     <li class="palette-group" role="presentation">@item.Group</li>
                 }
                 <li id="palette-option-@index" role="option" aria-selected="@Aria.Bool(index == _active)" class="palette-item @(index == _active ? "active" : null)"
-                    @onmouseenter="() => _active = index" @onclick="() => Go(item)">
+                    @onmouseenter="() => Hover(index)" @onclick="() => Go(item)">
                     <Icon Name="@item.Icon" Size="16" />
                     <span class="palette-title">@item.Title</span>
                     <span class="palette-sub">@item.Subtitle</span>
@@ -142,6 +143,16 @@
         }
     }
 
+    // typing only changes the screen once results are back, so events render by hand
+    Task IHandleEvent.HandleEventAsync(EventCallbackWorkItem callback, object? arg) => callback.InvokeAsync(arg);
+
+    void Hover(int index)
+    {
+        if (_active == index) return;
+        _active = index;
+        StateHasChanged();
+    }
+
     async Task OnInput(ChangeEventArgs e)
     {
         _query = e.Value?.ToString() ?? "";
@@ -231,13 +242,17 @@
                 break;
             case "Enter" when _items.Count > 0:
                 await Go(_items[_active]);
-                break;
+                return;
+            default:
+                return;
         }
+        StateHasChanged();
     }
 
     async Task Go(Item item)
     {
         Close();
+        StateHasChanged();
         if (item.Run is not null)
         {
             try { await item.Run(); }

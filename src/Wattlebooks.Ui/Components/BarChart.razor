@@ -1,0 +1,187 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@* money in above the line and out below, with a table view twin for the exact figures *@
+@inject IJSRuntime JS
+<div class="viz">
+    <div class="viz-head">
+        <div class="viz-legend" aria-hidden="@Aria.Hidden(!_table)">
+            <span class="key"><i class="key-in"></i>Money in</span>
+            <span class="key"><i class="key-out"></i>Money out</span>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" aria-pressed="@Aria.Bool(_table)" @onclick="() => _table = !_table">
+            <Icon Name="@(_table ? "dashboard" : "hash")" Size="14" /> @(_table ? "Show chart" : "Show as table")
+        </button>
+    </div>
+
+    @if (_table)
+    {
+        <table class="table">
+            <thead><tr><th>Month</th><th class="num">Money in</th><th class="num">Money out</th><th class="num">Difference</th></tr></thead>
+            <tbody>
+                @foreach (var m in Months)
+                {
+                    <tr>
+                        <td>@m.Month.ToString("MMMM yyyy", CultureInfo.InvariantCulture)</td>
+                        <td class="num">@Format.Money(m.InCents)</td>
+                        <td class="num">@Format.Money(m.OutCents)</td>
+                        <td class="num">@Format.Money(m.InCents - m.OutCents)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="viz-plot" @onmouseleave="() => _hover = null">
+            <svg viewBox="0 0 @W @H" role="group" aria-label="Money in above the line and money out below it, for each of the last 12 months. Use the arrow keys to move between months, or Show as table for the figures.">
+                @foreach (var tick in Ticks)
+                {
+                    var y = Y(tick);
+                    <line class="@(tick == 0 ? "axis" : "grid")" x1="@F(Left)" x2="@F(W - Right)" y1="@F(y)" y2="@F(y)" />
+                    @if (tick != 0)
+                    {
+                        @SvgText("tick", Left - 6, y + 3.5, "end", TickLabel(Math.Abs(tick)))
+                    }
+                }
+                @for (var i = 0; i < Months.Count; i++)
+                {
+                    var index = i;
+                    var m = Months[i];
+                    var bandX = Left + index * Band;
+                    var center = bandX + Band / 2;
+                    <g id="@_id-@index" class="band @(_hover == index ? "on" : null)" role="img" tabindex="@(index == Current ? 0 : -1)"
+                       aria-label="@($"{m.Month.ToString("MMMM yyyy", CultureInfo.InvariantCulture)}: money in {Format.Money(m.InCents)}, money out {Format.Money(m.OutCents)}")"
+                       @onmouseenter="() => _hover = index" @onfocus="() => Focused(index)" @onblur="() => _hover = null" @onkeydown="OnBandKey">
+                        <rect class="hit" x="@F(bandX + 1)" y="@F(Top)" width="@F(Band - 2)" height="@F(PlotHeight)" rx="4" />
+                        @if (m.InCents > 0)
+                        {
+                            <path class="bar-in" d="@BarPath(center - BarWidth / 2, m.InCents)" />
+                        }
+                        @if (m.OutCents > 0)
+                        {
+                            <path class="bar-out" d="@BarPath(center - BarWidth / 2, -m.OutCents)" />
+                        }
+                        @SvgText(index == Months.Count - 1 ? "xlabel current" : "xlabel", center, H - 6, "middle", Format.MonthShort(m.Month)[..1])
+                    </g>
+                }
+            </svg>
+            @if (Months.All(m => m.InCents == 0 && m.OutCents == 0))
+            {
+                <div class="viz-empty">The chart fills in as money comes in and goes out.</div>
+            }
+            @if (_hover is { } h && h < Months.Count)
+            {
+                var hovered = Months[h];
+                var pct = (Left + h * Band + Band / 2) / W * 100;
+                <div class="viz-tip" style="left: @F(Math.Clamp(pct, 30, 70))%">
+                    <div class="when">@hovered.Month.ToString("MMMM yyyy", CultureInfo.InvariantCulture)</div>
+                    <div class="line"><i class="stroke key-in"></i><b>@Format.Money(hovered.InCents)</b><span>Money in</span></div>
+                    <div class="line"><i class="stroke key-out"></i><b>@Format.Money(hovered.OutCents)</b><span>Money out</span></div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    // sized for the dashboard's side column, so the text stays readable
+    const double W = 340;
+    const double H = 200;
+    const double Left = 42;
+    const double Right = 4;
+    const double Top = 8;
+    const double Bottom = 22;
+    const double BarWidth = 14;
+    const double Radius = 3;
+
+    [Parameter, EditorRequired] public IReadOnlyList<MonthBar> Months { get; set; } = [];
+
+    int? _hover;
+    bool _table;
+    // one tab stop for the chart, the arrows move between months
+    int? _current;
+    readonly string _id = "band-" + Guid.NewGuid().ToString("n")[..8];
+
+    int Current => Math.Clamp(_current ?? Months.Count - 1, 0, Math.Max(0, Months.Count - 1));
+
+    void Focused(int index)
+    {
+        _hover = index;
+        _current = index;
+    }
+
+    async Task OnBandKey(KeyboardEventArgs e)
+    {
+        var next = e.Key switch
+        {
+            "ArrowLeft" => Current - 1,
+            "ArrowRight" => Current + 1,
+            "Home" => 0,
+            "End" => Months.Count - 1,
+            _ => -1,
+        };
+        if (next < 0 || next >= Months.Count || next == Current) return;
+        _current = next;
+        await JS.InvokeVoidAsync("wattlebooks.focus", $"#{_id}-{next}");
+    }
+
+    double PlotHeight => H - Top - Bottom;
+    double Band => (W - Left - Right) / Math.Max(1, Months.Count);
+    long MaxIn => Months.Count == 0 ? 0 : Months.Max(m => m.InCents);
+    long MaxOut => Months.Count == 0 ? 0 : Months.Max(m => m.OutCents);
+    long Step => NiceStep(Math.Max(MaxIn, MaxOut));
+    // in and out share one scale so a small spend looks small
+    long Above => Math.Max(Step, RoundUp(MaxIn));
+    // spending is usually small, so the space below the line fits it snugly
+    long Below => Math.Max(Step / 4, (long)(MaxOut * 1.1));
+
+    long RoundUp(long cents) => (long)Math.Ceiling(cents / (double)Step) * Step;
+
+    IEnumerable<long> Ticks
+    {
+        get
+        {
+            for (var v = -(Below / Step) * Step; v <= Above; v += Step) yield return v;
+        }
+    }
+
+    // money out is passed in as negative cents and drawn below the line
+    double Y(long cents) => Top + (Above - cents) / (double)(Above + Below) * PlotHeight;
+
+    // rounded at the data end, square where it meets the line
+    string BarPath(double x, long cents)
+    {
+        var y0 = Y(0);
+        var y1 = Y(cents);
+        var h = Math.Abs(y1 - y0);
+        var r = Math.Min(Radius, Math.Min(h, BarWidth / 2));
+        var d = cents > 0 ? 1 : -1;
+        var tip = y1 + d * r;
+        return $"M{F(x)},{F(y0)}V{F(tip)}Q{F(x)},{F(y1)} {F(x + r)},{F(y1)}H{F(x + BarWidth - r)}Q{F(x + BarWidth)},{F(y1)} {F(x + BarWidth)},{F(tip)}V{F(y0)}Z";
+    }
+
+    // razor reserves <text> for itself so svg labels go out as encoded markup
+    static MarkupString SvgText(string cssClass, double x, double y, string anchor, string content) =>
+        new($"<text class=\"{cssClass}\" x=\"{F(x)}\" y=\"{F(y)}\" text-anchor=\"{anchor}\">{System.Net.WebUtility.HtmlEncode(content)}</text>");
+
+    static long NiceStep(long maxCents)
+    {
+        if (maxCents <= 0) return 10000;
+        var raw = maxCents / 2.0;
+        var magnitude = Math.Pow(10, Math.Floor(Math.Log10(raw)));
+        var normal = raw / magnitude;
+        var nice = normal <= 1 ? 1 : normal <= 2 ? 2 : normal <= 2.5 ? 2.5 : normal <= 5 ? 5 : 10;
+        return Math.Max(100, (long)(nice * magnitude));
+    }
+
+    // whole thousands read as 4k so the labels fit the narrow column
+    static string TickLabel(long cents)
+    {
+        var symbol = Currencies.Find(Format.Country.Currency)!.Symbol;
+        var units = cents / 100m;
+        return units >= 1000 && units % 1000 == 0
+            ? symbol + (units / 1000).ToString("0", CultureInfo.InvariantCulture) + "k"
+            : symbol + units.ToString("#,0", CultureInfo.InvariantCulture);
+    }
+
+    static string F(double v) => v.ToString("0.##", CultureInfo.InvariantCulture);
+}

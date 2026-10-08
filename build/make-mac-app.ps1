@@ -8,7 +8,7 @@
 
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
-$project = Join-Path $repo 'src/InvoiceDesk.Desktop'
+$project = Join-Path $repo 'src/Wattlebooks.Desktop'
 [xml]$props = Get-Content (Join-Path $repo 'Directory.Build.props')
 $version = ($props.Project.PropertyGroup | Where-Object { $_.Version } | Select-Object -First 1).Version
 
@@ -21,7 +21,7 @@ foreach ($build in @(@{ Profile = 'MacArm'; Rid = 'osx-arm64'; Arch = 'arm64' },
     $app = Join-Path $staging 'Wattlebooks.app'
     New-Item -ItemType Directory -Force (Join-Path $app 'Contents/MacOS'), (Join-Path $app 'Contents/Resources') | Out-Null
     Copy-Item (Join-Path $repo "dist/$($build.Rid)/Wattlebooks") (Join-Path $app 'Contents/MacOS/Wattlebooks')
-    Copy-Item (Join-Path $project 'Mac/InvoiceDesk.icns') (Join-Path $app 'Contents/Resources/InvoiceDesk.icns')
+    Copy-Item (Join-Path $project 'Mac/Wattlebooks.icns') (Join-Path $app 'Contents/Resources/Wattlebooks.icns')
     (Get-Content (Join-Path $project 'Mac/Info.plist') -Raw).Replace('$(Version)', $version) |
         Set-Content (Join-Path $app 'Contents/Info.plist') -NoNewline -Encoding utf8NoBOM
 
@@ -39,7 +39,7 @@ foreach ($build in @(@{ Profile = 'MacArm'; Rid = 'osx-arm64'; Arch = 'arm64' },
         }
         foreach ($item in @(
                 @{ Path = 'Wattlebooks.app/Contents/Info.plist'; Mode = $fileMode },
-                @{ Path = 'Wattlebooks.app/Contents/Resources/InvoiceDesk.icns'; Mode = $fileMode },
+                @{ Path = 'Wattlebooks.app/Contents/Resources/Wattlebooks.icns'; Mode = $fileMode },
                 @{ Path = 'Wattlebooks.app/Contents/MacOS/Wattlebooks'; Mode = $dirMode })) {
             $entry = [Formats.Tar.PaxTarEntry]::new([Formats.Tar.TarEntryType]::RegularFile, $item.Path)
             $entry.Mode = $item.Mode

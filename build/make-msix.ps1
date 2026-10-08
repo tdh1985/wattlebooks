@@ -19,7 +19,7 @@ if (-not $sdk) { throw 'makeappx.exe and makepri.exe not found, install the Wind
 # files left from an earlier publish would ship in the package
 $store = Join-Path $repo 'dist/store'
 if (Test-Path $store) { Remove-Item $store -Recurse -Force }
-dotnet publish (Join-Path $repo 'src/InvoiceDesk.App') -p:PublishProfile=StoreFolder
+dotnet publish (Join-Path $repo 'src/Wattlebooks.App') -p:PublishProfile=StoreFolder
 if ($LASTEXITCODE -ne 0) { throw 'publish failed' }
 
 $staging = Join-Path $repo 'dist/msix'

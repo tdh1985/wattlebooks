@@ -1,0 +1,74 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@implements IDisposable
+@inject ShortcutService Shortcuts
+@inject IJSRuntime JS
+
+@if (Open)
+{
+    <dialog @ref="_dialog" class="drawer @(Wide ? "wide" : null)" aria-labelledby="drawer-title">
+        <header class="drawer-head">
+            <h2 id="drawer-title">@Title</h2>
+            <button type="button" class="btn btn-ghost btn-icon" aria-label="Close" @onclick="CloseAsync"><Icon Name="x" /></button>
+        </header>
+        <div class="drawer-body">@ChildContent</div>
+        @if (Footer is not null)
+        {
+            <footer class="drawer-foot">@Footer</footer>
+        }
+    </dialog>
+}
+
+@code {
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public bool Wide { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? Footer { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    readonly string _key = Guid.NewGuid().ToString("n");
+    ElementReference _dialog;
+    DotNetObjectReference<Drawer>? _ref;
+    bool _shown;
+
+    IDisposable? _overlay;
+
+    // esc goes to whichever overlay opened last
+    protected override void OnParametersSet()
+    {
+        if (Open) _overlay ??= Shortcuts.AddOverlay(() => _ = InvokeAsync(CloseAsync));
+        else ReleaseOverlay();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Open && !_shown)
+        {
+            _shown = true;
+            _ref ??= DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("wattlebooks.showDialog", _dialog, _key, _ref, ".drawer-body input:not([type=file]):not([type=checkbox]), .drawer-body textarea, .drawer-body select");
+        }
+        else if (!Open && _shown)
+        {
+            _shown = false;
+            await JS.InvokeVoidAsync("wattlebooks.closeDialog", _key);
+        }
+    }
+
+    Task CloseAsync() => OnClose.InvokeAsync();
+
+    [JSInvokable]
+    public Task CloseFromBackdrop() => InvokeAsync(CloseAsync);
+
+    void ReleaseOverlay()
+    {
+        _overlay?.Dispose();
+        _overlay = null;
+    }
+
+    public void Dispose()
+    {
+        ReleaseOverlay();
+        _ref?.Dispose();
+    }
+}

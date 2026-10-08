@@ -58,15 +58,15 @@ for scale, k in ((100, 1), (200, 2)):
     save(render(art / 'wattlebooks-tile.svg', 150 * k), msix / f'Square150x150Logo.scale-{scale}.png')
     save(render(art / 'wattlebooks-tile-wide.svg', 310 * k, 150 * k), msix / f'Wide310x150Logo.scale-{scale}.png')
 
-write_ico(root / 'src' / 'InvoiceDesk.App' / 'Assets' / 'app.ico', [icon(px) for px in (16, 24, 32, 48, 64, 128, 256)])
-save(icon(256), root / 'src' / 'InvoiceDesk.Desktop' / 'Assets' / 'icon.png')
+write_ico(root / 'src' / 'Wattlebooks.App' / 'Assets' / 'app.ico', [icon(px) for px in (16, 24, 32, 48, 64, 128, 256)])
+save(icon(256), root / 'src' / 'Wattlebooks.Desktop' / 'Assets' / 'icon.png')
 
 # mac icons sit inside a margin so they line up with the rest of the dock
 mac = render(big, 1024, pad=100)
-mac.save(root / 'src' / 'InvoiceDesk.Desktop' / 'Mac' / 'InvoiceDesk.icns', format='ICNS')
-print('src/InvoiceDesk.Desktop/Mac/InvoiceDesk.icns', mac.size)
+mac.save(root / 'src' / 'Wattlebooks.Desktop' / 'Mac' / 'Wattlebooks.icns', format='ICNS')
+print('src/Wattlebooks.Desktop/Mac/Wattlebooks.icns', mac.size)
 
-img = root / 'src' / 'InvoiceDesk.Ui' / 'wwwroot' / 'img'
+img = root / 'src' / 'Wattlebooks.Ui' / 'wwwroot' / 'img'
 img.mkdir(exist_ok=True)
 for name in ('wattlebooks-icon.svg', 'wattlebooks-icon-small.svg', 'wattlebooks-logo.svg', 'wattlebooks-logo-dark.svg',
              'wattlebooks-wordmark.svg'):

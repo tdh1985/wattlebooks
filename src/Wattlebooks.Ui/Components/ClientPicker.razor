@@ -1,0 +1,121 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@inject IJSRuntime JS
+
+<div class="picker">
+    <button type="button" id="@Id" class="input picker-button @(Invalid ? "invalid" : null)" disabled="@Disabled"
+            aria-haspopup="listbox" aria-expanded="@Aria.Bool(_open)" @onclick="ToggleAsync">
+        @if (Selected is { } client)
+        {
+            <span class="truncate">@client.Name</span>
+        }
+        else
+        {
+            <span class="muted">Choose a client</span>
+        }
+        <Icon Name="chevron-down" Size="16" Class="muted" />
+    </button>
+
+    @if (_open)
+    {
+        <div class="picker-scrim" @onclick="Close"></div>
+        <div class="picker-pop" role="dialog" aria-label="Choose a client">
+            <div class="search">
+                <Icon Name="search" Size="16" />
+                <input id="picker-search" class="input" placeholder="Search clients" autocomplete="off"
+                       @bind="_query" @bind:event="oninput" @bind:after="() => _active = 0" @onkeydown="OnKey" />
+            </div>
+            <ul class="picker-list" role="listbox">
+                @for (var i = 0; i < Matches.Count; i++)
+                {
+                    var index = i;
+                    var option = Matches[i];
+                    <li role="option" aria-selected="@Aria.Bool(option.Id == ClientId)" class="@(index == _active ? "active" : null)"
+                        @onmouseenter="() => _active = index" @onclick="() => PickAsync(option)">
+                        <span class="truncate">@option.Name</span>
+                        @if (option.Id == ClientId)
+                        {
+                            <Icon Name="check" Size="15" />
+                        }
+                    </li>
+                }
+                @if (Matches.Count == 0)
+                {
+                    <li class="picker-none">No clients match.</li>
+                }
+            </ul>
+            <button type="button" class="picker-new" @onclick="NewClientAsync">
+                <Icon Name="plus" Size="15" />
+                @(_query.Trim().Length > 0 ? $"Add \"{_query.Trim()}\" as a new client" : "Add a new client")
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int ClientId { get; set; }
+    [Parameter] public EventCallback<int> ClientIdChanged { get; set; }
+    [Parameter] public IReadOnlyList<ClientOption> Clients { get; set; } = [];
+    [Parameter] public EventCallback<string> OnNewClient { get; set; }
+    [Parameter] public string? Id { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public bool Invalid { get; set; }
+
+    bool _open;
+    string _query = "";
+    int _active;
+
+    ClientOption? Selected => Clients.FirstOrDefault(c => c.Id == ClientId);
+
+    List<ClientOption> Matches => Clients
+        .Where(c => !c.IsArchived || c.Id == ClientId)
+        .Where(c => _query.Trim().Length == 0 || c.Name.Contains(_query.Trim(), StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+    async Task ToggleAsync()
+    {
+        _open = !_open;
+        _query = "";
+        _active = 0;
+        if (!_open) return;
+        StateHasChanged();
+        await Task.Yield();
+        await JS.InvokeVoidAsync("wattlebooks.focus", "#picker-search");
+    }
+
+    void Close() => _open = false;
+
+    async Task PickAsync(ClientOption client)
+    {
+        _open = false;
+        await ClientIdChanged.InvokeAsync(client.Id);
+    }
+
+    async Task NewClientAsync()
+    {
+        _open = false;
+        await OnNewClient.InvokeAsync(_query.Trim());
+    }
+
+    async Task OnKey(KeyboardEventArgs e)
+    {
+        var matches = Matches;
+        switch (e.Key)
+        {
+            case "ArrowDown":
+                _active = Math.Min(matches.Count - 1, _active + 1);
+                break;
+            case "ArrowUp":
+                _active = Math.Max(0, _active - 1);
+                break;
+            case "Enter" when matches.Count > 0:
+                await PickAsync(matches[Math.Clamp(_active, 0, matches.Count - 1)]);
+                break;
+            case "Enter":
+                await NewClientAsync();
+                break;
+            case "Escape":
+                _open = false;
+                break;
+        }
+    }
+}

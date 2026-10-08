@@ -1,0 +1,128 @@
+// Copyright (c) 2026 Tim Downey. Licensed under the MIT License.
+
+using System.Globalization;
+using System.Text;
+using Wattlebooks.Core.Domain;
+using Wattlebooks.Core.Services;
+
+namespace Wattlebooks.Core.Rules;
+
+public sealed record EmailDraft(string To, string Subject, string Body);
+
+// ready-to-send wording, so emailing an invoice is one click and a quick read
+public static class EmailTemplates
+{
+    static readonly CultureInfo Months = CultureInfo.InvariantCulture;
+
+    public static ReminderTone ToneFor(int remindersSent) => remindersSent switch
+    {
+        0 => ReminderTone.Polite,
+        1 => ReminderTone.Firm,
+        _ => ReminderTone.Final,
+    };
+
+    public static EmailDraft Invoice(Invoice inv, BusinessProfile profile)
+    {
+        var totals = inv.Totals();
+        var kind = totals.IsTaxInvoice ? Countries.For(profile.Country).TaxedSubject : "Invoice";
+        var body = new StringBuilder()
+            .Append(Greeting(inv.Client)).Append("\n\n")
+            .Append($"Please find attached invoice {inv.Number} for {Money(totals.TotalCents, inv.Currency, profile)}, due on {Date(inv.DueDate, profile)}.\n\n")
+            .Append(PaymentBlock(profile, inv.Number))
+            .Append(SignOff(profile));
+        return new EmailDraft(inv.Client?.Email ?? "", $"{kind} {inv.Number} from {BusinessName(profile)}", body.ToString());
+    }
+
+    // no bank details, since nothing is owed until the quote becomes an invoice
+    public static EmailDraft Quote(Invoice quote, BusinessProfile profile)
+    {
+        var body = new StringBuilder()
+            .Append(Greeting(quote.Client)).Append("\n\n")
+            .Append($"Please find attached quote {quote.Number} for {Money(quote.Totals().TotalCents, quote.Currency, profile)}. It's valid until {Date(quote.DueDate, profile)}.\n\n")
+            .Append("If you'd like to go ahead, just reply to this email. Happy to answer any questions too.\n\n")
+            .Append(SignOff(profile));
+        return new EmailDraft(quote.Client?.Email ?? "", $"Quote {quote.Number} from {BusinessName(profile)}", body.ToString());
+    }
+
+    public static EmailDraft Reminder(Invoice inv, BusinessProfile profile, DateOnly today, ReminderTone tone)
+    {
+        var total = inv.Totals().TotalCents;
+        var balance = total - inv.PaidCents;
+        var partPaid = balance < total;
+        var due = Date(inv.DueDate, profile);
+        var late = today.DayNumber - inv.DueDate.DayNumber;
+        var overdue = late == 1 ? "1 day overdue" : $"{late} days overdue";
+        var balanceText = Money(balance, inv.Currency, profile);
+
+        // part paid invoices ask for what's left, so the sentence has to change shape
+        var nowOverdue = partPaid
+            ? $"Invoice {inv.Number} still has {balanceText} owing and is now {overdue}. It was due on {due}."
+            : $"Invoice {inv.Number} for {balanceText} is now {overdue}. It was due on {due}.";
+        var (subject, message) = tone switch
+        {
+            ReminderTone.Polite => (
+                $"Reminder: invoice {inv.Number}",
+                (partPaid
+                    ? $"Just a friendly reminder that invoice {inv.Number} still has {balanceText} owing. It was due on {due}. "
+                    : $"Just a friendly reminder that invoice {inv.Number} for {balanceText} was due on {due}. ") +
+                "If you've already paid, thank you, and please ignore this email. I've attached the invoice again in case it's handy."),
+            ReminderTone.Firm => (
+                $"Overdue: invoice {inv.Number} is {overdue}",
+                nowOverdue + " Could you please arrange payment this week? If there's a problem with the invoice, let me know and I'll sort it out."),
+            _ => (
+                $"Final reminder: invoice {inv.Number} is {overdue}",
+                nowOverdue + " Please pay the balance within 7 days. If you can't pay it all at once, get in touch so we can agree on a plan."),
+        };
+
+        var body = new StringBuilder()
+            .Append(Greeting(inv.Client)).Append("\n\n")
+            .Append(message).Append("\n\n")
+            .Append(PaymentBlock(profile, inv.Number))
+            .Append(SignOff(profile));
+        return new EmailDraft(inv.Client?.Email ?? "", subject, body.ToString());
+    }
+
+    public static EmailDraft Statement(Client client, BusinessProfile profile, IReadOnlyList<CurrencyAmount> owing, DateOnly asOf)
+    {
+        var owesSomething = owing.Any(o => o.Cents != 0);
+        var body = new StringBuilder()
+            .Append(Greeting(client)).Append("\n\n")
+            .Append($"I've attached a statement of your account as at {Date(asOf, profile)}. ")
+            .Append(owesSomething
+                ? $"The total owing is {Labels.JoinAnd(owing.Select(o => Money(o.Cents, o.Currency, profile)))}.\n\n"
+                : "Everything is paid, thank you.\n\n")
+            .Append(owesSomething ? PaymentBlock(profile, "the invoice numbers") : "")
+            .Append(SignOff(profile));
+        return new EmailDraft(client.Email, $"Statement from {BusinessName(profile)}", body.ToString());
+    }
+
+    static string Greeting(Client? client)
+    {
+        var first = client?.ContactName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        return first is null ? "Hello," : $"Hi {first},";
+    }
+
+    static string PaymentBlock(BusinessProfile profile, string reference)
+    {
+        var rules = Countries.For(profile.Country);
+        var needsCode = rules.BankCode is not null;
+        if (string.IsNullOrWhiteSpace(profile.AccountNumber) || (needsCode && string.IsNullOrWhiteSpace(profile.BankCode))) return "";
+        var block = new StringBuilder("You can pay by bank transfer to:\n");
+        if (!string.IsNullOrWhiteSpace(profile.BankAccountName)) block.Append($"Account name: {profile.BankAccountName.Trim()}\n");
+        if (rules.BankCode is { } bank) block.Append($"{bank.Label}: {profile.BankCode.Trim()}\n");
+        block.Append($"Account number: {profile.AccountNumber.Trim()}\n");
+        if (!string.IsNullOrWhiteSpace(profile.SwiftCode)) block.Append($"SWIFT/BIC: {profile.SwiftCode.Trim()}\n");
+        block.Append($"Reference: {reference}\n\n");
+        return block.ToString();
+    }
+
+    static string SignOff(BusinessProfile profile) => $"Thanks,\n{BusinessName(profile)}";
+
+    static string BusinessName(BusinessProfile profile) => profile.Name.Trim() is { Length: > 0 } name ? name : "us";
+
+    static string Money(long cents, string currency, BusinessProfile profile) =>
+        Currencies.Format(cents, currency, Countries.For(profile.Country).Currency);
+
+    static string Date(DateOnly d, BusinessProfile profile) =>
+        d.ToString(Countries.For(profile.Country).LongDate, Months);
+}

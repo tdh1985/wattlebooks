@@ -1,0 +1,148 @@
+@* Copyright (c) 2026 Tim Downey. Licensed under the MIT License. *@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject ProfileService Profiles
+@inject ThemeService Theme
+@inject ShortcutService Shortcuts
+@inject NavigationManager Nav
+@inject LaunchRequests Launches
+@inject RecurringRunner Recurring
+@inject ToastService Toasts
+@inject IJSRuntime JS
+@inject PrefsStore Prefs
+
+<div class="shell @(Prefs.Current.RailFolded ? "rail-folded" : null)" style="--accent: @_accent">
+    <SideRail BusinessName="@BusinessName" LogoUrl="@_logoUrl" Folded="Prefs.Current.RailFolded" OnToggleFold="ToggleFold" OnSearch="OpenPalette" />
+
+    <div class="main">
+        <main class="sheet" id="sheet">
+            <ErrorBoundary @ref="_boundary">
+                <ChildContent>@Body</ChildContent>
+                <ErrorContent Context="ex"><ErrorPanel Exception="ex" OnReload="Recover" /></ErrorContent>
+            </ErrorBoundary>
+        </main>
+    </div>
+</div>
+
+<ToastHost />
+<CommandPalette @ref="_palette" OnShowShortcuts="() => _help = true" />
+<ShortcutsHelp Open="_help" OnClose="() => _help = false" />
+
+@code {
+    ErrorBoundary? _boundary;
+    CommandPalette? _palette;
+    DotNetObjectReference<MainLayout>? _ref;
+    BusinessProfile? _profile;
+    string _accent = "#2E6B57";
+    string? _logoUrl;
+    bool _help;
+
+    string BusinessName => _profile?.Name is { Length: > 0 } name ? name : "Your business";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Profiles.Changed += OnProfileChanged;
+        Theme.Changed += OnThemeChanged;
+        Theme.TranslucentChanged += OnTranslucentChanged;
+        Launches.Requested += OnLaunchRequested;
+        Nav.LocationChanged += OnLocationChanged;
+        await LoadProfileAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _ref = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("wattlebooks.init", _ref);
+        await JS.InvokeVoidAsync("wattlebooks.applyTheme", Theme.Theme);
+        await JS.InvokeVoidAsync("wattlebooks.setMica", Theme.Translucent);
+        OpenLaunchRequest();
+        if (Recurring.TakeStartupCount() is > 0 and var made)
+        {
+            Toasts.Show(RecurringRunner.Message(made), ToastKind.Info,
+                new ToastAction("See drafts", () => { Nav.NavigateTo("invoices?show=draft"); return Task.CompletedTask; }));
+        }
+    }
+
+    void OpenLaunchRequest()
+    {
+        if (Launches.TakePending() is { } route) Nav.NavigateTo(route);
+    }
+
+    void OnLaunchRequested() => InvokeAsync(OpenLaunchRequest);
+
+    async Task LoadProfileAsync()
+    {
+        _profile = await Profiles.GetAsync();
+        _accent = _profile.AccentColour;
+        _logoUrl = FilesUrl.Logo(_profile);
+    }
+
+    [JSInvokable]
+    public void OnShortcut(string key)
+    {
+        switch (key)
+        {
+            case "k":
+                _palette?.Open();
+                break;
+            case "n":
+                Nav.NavigateTo("invoices/new");
+                break;
+            case "fold":
+                _ = InvokeAsync(ToggleFold);
+                break;
+            case "help":
+                _ = InvokeAsync(() =>
+                {
+                    _help = true;
+                    StateHasChanged();
+                });
+                break;
+            default:
+                Shortcuts.Raise(key);
+                break;
+        }
+    }
+
+    [JSInvokable]
+    public void ThemeResolved(bool dark) => Theme.ReportResolved(dark);
+
+    void OpenPalette() => _palette?.Open();
+
+    // folding is per pc like the window size, so it lives in prefs
+    void ToggleFold()
+    {
+        Prefs.Current.RailFolded = !Prefs.Current.RailFolded;
+        Prefs.Save();
+        StateHasChanged();
+    }
+
+    void Recover() => _boundary?.Recover();
+
+    void OnProfileChanged() => InvokeAsync(async () =>
+    {
+        await LoadProfileAsync();
+        StateHasChanged();
+    });
+
+    void OnThemeChanged() => InvokeAsync(async () =>
+    {
+        await JS.InvokeVoidAsync("wattlebooks.applyTheme", Theme.Theme);
+        StateHasChanged();
+    });
+
+    void OnTranslucentChanged() => InvokeAsync(() => JS.InvokeVoidAsync("wattlebooks.setMica", Theme.Translucent).AsTask());
+
+    void OnLocationChanged(object? sender, LocationChangedEventArgs e) => InvokeAsync(() => _boundary?.Recover());
+
+    public void Dispose()
+    {
+        Profiles.Changed -= OnProfileChanged;
+        Theme.Changed -= OnThemeChanged;
+        Theme.TranslucentChanged -= OnTranslucentChanged;
+        Launches.Requested -= OnLaunchRequested;
+        Nav.LocationChanged -= OnLocationChanged;
+        _ref?.Dispose();
+    }
+}

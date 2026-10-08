@@ -50,6 +50,7 @@ please report anything that goes wrong. A few things work differently on both:
 
 | Version | Date | What changed |
 |---|---|---|
+| [1.7.2](https://github.com/tdh1985/wattlebooks/releases/tag/v1.7.2) | 9 Oct 2026 | The app does less work up front. The window opens before your data is read, the dashboard and search load only what they need, and the invoice and money lists draw only the rows on screen. It also feels less like a web page, and on a Mac, making a PDF no longer waits on a Chrome that never closes. |
 | [1.7.1](https://github.com/tdh1985/wattlebooks/releases/tag/v1.7.1) | 5 Oct 2026 | The downloads are now named Wattlebooks too: `Wattlebooks.exe` on Windows, `Wattlebooks.app` on a Mac and `Wattlebooks` on Linux. Your books stay where they are, so you can delete the old InvoiceDesk.exe once the new one opens. |
 | [1.7.0](https://github.com/tdh1985/wattlebooks/releases/tag/v1.7.0) | 1 Oct 2026 | InvoiceDesk is now Wattlebooks, with a navy and wattle look, a new icon and a new phone app header. Your invoices, clients and settings carry over as they are, and the download is still named InvoiceDesk.exe. |
 | [1.6.1](https://github.com/tdh1985/wattlebooks/releases/tag/v1.6.1) | 28 Sep 2026 | Works better with a keyboard and a screen reader. Drawers and pop-ups keep your place, focus outlines are easier to see, and on/off buttons say whether they're on. |
@@ -234,21 +235,21 @@ either, Chrome, Edge, Chromium or Brave.
 ## Build and run
 
 ```powershell
-dotnet run --project src/InvoiceDesk.App
+dotnet run --project src/Wattlebooks.App
 ```
 
 Build the single exe (self-contained, so it doesn't need .NET installed). It
 ends up in `dist\Wattlebooks.exe`:
 
 ```powershell
-dotnet publish src/InvoiceDesk.App -p:PublishProfile=SingleExe
+dotnet publish src/Wattlebooks.App -p:PublishProfile=SingleExe
 ```
 
-The Mac and Linux version is `src/InvoiceDesk.Desktop`. Linux builds to a
+The Mac and Linux version is `src/Wattlebooks.Desktop`. Linux builds to a
 single file in `dist/linux-x64/Wattlebooks`:
 
 ```powershell
-dotnet publish src/InvoiceDesk.Desktop -p:PublishProfile=Linux
+dotnet publish src/Wattlebooks.Desktop -p:PublishProfile=Linux
 ```
 
 For Macs, this makes `dist/Wattlebooks-macos-arm64.tar.gz` and `-x64.tar.gz`,
@@ -329,24 +330,24 @@ same without signing in.
 
 | Project | What's in it |
 |---|---|
-| `src/InvoiceDesk.Core` | Data model, tax rules for each country, money maths, numbering, EF Core with SQLite, services and file storage. No UI code. |
-| `src/InvoiceDesk.Ui` | The Razor pages and components, CSS and the HTML for PDFs, shared by both apps. Anything that differs by OS goes through the interfaces in `Platform/`. |
-| `src/InvoiceDesk.App` | The Windows app: a WPF window hosting Blazor (`BlazorWebView`), with PDF printing, Outlook email, receipt reading and taskbar extras. |
-| `src/InvoiceDesk.Desktop` | The Mac and Linux app: a [Photino](https://www.tryphotino.io/) window hosting the same Blazor UI, with PDFs from headless Chromium. |
+| `src/Wattlebooks.Core` | Data model, tax rules for each country, money maths, numbering, EF Core with SQLite, services and file storage. No UI code. |
+| `src/Wattlebooks.Ui` | The Razor pages and components, CSS and the HTML for PDFs, shared by both apps. Anything that differs by OS goes through the interfaces in `Platform/`. |
+| `src/Wattlebooks.App` | The Windows app: a WPF window hosting Blazor (`BlazorWebView`), with PDF printing, Outlook email, receipt reading and taskbar extras. |
+| `src/Wattlebooks.Desktop` | The Mac and Linux app: a [Photino](https://www.tryphotino.io/) window hosting the same Blazor UI, with PDFs from headless Chromium. |
 | `mobile` | The phone web app (Vite and TypeScript). See `mobile/README.md`. |
 | `supabase/migrations` | The tables and row level security behind phone sync. |
 
 Money is stored as whole cents (`long`) and tax rates as parts per million
 (10% = 100,000), so rates like 8.875% fit. Totals are rounded half away from
 zero, and tax is worked out once per rate on each invoice rather than per line.
-Each country's rules live in one file under `InvoiceDesk.Core/Rules/Countries`.
+Each country's rules live in one file under `Wattlebooks.Core/Rules/Countries`.
 
-To change the database schema, edit the entities in `InvoiceDesk.Core/Domain`
+To change the database schema, edit the entities in `Wattlebooks.Core/Domain`
 and add a migration:
 
 ```powershell
 dotnet tool restore
-dotnet ef migrations add <Name> --project src/InvoiceDesk.Core
+dotnet ef migrations add <Name> --project src/Wattlebooks.Core
 ```
 
 Migrations are applied automatically on startup.

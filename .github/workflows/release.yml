@@ -21,7 +21,7 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: publish
-        run: dotnet publish src/InvoiceDesk.App -p:PublishProfile=SingleExe
+        run: dotnet publish src/Wattlebooks.App -p:PublishProfile=SingleExe
 
       - name: upload unsigned
         id: unsigned
@@ -66,7 +66,7 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: publish
-        run: dotnet publish src/InvoiceDesk.Desktop -p:PublishProfile=Linux
+        run: dotnet publish src/Wattlebooks.Desktop -p:PublishProfile=Linux
 
       - name: pack
         run: |
@@ -113,7 +113,7 @@ jobs:
       - name: build, sign and notarise
         run: |
           version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props)
-          project=src/InvoiceDesk.Desktop
+          project=src/Wattlebooks.Desktop
           for arch in arm64 x64; do
             rid=osx-$arch
             # native libs sit beside the exe so each one can be signed
@@ -124,14 +124,14 @@ jobs:
             mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
             cp out/$rid/Wattlebooks out/$rid/*.dylib "$app/Contents/MacOS/"
             chmod 755 "$app/Contents/MacOS/Wattlebooks"
-            cp $project/Mac/InvoiceDesk.icns "$app/Contents/Resources/"
+            cp $project/Mac/Wattlebooks.icns "$app/Contents/Resources/"
             sed "s/\$(Version)/$version/g" $project/Mac/Info.plist > "$app/Contents/Info.plist"
 
             if [ -n "$SIGN_IDENTITY" ]; then
               for lib in "$app"/Contents/MacOS/*.dylib; do
                 codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$lib"
               done
-              codesign --force --timestamp --options runtime --entitlements $project/Mac/InvoiceDesk.entitlements \
+              codesign --force --timestamp --options runtime --entitlements $project/Mac/Wattlebooks.entitlements \
                 --sign "$SIGN_IDENTITY" "$app"
               codesign --verify --strict --verbose=2 "$app"
 

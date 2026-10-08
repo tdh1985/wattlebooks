@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Wattlebooks.App/Wattlebooks.App.csproj" />
+    <Project Path="src/Wattlebooks.Core/Wattlebooks.Core.csproj" />
+    <Project Path="src/Wattlebooks.Desktop/Wattlebooks.Desktop.csproj" />
+    <Project Path="src/Wattlebooks.Ui/Wattlebooks.Ui.csproj" />
+  </Folder>
+</Solution>

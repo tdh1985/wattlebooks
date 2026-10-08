@@ -24,8 +24,6 @@
   --accent-text: var(--accent);
   --canary: #FFF1B0;
   --canary-ink: #6A5700;
-  --sent: #2D4FB0;
-  --sent-soft: #E7ECFA;
   --paid: #1D7650;
   --paid-soft: #E2F2E9;
   --stamp: #B5302A;
@@ -57,8 +55,6 @@
     --accent-text: color-mix(in oklab, var(--accent) 55%, white);
     --canary: #3B3514;
     --canary-ink: #F0DC86;
-    --sent: #93ABFF;
-    --sent-soft: #1E2745;
     --paid: #5DC395;
     --paid-soft: #16322A;
     --stamp: #F2766C;

@@ -1,0 +1,23 @@
+// Copyright (c) 2026 Tim Downey. Licensed under the MIT License.
+
+namespace Wattlebooks.Desktop.Platform;
+
+// the linux webview is a separate package, so its absence gets a message rather than a crash
+public static class MissingWebView
+{
+    public static bool IsCause(Exception ex)
+    {
+        for (Exception? e = ex; e is not null; e = e.InnerException)
+            // a missing sqlite library is a broken install, not a missing web view
+            if (e is DllNotFoundException && e.Message.Contains("Photino", StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+
+    public static string Message(DialogOs os) => os switch
+    {
+        DialogOs.Linux => "Wattlebooks needs WebKitGTK to show its window, and it isn't installed.\n\n" +
+                          "On Ubuntu or Debian, install it with:\nsudo apt install libwebkit2gtk-4.1-0\n\nThen open Wattlebooks again.",
+        DialogOs.Mac => "Wattlebooks couldn't open its window. It needs macOS 12 or later.",
+        _ => "Wattlebooks couldn't open its window because its web view is missing.",
+    };
+}

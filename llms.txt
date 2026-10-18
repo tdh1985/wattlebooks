@@ -4,7 +4,7 @@
 
 - Price: free. No subscription, no per-invoice fee, no paid plan and no ads. MIT licence.
 - Made for: tradies, freelancers and other sole traders, first in Australia.
-- Install: a single file with nothing to install. The latest version is 1.7.1.
+- Install: from the Microsoft Store on Windows, or as a download for Windows (a single .exe with nothing to install), Mac and Linux. The latest version is 1.7.1.
 - Privacy: nothing goes online unless you sign in to the optional phone app. Then only open invoices, recent payments and client names are shared with your phone.
 - Former name: InvoiceDesk. The download is now Wattlebooks.exe, and the data folder is still called InvoiceDesk.
 

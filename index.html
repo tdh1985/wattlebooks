@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Wattlebooks: free invoice app for sole traders, GST and BAS</title>
 <meta name="description" content="Free invoicing app for sole traders in Australia, New Zealand, the UK, Canada and the US. Tax invoices, GST or VAT and your tax return figures, with no monthly fee.">
-<link rel="preload" href="fonts/barlow-condensed-700.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/barlow-700.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/barlow-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="canonical" href="https://wattlebooks.work/">
 <meta name="robots" content="max-image-preview:large">
@@ -60,7 +60,7 @@
    "name": "Wattlebooks: free invoice app for sole traders, GST and BAS",
    "description": "Free invoicing app for sole traders in Australia, New Zealand, the UK, Canada and the US. Tax invoices, GST or VAT and your tax return figures, with no monthly fee.",
    "inLanguage": "en-AU",
-   "dateModified": "2026-10-07",
+   "dateModified": "2026-10-18",
    "isPartOf": {
     "@id": "https://wattlebooks.work/#website"
    },
@@ -217,6 +217,7 @@
 /* self-hosted latin subsets, so text no longer waits on two google domains */
 @font-face { font-family: "Barlow"; font-weight: 400; font-display: swap; src: url(fonts/barlow-400.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 @font-face { font-family: "Barlow"; font-weight: 500; font-display: swap; src: url(fonts/barlow-500.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Barlow"; font-weight: 700; font-display: swap; src: url(fonts/barlow-700.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 @font-face { font-family: "Barlow"; font-weight: 600; font-display: swap; src: url(fonts/barlow-600.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 @font-face { font-family: "Barlow Condensed"; font-weight: 600; font-display: swap; src: url(fonts/barlow-condensed-600.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 @font-face { font-family: "Barlow Condensed"; font-weight: 700; font-display: swap; src: url(fonts/barlow-condensed-700.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
@@ -226,20 +227,23 @@
 /* arial tuned to barlow's size so the swap doesn't move the layout */
 @font-face { font-family: "Barlow Fallback"; src: local("Arial"); size-adjust: 95.86%; ascent-override: 104.32%; descent-override: 20.86%; line-gap-override: 0%; }
 @font-face { font-family: "Barlow Condensed Fallback"; src: local("Arial Narrow Bold"), local("ArialNarrow-Bold"); size-adjust: 83.15%; ascent-override: 120.26%; descent-override: 24.05%; line-gap-override: 0%; }
-/* newsprint and navy ink, with wattle gold kept for a few words */
+/* white page, app navy and wattle gold, with gum-leaf panels */
 :root {
-  --paper: #F6F2E9;
-  --surface: #FFFDF8;
+  --paper: #FFFFFF;
+  --surface: #FFFFFF;
+  --mist: #EFF3EC;
   --ink: #15294B;
-  --muted: #535C6E;
-  --line: #D6CEBE;
-  --navy: #15294B;
-  --navy-ink: #CDD6E6;
+  --muted: #4A5470;
+  --line: #D5DCE6;
+  --field: #8D97AA;
   --accent: #2E6B57;
-  --amber: #F2B233;
-  --amber-ink: #15294B;
+  --wattle: #F2B233;
+  --wattle-hover: #E5A11B;
+  --on-wattle: #15294B;
+  --pen: #E8A41C;
   --focus: var(--ink);
-  --display: "Barlow Condensed", "Barlow Condensed Fallback", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --display: "Barlow", "Barlow Fallback", "Segoe UI", system-ui, sans-serif;
+  --stamp: "Barlow Condensed", "Barlow Condensed Fallback", "Arial Narrow", sans-serif;
   --body: "Barlow", "Barlow Fallback", "Segoe UI", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
 }
@@ -248,161 +252,194 @@
     color-scheme: dark;
     --paper: #0F1626;
     --surface: #172036;
-    --ink: #EEE9DE;
-    --muted: #A4ABBB;
+    --mist: #18233B;
+    --ink: #EEF1F7;
+    --muted: #A9B1C2;
     --line: #2D3954;
-    --navy: #0A1220;
+    --field: #56627D;
     --accent: #6CC09D;
-    --amber: #F6C03F;
-    --focus: var(--amber);
+    --wattle: #F6C03F;
+    --wattle-hover: #FFD263;
+    --pen: #F6C03F;
+    --focus: var(--wattle);
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
   --paper: #0F1626;
   --surface: #172036;
-  --ink: #EEE9DE;
-  --muted: #A4ABBB;
+  --mist: #18233B;
+  --ink: #EEF1F7;
+  --muted: #A9B1C2;
   --line: #2D3954;
-  --navy: #0A1220;
+  --field: #56627D;
   --accent: #6CC09D;
-  --amber: #F6C03F;
-  --focus: var(--amber);
+  --wattle: #F6C03F;
+  --wattle-hover: #FFD263;
+  --pen: #F6C03F;
+  --focus: var(--wattle);
 }
 
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--paper); color: var(--ink); font: 400 18px/1.6 var(--body); padding-inline: 20px; -webkit-font-smoothing: antialiased; }
-.wrap { max-width: 1160px; margin-inline: auto; }
-/* sentence case and tight leading, set like a headline rather than a label */
-h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 0.96; letter-spacing: -0.01em; text-wrap: balance; margin: 0; }
-h1 { font-size: clamp(44px, 6vw + 26px, 108px); }
-h2 { font-size: clamp(36px, 4.2vw, 58px); }
+.wrap { max-width: 1120px; margin-inline: auto; }
+/* heavy and tightly spaced so a headline reads in one look */
+h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.04; letter-spacing: -0.025em; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(42px, 3.6vw + 22px, 70px); line-height: 1; }
+h2 { font-size: clamp(30px, 2vw + 18px, 46px); }
+h3 { font-size: 23px; letter-spacing: -0.015em; line-height: 1.15; }
 p { margin: 0; }
 a { color: var(--accent); text-underline-offset: 0.16em; }
 a:hover { text-decoration-thickness: 2px; }
-/* amber on light paper is only 2:1, so light mode rings in ink */
-a:focus-visible, .btn:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 2px; }
+/* wattle on white is only 2:1, so light mode rings in ink */
+a:focus-visible, .btn:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 4px; }
 .skip { position: absolute; left: 12px; top: -80px; z-index: 40; background: var(--ink); color: var(--paper); padding: 10px 16px; font-weight: 600; text-decoration: none; }
-.skip:focus-visible { top: 12px; outline-color: var(--amber); }
-/* a low highlighter stroke under the words rather than a block behind them */
-.hl { background: linear-gradient(transparent 68%, var(--amber) 0 88%, transparent 0); color: inherit; padding-inline: 0.1em; margin-inline: -0.1em; }
-/* a dateline over a thin rule, like the top of a paper */
-.eyebrow { display: block; font: 600 15px/1.3 var(--body); padding-block: 9px; border-bottom: 1px solid var(--ink); }
-.lede { font-size: 21px; max-width: 34em; }
+.skip:focus-visible { top: 12px; }
+/* a pen stroke under the words, masked so it follows the theme colour */
+.pen { position: relative; white-space: nowrap; }
+.pen::after { content: ""; position: absolute; left: -2%; right: -2%; bottom: -0.2em; height: 0.3em; background: var(--pen); pointer-events: none;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 24' preserveAspectRatio='none'%3E%3Cpath d='M4 17 C 70 7, 170 4, 296 10' fill='none' stroke='%23000' stroke-width='5' stroke-linecap='round'/%3E%3Cpath d='M40 21 C 110 14, 190 13, 262 16' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 24' preserveAspectRatio='none'%3E%3Cpath d='M4 17 C 70 7, 170 4, 296 10' fill='none' stroke='%23000' stroke-width='5' stroke-linecap='round'/%3E%3Cpath d='M40 21 C 110 14, 190 13, 262 16' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat; }
+.eyebrow { display: block; font: 500 16px/1.4 var(--body); color: var(--muted); }
+.lede { font-size: 22px; line-height: 1.5; max-width: 32em; }
 .fine { font-size: 15px; color: var(--muted); }
 .nowrap { white-space: nowrap; }
-figure { margin: 0; display: grid; gap: 10px; align-content: start; }
+figure { margin: 0; display: grid; gap: 12px; align-content: start; }
 figcaption { font-size: 15px; line-height: 1.5; color: var(--muted); max-width: 72ch; }
 figcaption b { font-weight: 600; color: var(--ink); }
-.shot { display: block; width: 100%; height: auto; border: 1px solid var(--line); background: var(--surface); }
+/* a light lift so a screenshot reads as a window on the page */
+.shot { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: 0 12px 32px -18px rgb(21 41 75 / 0.35); }
 
-/* masthead, navy like the app's sidebar, with a wattle rule under it */
-.top-bar { margin-inline: -20px; padding-inline: 20px; background: var(--navy); border-bottom: 4px solid var(--amber); }
-.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 16px; }
-.top > a { display: block; border-radius: 6px; }
-.top .logo { display: block; height: 44px; width: auto; }
-.top nav { display: flex; gap: 22px; font-weight: 500; font-size: 16px; }
-.top nav a { color: var(--navy-ink); text-decoration: none; }
-.top nav a:hover { color: var(--amber); }
-/* the ink focus ring would vanish on the navy bar */
-.top a:focus-visible { outline-color: var(--amber); }
-/* the logo link goes right back up past the masthead */
+/* white header that keeps the old masthead's wattle rule */
+.top-bar { margin-inline: -20px; padding-inline: 20px; background: var(--paper); border-bottom: 4px solid var(--wattle); }
+.top { display: flex; align-items: center; gap: 16px 32px; padding-block: 14px; }
+.top > a:first-child { display: block; border-radius: 6px; margin-right: auto; }
+.top .logo { display: block; height: 40px; width: auto; }
+.top nav { display: flex; gap: 26px; font-weight: 500; font-size: 16px; }
+.top nav a { color: var(--ink); text-decoration: none; }
+.top nav a:hover { color: var(--accent); }
+.top .btn { padding: 10px 16px; font-size: 16px; }
+/* the logo link goes right back up past the header */
 #top { scroll-margin-top: 240px; }
 
-/* outlined in ink, green like the app's own buttons, and wattle under the pointer */
-.btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border: 2px solid var(--ink); border-radius: 3px; background: none; color: var(--ink); font: 600 18px/1 var(--body); text-decoration: none; cursor: pointer; }
-.btn.primary { background: #2E6B57; border-color: #2E6B57; color: #FFFFFF; }
-.btn:hover { background: var(--amber); border-color: var(--amber); color: var(--amber-ink); }
+/* a bright fill with dark text so the main action is easy to spot */
+.btn { display: inline-flex; align-items: center; gap: 10px; padding: 13px 20px; border: 1px solid var(--field); border-radius: 6px; background: var(--surface); color: var(--ink); font: 600 17px/1.1 var(--body); text-decoration: none; cursor: pointer; }
+.btn:hover { background: var(--mist); }
+.btn.primary { background: var(--wattle); border-color: var(--wattle); color: var(--on-wattle); }
+.btn.primary:hover { background: var(--wattle-hover); border-color: var(--wattle-hover); }
 .btn svg { width: 20px; height: 20px; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px; }
 
-/* front page: the headline runs the full width, then copy beside the invoice */
-.hero { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 32px 56px; padding-block: 28px 88px; }
-.hero .eyebrow, .hero h1 { grid-column: 1 / -1; }
-.hero-copy { display: grid; gap: 24px; align-content: start; }
-.hero-visual .shot { max-width: 626px; }
+/* headline on the left and the invoice on the right */
+.hero { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); gap: 40px 64px; align-items: center; padding-block: 72px 56px; isolation: isolate; }
+.hero-copy { display: grid; gap: 26px; align-content: start; }
+.hero-copy h1 { margin-top: -4px; }
+.hero-visual { position: relative; padding: 6% 4%; }
+/* a cluster of wattle puffballs behind the invoice */
+.hero-visual::before { content: ""; position: absolute; inset: -4% -6% auto; aspect-ratio: 1; z-index: -1; opacity: 0.32;
+  background:
+    radial-gradient(circle at 58% 46%, var(--wattle) 0 33%, transparent calc(33% + 1px)),
+    radial-gradient(circle at 18% 22%, var(--wattle) 0 13%, transparent calc(13% + 1px)),
+    radial-gradient(circle at 84% 14%, var(--wattle) 0 8%, transparent calc(8% + 1px)),
+    radial-gradient(circle at 14% 76%, var(--wattle) 0 9%, transparent calc(9% + 1px)),
+    radial-gradient(circle at 84% 82%, var(--wattle) 0 12%, transparent calc(12% + 1px)); }
+.hero-visual .shot { max-width: 480px; justify-self: center; transform: rotate(1.5deg); }
+.hero-visual figcaption { justify-self: center; text-align: center; }
 .phone-note { display: none; font-weight: 600; }
+
+/* three short reasons straight under the hero */
+.reasons { list-style: none; margin: 0; padding: 0 0 80px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 48px; }
+.reasons h3 { font-size: 21px; margin-bottom: 8px; }
+.reasons p { font-size: 17px; color: var(--muted); }
 .qr { display: flex; align-items: center; gap: 18px; }
-.qr img { width: 132px; height: 132px; flex: none; background: #fff; }
+.qr img { width: 132px; height: 132px; flex: none; background: #fff; border-radius: 8px; }
 .qr p { max-width: 22ch; font-size: 15px; color: var(--muted); }
 
-/* the price, as a tax invoice */
-.bill-section { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); gap: 56px; align-items: center; padding-block: 64px 96px; border-top: 2px solid var(--ink); }
+/* the price, as a tax invoice on a pale panel */
+.bill-section { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); gap: 56px; align-items: center; padding: 64px clamp(24px, 5vw, 64px); background: var(--mist); border-radius: 24px; }
 .bill-copy { display: grid; gap: 22px; }
-.bill { position: relative; padding: 34px 34px 30px; background: var(--surface); border: 1px solid var(--line); border-left: 6px solid var(--accent); font-size: 15px; transform: rotate(-1.2deg); }
+.bill { position: relative; padding: 32px 32px 30px; background: var(--surface); border-radius: 12px; font-size: 15px; box-shadow: 0 18px 40px -24px rgb(21 41 75 / 0.45); }
 .bill-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-.bill-head h3 { color: var(--accent); font-size: 30px; letter-spacing: 0.04em; text-transform: uppercase; }
+.bill-head h3 { font-size: 26px; }
 .bill-from { font-size: 14px; color: var(--muted); line-height: 1.45; }
 .bill-from strong { color: var(--ink); font-weight: 600; }
 .bill-meta { font: 13px/1.6 var(--mono); color: var(--muted); text-align: right; }
 .bill table, .ledger table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .bill table { margin-top: 26px; }
-.bill th, .ledger th { text-align: left; font: 600 12px/1 var(--body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); padding: 0 16px 10px 0; border-bottom: 1px solid var(--line); }
+.bill th, .ledger th { text-align: left; font: 600 14px/1 var(--body); color: var(--muted); padding: 0 16px 10px 0; border-bottom: 1px solid var(--line); }
 .bill th:last-child, .bill td:last-child { text-align: right; padding-right: 0; }
-.bill td { padding: 11px 0; border-bottom: 1px dashed var(--line); }
+.bill td { padding: 11px 0; border-bottom: 1px solid var(--line); }
 .bill td:last-child { font-family: var(--mono); }
 .bill .sum td { border-bottom: 0; padding: 6px 0; color: var(--muted); }
-.bill .total td { border-bottom: 0; padding-top: 12px; font-weight: 600; font-size: 18px; }
-.bill .total td:last-child { border-top: 1px solid var(--ink); border-bottom: 4px double var(--ink); }
+.bill .total td { border-bottom: 0; padding-top: 14px; font-weight: 600; font-size: 18px; }
+/* the total ringed in pen, like someone circled it on the bill */
+.bill .total td:last-child { position: relative; }
+.bill .total td:last-child::after { content: ""; position: absolute; right: -16px; top: 2px; width: 92px; height: 46px; background: var(--pen); pointer-events: none;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 60' preserveAspectRatio='none'%3E%3Cpath d='M70 6 C 30 4, 6 16, 6 31 C 6 48, 40 55, 70 53 C 100 51, 116 41, 113 27 C 110 13, 86 6, 58 9 C 46 10, 38 13, 32 16' fill='none' stroke='%23000' stroke-width='3.2' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 60' preserveAspectRatio='none'%3E%3Cpath d='M70 6 C 30 4, 6 16, 6 31 C 6 48, 40 55, 70 53 C 100 51, 116 41, 113 27 C 110 13, 86 6, 58 9 C 46 10, 38 13, 32 16' fill='none' stroke='%23000' stroke-width='3.2' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat; }
 /* inked like the rubber stamps on the app's dashboard */
-.stamp { position: absolute; left: 44%; bottom: 20px; transform: rotate(-6deg); opacity: 0.9; font: 700 30px/1 var(--display); letter-spacing: 0.12em; color: var(--accent); border: 3px solid; border-radius: 6px; padding: 6px 12px 4px; }
-.tag { font-size: 15px; color: var(--muted); }
+.stamp { position: absolute; left: 40%; bottom: 22px; transform: rotate(-6deg); opacity: 0.9; font: 700 30px/1 var(--stamp); letter-spacing: 0.12em; color: var(--accent); border: 3px solid; border-radius: 6px; padding: 6px 12px 4px; }
+.tag { font-size: 16px; font-weight: 600; color: var(--accent); }
 
 /* the promo video, full width so the app on screen is readable */
-.watch { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px 56px; align-items: end; padding-block: 24px 88px; }
+.watch { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 20px 56px; align-items: end; padding-block: 104px 72px; }
 .watch figure { grid-column: 1 / -1; margin-top: 20px; }
-.watch video { display: block; width: 100%; height: auto; background: var(--navy); }
+.watch video { display: block; width: 100%; height: auto; border-radius: 16px; background: #15294B; }
 
 /* features, each laid out a little differently */
-.feature { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 32px 56px; padding-block: 80px; }
+.feature { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 32px 64px; align-items: center; padding-block: 72px; }
 .feature.flip { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
 .feature.flip .feature-copy { order: 2; }
-.feature.wide figure { grid-column: 1 / -1; order: -1; }
+.feature.wide { align-items: end; }
+.feature.wide figure { grid-column: 1 / -1; }
 .feature-copy { display: grid; gap: 18px; align-content: start; }
-.points { margin: 6px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--ink); }
-.points li { padding-block: 10px; border-bottom: 1px solid var(--line); }
+/* ticks so each point scans as something it does */
+.points { margin: 6px 0 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+.points li { position: relative; padding-left: 34px; }
+.points li::before { content: ""; position: absolute; left: 0; top: 0.2em; width: 22px; height: 22px; border-radius: 50%; background: var(--mist) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='%232E6B57' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 16px no-repeat; }
 /* set out like the labelled boxes on the paper form */
-.bas { margin-top: 6px; border-top: 1px solid var(--ink); }
-.bas div { display: flex; align-items: center; gap: 16px; padding-block: 10px; border-bottom: 1px solid var(--line); }
-.bas b { font: 600 16px/1 var(--mono); background: var(--ink); color: var(--paper); padding: 7px 0; width: 3.2em; text-align: center; }
+.bas { margin-top: 6px; display: grid; gap: 10px; }
+.bas div { display: flex; align-items: center; gap: 16px; }
+.bas b { font: 600 16px/1 var(--mono); background: var(--ink); color: var(--paper); border-radius: 6px; padding: 8px 0; width: 3.2em; text-align: center; }
 .phones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: start; }
 .phones img { width: 100%; height: auto; border-radius: 18px; border: 1px solid var(--line); }
 .phones img:nth-child(2) { margin-top: 36px; }
 
-/* other countries, as a ledger */
-.countries { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px 56px; align-items: end; padding-block: 72px 80px; border-top: 2px solid var(--ink); }
+/* other countries, as a table on the pale panel */
+.countries { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px 56px; align-items: end; margin-block: 32px; padding: 64px clamp(24px, 5vw, 64px); background: var(--mist); border-radius: 24px; }
 .countries-copy { display: grid; gap: 14px; }
 .countries .ledger, .currencies { grid-column: 1 / -1; }
-.ledger { overflow-x: auto; margin-top: 20px; }
-.ledger table { font-size: 17px; min-width: 540px; border-block: 3px double var(--ink); }
+.ledger { overflow-x: auto; margin-top: 20px; background: var(--surface); border-radius: 12px; padding: 8px 24px; }
+.ledger table { font-size: 17px; min-width: 540px; }
 .ledger th { padding-top: 14px; }
 .ledger td { padding: 14px 16px 14px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
 .ledger tr:last-child td { border-bottom: 0; }
 .ledger td:first-child { font-weight: 600; white-space: nowrap; }
-.ledger .code { font: 500 13px/1 var(--mono); color: var(--accent); margin-right: 8px; }
-.currencies { font: 500 15px/1.9 var(--mono); color: var(--muted); letter-spacing: 0.04em; }
+.ledger .code { display: inline-block; min-width: 2.4em; font: 600 13px/1 var(--mono); color: var(--accent); margin-right: 8px; }
+.currencies { font: 500 15px/1.9 var(--body); color: var(--muted); word-spacing: 0.5em; }
 
-/* short items set like the briefs in a paper */
-.more { display: grid; gap: 32px; padding-block: 80px; }
-.more-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 28px 40px; }
-.more-list li { font-size: 16px; color: var(--muted); }
-.more-list strong { display: block; margin-bottom: 4px; font: 700 23px/1.05 var(--display); color: var(--ink); }
+/* heading held on the left while the list steps in beside it */
+.more { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); gap: 32px 64px; padding-block: 96px 72px; }
+.more h2 { align-self: start; position: sticky; top: 24px; }
+.more-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 36px 48px; }
+.more-list li { font-size: 17px; color: var(--muted); }
+.more-list strong { display: block; margin-bottom: 6px; font: 700 21px/1.15 var(--display); letter-spacing: -0.015em; color: var(--ink); }
 
-/* one column of questions; the triangle hangs so long ones wrap cleanly */
-.faq { display: grid; gap: 28px; padding-block: 72px; border-top: 2px solid var(--ink); }
-.faq > div { max-width: 46em; }
-.faq details { padding-block: 8px; }
-.faq summary { cursor: pointer; font-weight: 600; font-size: 20px; line-height: 1.35; padding-left: 1.15em; text-indent: -1.15em; }
+/* ruled apart with the marker hung so long questions wrap cleanly */
+.faq { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); gap: 28px 64px; padding-block: 72px; }
+.faq details { border-bottom: 1px solid var(--line); padding-block: 16px; }
+.faq details:first-child { border-top: 1px solid var(--line); }
+.faq summary { cursor: pointer; font-weight: 600; font-size: 19px; line-height: 1.35; padding-left: 1.15em; text-indent: -1.15em; }
 .faq summary::marker { color: var(--accent); }
-.faq details p { margin: 6px 0 10px 1.15em; color: var(--muted); }
+.faq details p { margin: 10px 0 4px 1.15em; color: var(--muted); }
 
 /* contact */
-.contact { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 32px 56px; padding-block: 72px; }
+.contact { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); gap: 32px 64px; padding-block: 72px 96px; }
 .contact-copy { display: grid; gap: 14px; align-content: start; }
 .contact form { display: grid; gap: 18px; max-width: 640px; }
 .contact .pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
 .contact label { display: grid; gap: 6px; font-weight: 600; font-size: 16px; }
-.contact input, .contact textarea { font: 400 17px/1.4 var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--muted); border-radius: 2px; padding: 11px 12px; width: 100%; }
+.contact input, .contact textarea { font: 400 17px/1.4 var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--field); border-radius: 6px; padding: 11px 12px; width: 100%; }
 .contact textarea { min-height: 150px; resize: vertical; }
 .contact input:focus-visible, .contact textarea:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
 .contact .trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
@@ -414,27 +451,52 @@ figcaption b { font-weight: 600; color: var(--ink); }
 [data-theme="dark"] .contact .status.bad { color: #FF9C94; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .contact .status.bad { color: #FF9C94; } }
 
-/* sign-off, one more go at the download without a box around it */
-.closer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 28px 48px; padding-block: 56px 72px; border-top: 2px solid var(--ink); }
-.closer h2 { font-size: clamp(40px, 5vw, 64px); }
+/* sign-off centred on a pale panel to close the page */
+.closer { display: grid; justify-items: center; text-align: center; gap: 28px; padding: 72px 24px; margin-bottom: 72px; background: var(--mist); border-radius: 24px; }
+.closer h2 { font-size: clamp(36px, 3vw + 18px, 58px); }
 .closer p { margin-top: 12px; color: var(--muted); }
+.closer .actions { justify-content: center; }
 
-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding-block: 18px 48px; border-top: 1px solid var(--line); font-size: 15px; color: var(--muted); }
+/* the tint runs edge to edge though the footer sits inside .wrap */
+footer { display: grid; grid-template-columns: minmax(0, 5fr) repeat(3, minmax(0, 2fr)); gap: 40px 48px; padding-block: 64px 40px; font-size: 16px; color: var(--muted); background: var(--mist); box-shadow: 0 0 0 100vmax var(--mist); clip-path: inset(0 -100vmax); }
+.foot-brand { display: grid; gap: 18px; justify-items: start; align-content: start; }
+.foot-brand > a { display: block; border-radius: 6px; }
+.foot-brand .logo { display: block; height: 40px; width: auto; }
+.foot-brand p { max-width: 30ch; }
+.foot-col { display: grid; gap: 10px; align-content: start; }
+.foot-col h2 { font-size: 17px; letter-spacing: -0.01em; color: var(--ink); margin-bottom: 4px; }
+.foot-col a { color: var(--ink); text-decoration: none; width: fit-content; }
+.foot-col a:hover { color: var(--accent); text-decoration: underline; }
+/* a ruled band of its own so it reads as a statement and not fine print */
+.country { grid-column: 1 / -1; padding-top: 28px; border-top: 1px solid var(--line); color: var(--ink); }
+.country p { max-width: 68ch; }
+.foot-base { grid-column: 1 / -1; font-size: 15px; }
 
 @media (max-width: 900px) {
-  .hero, .bill-section, .watch, .feature, .feature.flip, .countries, .contact { grid-template-columns: minmax(0, 1fr); }
+  .hero, .bill-section, .watch, .feature, .feature.flip, .countries, .contact, .more, .faq { grid-template-columns: minmax(0, 1fr); }
   .feature.flip .feature-copy { order: 0; }
-  .bill { transform: none; }
+  .hero { padding-block: 48px 40px; }
+  .reasons { grid-template-columns: minmax(0, 1fr); padding-bottom: 56px; }
+  .more h2 { position: static; }
+  footer { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .foot-brand { grid-column: 1 / -1; }
 }
-@media (max-width: 680px) {
+@media (max-width: 760px) {
   .top nav { display: none; }
 }
 @media (max-width: 560px) {
   body { font-size: 17px; }
-  .contact .pair { grid-template-columns: minmax(0, 1fr); }
+  .lede { font-size: 20px; }
+  .contact .pair, .more-list { grid-template-columns: minmax(0, 1fr); }
+  footer { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px 24px; }
+  .foot-col a { min-height: 32px; display: flex; align-items: center; }
+  /* the download is no use on the phone that's reading this */
+  .top .btn { display: none; }
   .phone-note { display: block; }
   /* no point scanning a code with the phone that shows it */
   .qr { display: none; }
+  .bill-section, .countries { padding: 40px 16px; margin-inline: -8px; border-radius: 18px; }
+  .ledger { padding: 4px 16px; }
   .ledger table { min-width: 0; }
   .ledger thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .ledger tr { display: grid; gap: 4px; padding-block: 14px; border-bottom: 1px solid var(--line); }
@@ -444,6 +506,7 @@ footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12
   .bill { padding: 24px 20px; }
   .bill-head { flex-direction: column; }
   .bill-meta { text-align: left; }
+  .bill .total td:last-child::after { right: -12px; }
   .stamp { font-size: 22px; left: auto; right: 20px; top: 70px; bottom: auto; }
   /* one phone at a time, big enough to read */
   .phones { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px 4px 16px; margin-inline: -4px; }
@@ -452,6 +515,9 @@ footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12
 }
 @media (prefers-reduced-motion: no-preference) {
   html { scroll-behavior: smooth; }
+  /* the one moment on load: the pen stroke draws in under the headline */
+  @keyframes draw { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+  .hero .pen::after { animation: draw 0.7s 0.35s cubic-bezier(.6, 0, .3, 1) both; }
   /* the stamp lands as the invoice scrolls in; decorative, so no fallback */
   @supports ((animation-timeline: view()) and (animation-range: entry)) {
     .bill { view-timeline: --bill; }
@@ -466,7 +532,10 @@ footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12
 <a class="skip" href="#top">Skip to content</a>
 <div class="top-bar"><div class="wrap"><header class="top">
     <a href="#top" aria-label="Wattlebooks home">
-      <img class="logo" src="img/logo-wide-dark.svg" alt="Wattlebooks" width="194" height="44">
+      <picture>
+        <source srcset="img/logo-wide-dark.svg" media="(prefers-color-scheme: dark)">
+        <img class="logo" src="img/logo-wide.svg" alt="Wattlebooks" width="194" height="44">
+      </picture>
     </a>
     <nav aria-label="Page sections">
       <a href="#price">Price</a>
@@ -476,14 +545,15 @@ footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12
       <a href="#phone">Phone app</a>
       <a href="#questions">Questions</a>
     </nav>
+    <a class="btn primary" href="https://apps.microsoft.com/detail/9nhxgb9bdrr1">Get it for Windows</a>
   </header></div></div>
 <div class="wrap">
 
   <main id="top">
     <section class="hero">
-      <p class="eyebrow">For sole traders in Australia, NZ, the UK, Canada and the US</p>
-      <h1>Tax invoices, GST and your BAS. <span class="hl">No&nbsp;monthly&nbsp;fee.</span></h1>
       <div class="hero-copy">
+        <p class="eyebrow">For sole traders in Australia, NZ, the UK, Canada and the US</p>
+        <h1>Tax invoices, GST and your BAS. <span class="pen">No monthly fee.</span></h1>
         <p class="lede">Wattlebooks is a free, open-source invoicing app for tradies and freelancers on Windows, Mac and Linux. It runs on your own computer, so your books stay with you.</p>
         <p class="phone-note">Wattlebooks runs on your computer. Open this page on it to download.</p>
         <div class="actions">
@@ -494,13 +564,18 @@ footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12
           <a class="btn" href="https://github.com/tdh1985/wattlebooks/releases/latest">Mac and Linux</a>
         </div>
         <p class="fine">Windows installs from the Microsoft Store. Or download a file: <a href="https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks-macos-arm64.tar.gz">Mac with Apple silicon</a>, <a href="https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks-macos-x64.tar.gz">Mac with Intel</a>, <a href="https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks-linux-x64.tar.gz">Linux</a> or the <a href="https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks.exe">Windows .exe</a>.</p>
-        <p class="fine">Free and open source. <a href="#countries">See what each country gets</a>.</p>
       </div>
       <figure class="hero-visual">
         <img class="shot" src="img/invoice-preview.webp" width="626" height="626" fetchpriority="high" alt="A tax invoice made in Wattlebooks for Blue Gum Physio, with the ABN, three lines of work, GST of $404.00 and a total of $4,444.00">
         <figcaption><b>Made in Wattlebooks.</b> A tax invoice for Blue Gum Physio, with the ABN on it and $404.00 of GST.</figcaption>
       </figure>
     </section>
+
+    <ul class="reasons">
+      <li><h3>Your books stay with you</h3><p>It runs on your own computer. Nothing goes online unless you turn on the phone app.</p></li>
+      <li><h3>Made for GST and the BAS</h3><p>Every invoice carries your ABN and GST, and Reports work out G1, 1A and 1B. <a href="#countries">Other countries too</a>.</p></li>
+      <li><h3>Windows, Mac and Linux</h3><p>Install it from the Microsoft Store, or download it for a Mac or Linux.</p></li>
+    </ul>
 
     <section class="bill-section" id="price">
       <div class="bill-copy">
@@ -731,8 +806,43 @@ footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12
   </main>
 
   <footer>
-    <span>Wattlebooks is free software under the MIT licence.</span>
-    <span><a href="#contact">Contact</a> · <a href="privacy.html">Privacy</a> · <a href="https://github.com/tdh1985/wattlebooks/issues">Support</a> · <a href="https://github.com/tdh1985/wattlebooks/releases">All releases</a></span>
+    <div class="foot-brand">
+      <a href="#top" aria-label="Wattlebooks home">
+        <picture>
+          <source srcset="img/logo-wide-dark.svg" media="(prefers-color-scheme: dark)">
+          <img class="logo" src="img/logo-wide.svg" alt="Wattlebooks" width="194" height="44" loading="lazy">
+        </picture>
+      </a>
+      <p>Free invoicing for sole traders in Australia, New Zealand, the UK, Canada and the US.</p>
+      <a class="btn primary" href="https://apps.microsoft.com/detail/9nhxgb9bdrr1">Get it for Windows</a>
+    </div>
+    <nav class="foot-col" aria-labelledby="foot-download">
+      <h2 id="foot-download">Download</h2>
+      <a href="https://apps.microsoft.com/detail/9nhxgb9bdrr1">Microsoft Store</a>
+      <a href="https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks-macos-arm64.tar.gz">Mac with Apple silicon</a>
+      <a href="https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks-macos-x64.tar.gz">Mac with Intel</a>
+      <a href="https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks-linux-x64.tar.gz">Linux</a>
+      <a href="https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks.exe">Windows .exe</a>
+      <a href="https://github.com/tdh1985/wattlebooks/releases">All releases</a>
+    </nav>
+    <nav class="foot-col" aria-labelledby="foot-app">
+      <h2 id="foot-app">The app</h2>
+      <a href="#price">Price</a>
+      <a href="#features">Features</a>
+      <a href="#countries">Countries</a>
+      <a href="#phone">Phone app</a>
+      <a href="#watch">Watch the video</a>
+    </nav>
+    <nav class="foot-col" aria-labelledby="foot-help">
+      <h2 id="foot-help">Help</h2>
+      <a href="#questions">Questions</a>
+      <a href="#contact">Contact</a>
+      <a href="https://github.com/tdh1985/wattlebooks/issues">Support</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="https://github.com/tdh1985/wattlebooks">Source code</a>
+    </nav>
+    <div class="country"><p>Wattlebooks acknowledges the Traditional Custodians of Country throughout Australia and their continuing connection to land, waters and community. We pay our respects to Aboriginal and Torres Strait Islander peoples, and to Elders past and present.</p></div>
+    <p class="foot-base">Wattlebooks is free software under the MIT licence.</p>
   </footer>
 </div>
 

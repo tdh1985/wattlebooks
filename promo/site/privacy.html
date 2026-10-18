@@ -16,7 +16,10 @@
 <a class="skip" href="#top">Skip to content</a>
 <div class="top-bar"><div class="wrap"><header class="top">
     <a href="./" aria-label="Wattlebooks home">
-      <img class="logo" src="img/logo-wide-dark.svg" alt="Wattlebooks" width="194" height="44">
+      <picture>
+        <source srcset="img/logo-wide-dark.svg" media="(prefers-color-scheme: dark)">
+        <img class="logo" src="img/logo-wide.svg" alt="Wattlebooks" width="194" height="44">
+      </picture>
     </a>
     <nav aria-label="Site">
       <a href="./">Home</a>
@@ -87,8 +90,43 @@
     <p>If any of this changes, this page will be updated with a new date. For questions, use the <a href="./#contact">contact form</a> and you'll get a reply by email, or <a href="https://github.com/tdh1985/wattlebooks/issues">open an issue on GitHub</a>.</p>
   </main>
   <footer>
-    <span>Wattlebooks is free software under the MIT licence.</span>
-    <span><a href="./#contact">Contact</a> · <a href="privacy.html" aria-current="page">Privacy</a> · <a href="https://github.com/tdh1985/wattlebooks/issues">Support</a> · <a href="https://github.com/tdh1985/wattlebooks/releases">All releases</a></span>
+    <div class="foot-brand">
+      <a href="./" aria-label="Wattlebooks home">
+        <picture>
+          <source srcset="img/logo-wide-dark.svg" media="(prefers-color-scheme: dark)">
+          <img class="logo" src="img/logo-wide.svg" alt="Wattlebooks" width="194" height="44" loading="lazy">
+        </picture>
+      </a>
+      <p>Free invoicing for sole traders in Australia, New Zealand, the UK, Canada and the US.</p>
+      <a class="btn primary" href="https://apps.microsoft.com/detail/9nhxgb9bdrr1">Get it for Windows</a>
+    </div>
+    <nav class="foot-col" aria-labelledby="foot-download">
+      <h2 id="foot-download">Download</h2>
+      <a href="https://apps.microsoft.com/detail/9nhxgb9bdrr1">Microsoft Store</a>
+      <a href="https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks-macos-arm64.tar.gz">Mac with Apple silicon</a>
+      <a href="https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks-macos-x64.tar.gz">Mac with Intel</a>
+      <a href="https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks-linux-x64.tar.gz">Linux</a>
+      <a href="https://github.com/tdh1985/wattlebooks/releases/latest/download/Wattlebooks.exe">Windows .exe</a>
+      <a href="https://github.com/tdh1985/wattlebooks/releases">All releases</a>
+    </nav>
+    <nav class="foot-col" aria-labelledby="foot-app">
+      <h2 id="foot-app">The app</h2>
+      <a href="./#price">Price</a>
+      <a href="./#features">Features</a>
+      <a href="./#countries">Countries</a>
+      <a href="./#phone">Phone app</a>
+      <a href="./#watch">Watch the video</a>
+    </nav>
+    <nav class="foot-col" aria-labelledby="foot-help">
+      <h2 id="foot-help">Help</h2>
+      <a href="./#questions">Questions</a>
+      <a href="./#contact">Contact</a>
+      <a href="https://github.com/tdh1985/wattlebooks/issues">Support</a>
+      <a href="privacy.html" aria-current="page">Privacy</a>
+      <a href="https://github.com/tdh1985/wattlebooks">Source code</a>
+    </nav>
+    <div class="country"><p>Wattlebooks acknowledges the Traditional Custodians of Country throughout Australia and their continuing connection to land, waters and community. We pay our respects to Aboriginal and Torres Strait Islander peoples, and to Elders past and present.</p></div>
+    <p class="foot-base">Wattlebooks is free software under the MIT licence.</p>
   </footer>
 </div>
 <script>

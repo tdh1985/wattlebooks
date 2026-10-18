@@ -5,6 +5,7 @@ site = here / 'site'
 out = pathlib.Path(sys.argv[1])
 url = 'https://wattlebooks.work/'
 repo = 'https://github.com/tdh1985/wattlebooks'
+store = 'https://apps.microsoft.com/detail/9nhxgb9bdrr1'
 title = 'Wattlebooks: free invoice app for sole traders, GST and BAS'
 og_alt = 'Wattlebooks: tax invoices, GST and your BAS with no monthly fee, beside a tax invoice made in the app'
 # bing and other indexnow engines fetch this file to trust our pings
@@ -27,7 +28,8 @@ def document(head, css, body):
 
 def common(page_url):
     return (f'<link rel="canonical" href="{page_url}">\n'
-            '<meta name="robots" content="max-image-preview:large">\n'
+            # no cap on snippet length so ai overviews can quote whole answers
+            '<meta name="robots" content="max-image-preview:large, max-snippet:-1, max-video-preview:-1">\n'
             '<meta name="theme-color" content="#15294B" media="(prefers-color-scheme: light)">\n'
             '<meta name="theme-color" content="#0A1220" media="(prefers-color-scheme: dark)">\n'
             # the png is for browsers that can't show an svg icon
@@ -49,7 +51,7 @@ transcript = ' '.join(l.strip() for l in vtt if l.strip() and '-->' not in l and
 
 graph = [
     {'@type': 'Organization', '@id': url + '#org', 'name': 'Wattlebooks', 'url': url,
-     'logo': img('logo.png'), 'sameAs': [repo]},
+     'logo': img('logo.png'), 'sameAs': [repo, store]},
     {'@type': 'WebSite', '@id': url + '#website', 'url': url, 'name': 'Wattlebooks',
      'inLanguage': 'en-AU', 'publisher': {'@id': url + '#org'}},
     {'@type': ['WebPage', 'FAQPage'], '@id': url + '#page', 'url': url, 'name': title,
@@ -61,7 +63,7 @@ graph = [
      'alternateName': 'InvoiceDesk',
      'description': desc, 'applicationCategory': 'BusinessApplication',
      'applicationSubCategory': 'Invoicing', 'operatingSystem': 'Windows 10, Windows 11, macOS, Linux',
-     'softwareVersion': version, 'downloadUrl': repo + '/releases/latest',
+     'softwareVersion': version, 'downloadUrl': repo + '/releases/latest', 'installUrl': store,
      'releaseNotes': repo + '/releases', 'license': 'https://opensource.org/licenses/MIT',
      'isAccessibleForFree': True, 'offers': {'@type': 'Offer', 'price': '0', 'priceCurrency': 'AUD'},
      'countriesSupported': 'AU, NZ, GB, CA, US', 'inLanguage': 'en',
@@ -77,7 +79,7 @@ graph = [
          'Optional phone app for receipts and quick invoices',
      ],
      'image': img('og.png'), 'screenshot': [img(n) for n in shots],
-     'publisher': {'@id': url + '#org'}, 'sameAs': [repo]},
+     'publisher': {'@id': url + '#org'}, 'sameAs': [repo, store]},
     {'@type': 'VideoObject', '@id': url + '#video', 'name': 'Wattlebooks in under a minute',
      'description': 'What Wattlebooks does: a tax invoice with the GST worked out, receipts read for you on Windows, '
                     'and your BAS figures and profit and loss at tax time, for Australia, New Zealand, the UK, '
@@ -109,7 +111,16 @@ p = (site / 'privacy.html').read_text(encoding='utf-8')
 p_head, p_rest = p.split('<style>', 1)
 p_css, p_body = p_rest.split('</style>\n', 1)
 p_url = url + 'privacy.html'
-(out / 'privacy.html').write_text(document(p_head + fonts + common(p_url), css + p_css, p_body),
+p_title = html.unescape(re.search(r'<title>([^<]+)', p_head).group(1))
+p_desc = re.search(r'<meta name="description" content="([^"]+)"', p_head).group(1)
+p_meta = ('<meta property="og:type" content="website">\n'
+          '<meta property="og:site_name" content="Wattlebooks">\n'
+          f'<meta property="og:url" content="{p_url}">\n'
+          f'<meta property="og:title" content="{html.escape(p_title)}">\n'
+          f'<meta property="og:description" content="{p_desc}">\n'
+          f'<meta property="og:image" content="{img("og.png")}">\n'
+          '<meta name="twitter:card" content="summary_large_image">\n')
+(out / 'privacy.html').write_text(document(p_head + fonts + common(p_url) + p_meta, css + p_css, p_body),
                                   encoding='utf-8', newline='\n')
 
 pictures = ''.join(f'<image:image><image:loc>{img(n)}</image:loc></image:image>\n' for n in shots)
@@ -120,6 +131,12 @@ pictures = ''.join(f'<image:image><image:loc>{img(n)}</image:loc></image:image>\
     f'<url>\n<loc>{url}</loc>\n<lastmod>{today}</lastmod>\n{pictures}</url>\n'
     f'<url>\n<loc>{p_url}</loc>\n<lastmod>{today}</lastmod>\n</url>\n'
     '</urlset>\n', encoding='utf-8', newline='\n')
+# ai crawlers are named so a future blanket rule can't shut them out by accident
+bots = ['GPTBot', 'OAI-SearchBot', 'ChatGPT-User', 'ClaudeBot', 'Claude-SearchBot', 'Claude-User',
+        'PerplexityBot', 'Perplexity-User', 'Google-Extended', 'Applebot-Extended', 'CCBot']
+(out / 'robots.txt').write_text(
+    ''.join(f'User-agent: {b}\n' for b in bots) + 'Allow: /\n\nUser-agent: *\nAllow: /\n\n'
+    f'Sitemap: {url}sitemap.xml\n', encoding='utf-8', newline='\n')
 (out / 'llms.txt').write_text((site / 'llms.txt').read_text(encoding='utf-8').replace('{version}', version),
                               encoding='utf-8', newline='\n')
 (out / f'{indexnow_key}.txt').write_text(indexnow_key, encoding='utf-8')
